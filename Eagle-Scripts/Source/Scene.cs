@@ -106,6 +106,23 @@ namespace Eagle
 
         public static void QuitGame() { QuitGame_Native(); }
 
+        // Pauses the game and the entities that are `ProcessMode.Pausable` stop being updated, and the ones that are `ProcessMode.WhenPaused` start.
+        // The physics and the nav mesh crowd stop too.
+        // It takes effect at the start of the next frame, so that all of a frame is updated the same way. Reading it returns the latest value that was set
+        public static bool Paused
+        {
+            get => IsPaused_Native();
+            set => SetPaused_Native(value);
+        }
+
+        // Multiplies the time step of the game: entities, the physics and the nav mesh crowd. It can't be negative.
+        // Like `Paused`, it takes effect at the start of the next frame
+        public static float TimeScale
+        {
+            get => GetTimeScale_Native();
+            set => SetTimeScale_Native(value);
+        }
+
         // Topmost visible, hit-testable Text2D or Image2D at the point
         public static Entity GetUIEntityAt(Vector2 positionInViewport) { return GetUIEntityAt_Native(ref positionInViewport); }
 
@@ -218,6 +235,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void QuitGame_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetPaused_Native(bool bPaused);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool IsPaused_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetTimeScale_Native(float timeScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern float GetTimeScale_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern Entity GetUIEntityAt_Native(ref Vector2 positionInViewport);

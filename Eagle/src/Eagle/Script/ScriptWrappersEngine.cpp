@@ -1282,6 +1282,26 @@ namespace Eagle
 		Application::Get().OnEvent(e);
 	}
 
+	void Script::Eagle_Scene_SetPaused(bool bPaused)
+	{
+		Scene::GetCurrentScene()->SetPaused(bPaused);
+	}
+
+	bool Script::Eagle_Scene_IsPaused()
+	{
+		return Scene::GetCurrentScene()->IsPaused();
+	}
+
+	void Script::Eagle_Scene_SetTimeScale(float timeScale)
+	{
+		Scene::GetCurrentScene()->SetTimeScale(timeScale);
+	}
+
+	float Script::Eagle_Scene_GetTimeScale()
+	{
+		return Scene::GetCurrentScene()->GetTimeScale();
+	}
+
 	MonoObject* Script::Eagle_Scene_GetUIEntityAt(const glm::vec2* positionInViewport)
 	{
 		const auto& scene = Scene::GetCurrentScene();

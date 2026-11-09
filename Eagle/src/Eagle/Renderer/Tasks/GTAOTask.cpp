@@ -1,6 +1,5 @@
 #include "egpch.h"
 #include "GTAOTask.h"
-#include "Eagle/Core/Application.h"
 
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/RenderManager.h"

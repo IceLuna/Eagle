@@ -37,6 +37,24 @@ namespace Eagle
 	class PhysicsRagdollActor;
 	class PhysicsCharacterController;
 
+	// Whether an entity is updated while the game runs
+	enum class ProcessMode
+	{
+		Inherit,    // The same as its parent's. An entity without a parent is `Pausable`
+		Pausable,   // Updated while the scene isn't paused
+		WhenPaused, // Updated only while the scene is paused
+		Always,     // Always updated
+		Disabled,   // Never updated
+	};
+
+	// Whether the scene's time scale affects an entity's time step
+	enum class SceneTimeScaleMode
+	{
+		Inherit, // The same as its parent's. An entity without a parent applies it
+		Apply,
+		Ignore,  // For example, a pause menu that runs at the same speed in slow motion
+	};
+
 	class IDComponent
 	{
 	public:
@@ -125,6 +143,18 @@ namespace Eagle
 	{
 	public:
 		std::string Tag;
+	};
+
+	// Note: the physics and the nav mesh crowd are simulated for the whole scene, meaning they stop while the scene is paused, and they use its time scale
+	class ProcessModeComponent
+	{
+	public:
+		ProcessMode Mode = ProcessMode::Inherit;
+		SceneTimeScaleMode SceneTimeScale = SceneTimeScaleMode::Inherit;
+		float TimeScale = 1.f;
+
+		// If false, its time scale isn't affected by its parent's. For example, an effect that runs at its own speed while its parent is slowed or frozen.
+		bool bInheritTimeScale = true;
 	};
 
 	class LightComponent : public SceneComponent
@@ -2020,6 +2050,7 @@ namespace Eagle
 
 		void SetAudioAsset(const Ref<AssetAudio>& asset)
 		{
+			m_bPausedByProcessing = false; // It's a new sound
 			if (asset)
 			{
 				m_AudioAsset = asset;
@@ -2048,21 +2079,49 @@ namespace Eagle
 		}
 		bool IsStreaming() const { return bStreaming; }
 
+		// Note: while its entity isn't processing, the scene pauses it again in its next update
 		void Play()
 		{
+			m_bPausedByProcessing = false;
 			if (m_Sound)
 				m_Sound->Play();
 		}
 		void Stop()
 		{
+			m_bPausedByProcessing = false;
 			if (m_Sound)
 				m_Sound->Stop();
 		}
 		void SetPaused(bool bPaused)
 		{
+			m_bPausedByProcessing = false;
 			if (m_Sound)
 				m_Sound->SetPaused(bPaused);
 		}
+
+		// Called by the scene every runtime update.
+		// The sound is paused while its entity isn't processing. It's resumed once the entity is processing again
+		void SetPausedByProcessing(bool bPause)
+		{
+			if (!m_Sound)
+				return;
+
+			if (bPause)
+			{
+				if (!m_bPausedByProcessing && m_Sound->IsPlaying() && !m_Sound->IsPaused())
+				{
+					m_Sound->SetPaused(true);
+					m_bPausedByProcessing = true;
+				}
+			}
+			else if (m_bPausedByProcessing)
+			{
+				m_Sound->SetPaused(false);
+				m_bPausedByProcessing = false;
+			}
+		}
+		bool IsPausedByProcessing() const { return m_bPausedByProcessing; }
+
 		bool IsPlaying() const 
 		{
 			if (m_Sound)
@@ -2183,6 +2242,7 @@ namespace Eagle
 	protected:
 		Ref<AssetAudio> m_AudioAsset;
 		Ref<Sound> m_Sound;
+		bool m_bPausedByProcessing = false;
 		float Volume = 1.f;
 		float Pitch = 1.f;
 		float Pan = 0.f;

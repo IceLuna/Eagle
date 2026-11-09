@@ -135,9 +135,10 @@ namespace Eagle
 		InitWithOptions();
 	}
 
-	void SceneRenderer::Render(Timestep ts, const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection)
+	void SceneRenderer::Render(Timestep ts, float gameTimeScale, const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection)
 	{
 		EG_ASSERT(camera);
+		gameTimeScale = glm::max(gameTimeScale, 0.f);
 
 		// Make sure the slot we're about to reuse has been consumed
 		ResolveObjectPicking();
@@ -183,9 +184,10 @@ namespace Eagle
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
 			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha(), zNear = camera->GetPerspectiveNearClip(), zFar = camera->GetPerspectiveFarClip(),
 			cameraFov = camera->GetPerspectiveVerticalFOV(), bProjectionFlipped = camera->IsProjectionFlipped(),
-			pickCoords, pickCoordsCount, pickSlotIndex, ts](const Ref<CommandBuffer>& cmd) mutable
+			pickCoords, pickCoordsCount, pickSlotIndex, ts, gameTimeScale](const Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_DeltaTime = ts;
+			renderer->m_GameTimeScale = gameTimeScale;
 			renderer->m_bProjectionFlipped = bProjectionFlipped;
 			renderer->m_ZNear = zNear;
 			renderer->m_ZFar = zFar;
@@ -484,9 +486,9 @@ namespace Eagle
 		return specs;
 	}
 
-	void SceneRenderer::AddParticleSystem(const ParticleSystemComponent& system)
+	void SceneRenderer::AddParticleSystem(const ParticleSystemComponent& system, float timeScale)
 	{
-		m_ParticleTask->AddParticleSystem(system);
+		m_ParticleTask->AddParticleSystem(system, timeScale);
 	}
 
 	void SceneRenderer::UpdateParticleSystem(const ParticleSystemComponent& system)
@@ -507,6 +509,11 @@ namespace Eagle
 	void SceneRenderer::RemoveAllParticleSystems()
 	{
 		m_ParticleTask->RemoveAllParticleSystems();
+	}
+
+	void SceneRenderer::SetParticleTimeScales(std::vector<std::pair<GUID, float>>&& systemTimeScales)
+	{
+		m_ParticleTask->SetTimeScales(std::move(systemTimeScales));
 	}
 
 	void SceneRenderer::SetOutlines(ankerl::unordered_dense::map<uint32_t, OutlineSettings> outlines)

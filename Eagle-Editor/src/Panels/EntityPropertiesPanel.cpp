@@ -68,6 +68,22 @@ namespace Eagle
 	static const char* s_Text2DEffectSizeHelpMsg = "In reference pixels. Effects reach at most about 10% of the font size outside of the glyphs, larger sizes are clamped";
 	static const char* s_2DHitTestHelpMsg = "If set, the entity receives mouse events and blocks the 2D UI under it (even if it's transparent)\n"
 		"C# Mouse events (for example, C# `Entity.OnMouseEnter`) get triggered during runtime.";
+	static const char* s_EntityProcessModeHelpMsg = "Whether it's updated while the game runs, depending on whether it's paused (see `Scene.Paused` in scripts).\n"
+		"Inherit - the same as its parent. Without a parent, it's Pausable.\n"
+		"Pausable - updated while the game isn't paused.\n"
+		"When Paused - updated only while the game is paused (for example, a pause menu).\n"
+		"Always - always updated.\n"
+		"Disabled - never updated.\n"
+		"Note: the physics and the nav mesh crowd stop for the whole scene while it's paused";
+	static const char* s_SceneTimeScaleHelpMsg = "Whether the scene's time scale affects this entity.\n"
+		"Inherit - the same as its parent. Without a parent, it's applied.\n"
+		"Apply - it's applied.\n"
+		"Ignore - it isn't applied (for example, a pause menu or a HUD that run at the same speed in slow motion)";
+	static const char* s_EntityTimeScaleHelpMsg = "Multiplies its time step, and its children's (theirs are multiplied by it too, unless they don't inherit it). 0 - it's frozen.\n"
+		"It doesn't apply to the physics and the nav mesh crowd, they use the scene's time scale";
+	static const char* s_InheritTimeScaleHelpMsg = "If it's off, its time scale isn't multiplied by its parent's. "
+		"For example, an effect that runs at its own speed while its parent is slowed or frozen.\n"
+		"It doesn't change whether the scene's time scale applies, see `Scene Time Scale`";
 
 
 	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, Entity* newEntitySelection)
@@ -294,6 +310,31 @@ namespace Eagle
 			{
 				UI::BeginPropertyGrid("TagComponent");
 				bEntityChanged |= UI::PropertyText("Tag", component.Tag);
+				UI::EndPropertyGrid();
+			}, false);
+			DrawComponent<ProcessModeComponent>("Processing", entity, [this, &entity](ProcessModeComponent& component)
+			{
+				UI::BeginPropertyGrid("ProcessModeComponent");
+
+				bEntityChanged |= UI::ComboEnum("Process Mode", component.Mode, s_EntityProcessModeHelpMsg);
+				bEntityChanged |= UI::ComboEnum("Scene Time Scale", component.SceneTimeScale, s_SceneTimeScaleHelpMsg);
+				if (UI::PropertyDrag("Time Scale", component.TimeScale, 0.01f, 0.f, 0.f, s_EntityTimeScaleHelpMsg))
+				{
+					component.TimeScale = glm::max(component.TimeScale, 0.f);
+					bEntityChanged = true;
+				}
+				bEntityChanged |= UI::Property("Inherit Time Scale", component.bInheritTimeScale, s_InheritTimeScaleHelpMsg);
+
+				if (bRuntime)
+				{
+					const Scene* scene = entity.GetScene();
+					const EntityProcessState state = scene->GetEntityProcessState(entity);
+					ImGui::TextUnformatted("State");
+					ImGui::NextColumn();
+					ImGui::TextDisabled("%s, time scale %.3g%s", state.bProcessing ? "Processing" : "Not processing", state.TimeScale, scene->IsPaused() ? " (the game is paused)" : "");
+					ImGui::NextColumn();
+				}
+
 				UI::EndPropertyGrid();
 			}, false);
 		}

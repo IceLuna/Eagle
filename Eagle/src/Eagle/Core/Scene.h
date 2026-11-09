@@ -56,6 +56,12 @@ namespace Eagle
 		struct CrowdSettings;
 	}
 
+	struct EntityProcessState
+	{
+		float TimeScale = 1.f; // Its own, its parents, and the scene's
+		bool bProcessing = true;
+	};
+
 	struct SceneSoundData
 	{
 		GUID ID;
@@ -182,6 +188,25 @@ namespace Eagle
 		void ClearScene();
 
 		bool IsPlaying() const { return bIsPlaying; }
+
+		// The entities that are `Pausable` stop being updated.
+		// The physics and the nav mesh crowd stop too.
+		// It takes effect at the start of the next update, so that all of a frame is updated the same way. `IsPaused()` returns the latest value that was set
+		void SetPaused(bool bPaused) { m_bPausedRequested = bPaused; }
+		bool IsPaused() const { return m_bPausedRequested; }
+
+		void SetTimeScale(float timeScale) { m_TimeScaleRequested = glm::max(timeScale, 0.f); }
+		float GetTimeScale() const { return m_TimeScaleRequested; }
+
+		// How the entity is updated while the game runs
+		EntityProcessState GetEntityProcessState(const Entity& entity) const;
+		bool IsEntityProcessing(const Entity& entity) const { return GetEntityProcessState(entity).bProcessing; }
+
+		float GetEntityDeltaTime(const Entity& entity, Timestep ts) const
+		{
+			const EntityProcessState state = GetEntityProcessState(entity);
+			return state.bProcessing ? ts * state.TimeScale : 0.f;
+		}
 
 		// Needs to be called every frame
 		void DrawDebugLine(const RendererLine& line)
@@ -453,14 +478,19 @@ namespace Eagle
 		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void UpdateNavMesh(Timestep ts);
-		void UpdateSceneSequences(Timestep ts);
+		void UpdateSceneSequences(Timestep ts, bool bPerEntityTime);
 		void SyncCrowdAgents();
 		void SetupOnAppAssemblyReloadedCallback();
 
 		void GatherLightsInfo();
 		void GatherSkeletalMeshes();
 		void UpdateScripts(Timestep ts);
-		void UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion);
+		void UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion, bool bPerEntityTime);
+		void UpdateAudioProcessing(); // Pauses the sounds of the entities that aren't processing, and resumes them
+		
+		float GetParticleSystemTimeScale(const Entity& entity) const;
+		void UpdateParticleTimeScales();
+
 		void RenderScene(Timestep ts, bool bRuntime);
 		void UpdateOutlines();
 		CameraComponent* FindOrCreateRuntimeCamera();
@@ -816,6 +846,22 @@ namespace Eagle
 		std::string m_DebugName;
 
 		bool bIsPlaying = false;
+
+		bool m_bPaused = false;
+		bool m_bPausedRequested = false;
+		float m_TimeScale = 1.f;
+		float m_TimeScaleRequested = 1.f;
+
+		std::vector<float> m_SkeletalMeshDeltaTimes; // of `m_SkeletalMeshes`
+		std::vector<float> m_SystemsToUpdateAnimsDeltaTimes; // of `m_SystemsToUpdateAnims`
+
+		// The particle systems that were added to the renderer, and the time scales it has of them. Key - system ID
+		struct ParticleSystemTimeScale
+		{
+			uint32_t EntityID = 0u;
+			float TimeScale = 1.f;
+		};
+		ankerl::unordered_dense::map<GUID, ParticleSystemTimeScale> m_ParticleSystemTimeScales;
 
 		DirtyFlags m_DirtyFlags;
 

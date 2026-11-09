@@ -48,13 +48,18 @@ layout(binding = 7) writeonly buffer EventSpawnOffsetsBuffer
     uint g_EventSpawnOffsets[];
 };
 
+layout(binding = 8) readonly buffer EmitterTimeScalesBuffer
+{
+    float g_EmitterTimeScales[];
+};
+
 layout(push_constant) uniform PushConstants
 {
     mat4 g_View;
     uint g_PreSimIndex;
     uint g_PostSimIndex;
     uint g_NumEmitters;
-    float g_DeltaTime;
+    float g_DeltaTime; // Delta time of the frame. Each emitter scales it
     uint g_MaxParticles;
     CullingFrustum g_Frustum;
 };
@@ -161,6 +166,7 @@ void main()
 
         // Visibility and world position are updated even for disabled emitters, because their particles can still be alive
         const mat4 emitterTr = g_Transforms[emitter.TransformIndex];
+        const float dt = Emitter_GetDeltaTime(g_DeltaTime, g_EmitterTimeScales[emitter.TransformIndex]);
         const bool bVisible = FrustumAABBIntersection(g_Frustum, g_View * emitterTr, emitter.AABBMin, emitter.AABBMax);
         Emitter_SetIsVisible(emitter, bVisible);
 
@@ -168,7 +174,7 @@ void main()
         const vec3 worldPos = vec3(emitterTr[3][0], emitterTr[3][1], emitterTr[3][2]);
         emitter.PreviousWorldPos = bHasPreviousFrame ? emitter.WorldPos : worldPos;
         emitter.WorldPos = worldPos;
-        emitter.Velocity = g_DeltaTime > 0.f ? (emitter.WorldPos - emitter.PreviousWorldPos) / g_DeltaTime : vec3(0.f);
+        emitter.Velocity = dt > 0.f ? (emitter.WorldPos - emitter.PreviousWorldPos) / dt : vec3(0.f);
         emitter.InternalFlags = SetFlag(emitter.InternalFlags, Emitter_Internal_HasPreviousFrame_Mask, true);
 
         // The emitter's movement since the last frame, applied to its particles by `simulate` when "Local simulation space" is used
@@ -176,7 +182,7 @@ void main()
         emitter.PreviousTransformInverse = inverse(emitterTr);
 
         // Turbulence drift
-        emitter.NoiseOffset = mod(emitter.NoiseOffset + Emitter_GetNoiseDriftPerSecond(emitter) * g_DeltaTime, float(Noise_Period));
+        emitter.NoiseOffset = mod(emitter.NoiseOffset + Emitter_GetNoiseDriftPerSecond(emitter) * dt, float(Noise_Period));
 
         // The fast-forward batch was emitted last frame, disable it
         if (Emitter_IsFastForwardEnabled(emitter))
@@ -207,7 +213,7 @@ void main()
                 Emitter_SetWasExplode(emitter, true);
             }
 
-            emitter.SpawnIntervalTimer += g_DeltaTime;
+            emitter.SpawnIntervalTimer += dt;
 
             // If no longer in explode mode, wait for all exploded particles to die
             const float spawnInterval = (bExplode || Emitter_WasExplode(emitter)) ? emitter.LoopDuration : 1.f / float(emitter.SpawnRate);
@@ -246,7 +252,7 @@ void main()
             else // Continuous emitters
             {
                 // Time since the current loop started
-                emitter.DeltaTime += g_DeltaTime;
+                emitter.DeltaTime += dt;
 
                 // Particles triggered by time (`SpawnRate`) and by the distance the emitter moved (`SpawnPerMeter`).
                 uint timeTriggers = emitter.SpawnIntervalTimer >= spawnInterval ? uint(emitter.SpawnIntervalTimer / spawnInterval) : 0u;
@@ -261,7 +267,7 @@ void main()
                     timeTriggers = uint(min(float(timeTriggers), validTriggers));
                 }
                 uint distanceTriggers = 0u;
-                if (emitter.SpawnPerMeter > 0)
+                if (emitter.SpawnPerMeter > 0 && dt > 0.f) // A paused emitter doesn't spawn
                 {
                     emitter.DistanceAccumulator += length(emitter.WorldPos - emitter.PreviousWorldPos);
                     distanceTriggers = uint(min(emitter.DistanceAccumulator * emitter.SpawnPerMeter, float(g_MaxParticles)));

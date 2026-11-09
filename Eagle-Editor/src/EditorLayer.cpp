@@ -301,17 +301,33 @@ namespace Eagle
 		}
 
 		// We shouldn't render if window is unfocused, and the user requested not to do it in that case.
-		const bool bShouldRenderBasedOnFocus = (!bRenderOnlyWhenFocused || m_WindowFocused) && !Application::Get().IsMinimized();
+		const bool bShouldRenderBasedOnFocus = !bRenderOnlyWhenFocused || IsAnyEditorWindowFocused();
+		const bool bRender = m_bViewportVisible && bShouldRenderBasedOnFocus && !Application::Get().IsMinimized();
 		ReloadScriptsIfNecessary();
 		HandleResize();
 		UpdateSelectionVisuals();
 		UpdateTextUIBounds();
-		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus, bUpdateAnimationsInEditor);
+		m_CurrentScene->OnUpdate(ts, bRender, bUpdateAnimationsInEditor);
 
 		if (m_EditorState == EditorState::Edit)
 		{
 			m_Camera = m_CurrentScene->EditorCamera;
 		}
+	}
+
+	bool EditorLayer::IsAnyEditorWindowFocused() const
+	{
+		// Without viewports, the main window is the only one. ImGui doesn't track the focus of platform windows then
+		if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
+			return m_WindowFocused;
+
+		// Includes the main window
+		for (const ImGuiViewport* viewport : ImGui::GetPlatformIO().Viewports)
+		{
+			if (viewport->Flags & ImGuiViewportFlags_IsFocused)
+				return true;
+		}
+		return false;
 	}
 
 	void EditorLayer::OnEvent(Event& e)
@@ -2482,7 +2498,8 @@ namespace Eagle
 
 			if (UI::ComboEnum("Guizmo Mode", guizmoMode))
 				m_GuizmoMode = guizmoMode;
-			UI::Property("Eco Rendering", bRenderOnlyWhenFocused, "If checked, the scene won't be rendered if the window is not in focus");
+			UI::Property("Eco Rendering", bRenderOnlyWhenFocused, "If checked, the scene isn't rendered while none of the editor's windows is focused "
+				"(the main window and the floating ones). The scene is never rendered while the viewport can't be seen");
 			UI::Property("Update Animations", bUpdateAnimationsInEditor, "If checked, animations will be updated in the editor mode");
 			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
 			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
@@ -2592,6 +2609,7 @@ namespace Eagle
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 		m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+		m_bViewportVisible = false;
 
 		if (!m_ViewportHidden)
 		{
@@ -2606,6 +2624,9 @@ namespace Eagle
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
+
+			const bool bViewportMinimized = (ImGui::GetWindowViewport()->Flags & ImGuiViewportFlags_IsMinimized) != 0;
+			m_bViewportVisible = !bViewportMinimized && viewportPanelSize.x >= 1.f && viewportPanelSize.y >= 1.f;
 
 			UI::Image(m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
 

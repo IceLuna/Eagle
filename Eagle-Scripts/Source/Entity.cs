@@ -20,6 +20,25 @@ namespace Eagle
         Invalid, // Not a component, or a user type that inherits an engine component (SceneComponent, CameraComponent, ...)
     }
 
+    // Whether an entity is updated while the game runs, depending on whether the scene is paused (see `Scene.Paused`).
+    // Note: the physics and the nav mesh crowd are simulated for the whole scene, meaning they stop while the scene is paused, and they use its time scale
+    public enum ProcessMode
+    {
+        Inherit,    // The same as its parent's. An entity without a parent is `Pausable`
+        Pausable,   // Updated while the scene isn't paused
+        WhenPaused, // Updated only while the scene is paused (for example, a pause menu)
+        Always,     // Always updated
+        Disabled,   // Never updated
+    }
+
+    // Whether `Scene.TimeScale` affects an entity's time step
+    public enum SceneTimeScaleMode
+    {
+        Inherit, // The same as its parent's. An entity without a parent applies it
+        Apply,
+        Ignore,  // For example, a pause menu that run at the same speed in slow motion
+    }
+
     internal static class ComponentTypeInfo
     {
         private static readonly Assembly s_CoreAssembly = typeof(Component).Assembly;
@@ -102,6 +121,7 @@ namespace Eagle
 
         public virtual void OnDestroy() { }
 
+        // @ts. The time step of the entity (ts = frameTs * EffectiveTimeScale)
         public virtual void OnUpdate(float ts) { }
 
         public virtual void OnPhysicsUpdate(float ts) { }
@@ -255,6 +275,43 @@ namespace Eagle
                 SetTag_Native(ID, value);
             }
         }
+
+        public ProcessMode ProcessMode
+        {
+            get => GetProcessMode_Native(ID);
+            set => SetProcessMode_Native(ID, value);
+        }
+
+        // Whether `Scene.TimeScale` applies to it
+        public SceneTimeScaleMode SceneTimeScale
+        {
+            get => GetSceneTimeScaleMode_Native(ID);
+            set => SetSceneTimeScaleMode_Native(ID, value);
+        }
+
+        // Multiplies the time step of the entity and its children (they multiply theirs by it too, unless they don't inherit it).
+        // 0 - it's frozen. It can't be negative.
+        // Note: it doesn't apply to the physics and the nav mesh crowd, they use `Scene.TimeScale`
+        public float TimeScale
+        {
+            get => GetTimeScale_Native(ID);
+            set => SetTimeScale_Native(ID, value);
+        }
+
+        // If false, its `TimeScale` isn't affected by its parent's. For example, an effect that runs at its own speed while its parent is slowed or frozen.
+        // Note: it doesn't change whether `Scene.TimeScale` applies (see `SceneTimeScale`)
+        public bool InheritTimeScale
+        {
+            get => GetInheritTimeScale_Native(ID);
+            set => SetInheritTimeScale_Native(ID, value);
+        }
+
+        // True if it's updated now
+        public bool IsProcessing => IsProcessing_Native(ID);
+
+        // What its time step is multiplied by (its own `TimeScale`, its parents, and the scene's `Scene.TimeScale`).
+        // See `TimeScale`, `SceneTimeScale`, `InheritTimeScale`, and `Scene.TimeScale`
+        public float EffectiveTimeScale => GetEffectiveTimeScale_Native(ID);
 
         public T AddComponent<T>() where T : Component, new()
         {
@@ -641,5 +698,35 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetTag_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetProcessMode_Native(in GUID entityID, ProcessMode mode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ProcessMode GetProcessMode_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTimeScale_Native(in GUID entityID, float timeScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetTimeScale_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSceneTimeScaleMode_Native(in GUID entityID, SceneTimeScaleMode mode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern SceneTimeScaleMode GetSceneTimeScaleMode_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetInheritTimeScale_Native(in GUID entityID, bool bInherit);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetInheritTimeScale_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsProcessing_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetEffectiveTimeScale_Native(in GUID entityID);
     }
 }

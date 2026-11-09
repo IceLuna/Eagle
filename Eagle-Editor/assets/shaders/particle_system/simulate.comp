@@ -83,8 +83,13 @@ layout(binding = 16) buffer IndicesToRenderOpaqueBuffer
     uint g_IndicesToRenderOpaque[];
 };
 
+layout(binding = 17) readonly buffer EmitterTimeScalesBuffer
+{
+    float g_EmitterTimeScales[];
+};
+
 #ifdef EG_SORT_OPAQUE
-layout(binding = 17) buffer DistancesOpaqueBuffer
+layout(binding = 18) buffer DistancesOpaqueBuffer
 {
     uint g_DistancesOpaque[];
 };
@@ -98,7 +103,7 @@ layout(push_constant) uniform PushConstants
     float g_CameraNear;
 
     float g_CameraFar;
-    float g_DeltaTime;
+    float g_DeltaTime; // Delta time of the frame. Each emitter scales it
     uint g_PreSimIndex;
     uint g_PostSimIndex;
     uint g_MaxParticles;
@@ -233,24 +238,27 @@ void main()
 
     Particle particle = Particle_Unpack(g_Particles[particleIndex]);
 
-    // Age first. A particle that reaches its lifetime during this step is neither simulated nor drawn.
-    // So nothing is drawn past its lifetime, the number of alive particles matches `spawn rate * lifetime`,
-    // But it has a side effect: particles that live less than one frame are no longer drawn at all
-    particle.CurrentLifetime += g_DeltaTime;
+    const uint emitterIndex = Particle_GetEmitterIndex(particle.EmitterRef);
+    const Emitter emitter = g_Emitters[emitterIndex];
 
-    if (particle.CurrentLifetime >= particle.Lifetime)
+    // The emitter slot was reused by another emitter, so this particle's emitter no longer exists.
+    // It's checked before the emitter's data is used so that it doesn't trigger sub-emitters
+    if (Particle_GetEmitterGeneration(particle.EmitterRef) != (emitter.Generation & Emitter_GenerationMask))
     {
-        TriggerSubEmitters(SubEmitterTrigger_Death, particle, particleIndex);
         PushDead(particleIndex);
         return;
     }
 
-    const uint emitterIndex = Particle_GetEmitterIndex(particle.EmitterRef);
-    const Emitter emitter = g_Emitters[emitterIndex];
+    const float dt = Emitter_GetDeltaTime(g_DeltaTime, g_EmitterTimeScales[emitter.TransformIndex]);
 
-    // The emitter slot was reused by another emitter, so this particle's emitter no longer exists
-    if (Particle_GetEmitterGeneration(particle.EmitterRef) != (emitter.Generation & Emitter_GenerationMask))
+    // Age first. A particle that reaches its lifetime during this step is neither simulated nor drawn.
+    // So nothing is drawn past its lifetime, the number of alive particles matches `spawn rate * lifetime`,
+    // But it has a side effect: particles that live less than one frame are no longer drawn at all
+    particle.CurrentLifetime += dt;
+
+    if (particle.CurrentLifetime >= particle.Lifetime)
     {
+        TriggerSubEmitters(SubEmitterTrigger_Death, particle, particleIndex);
         PushDead(particleIndex);
         return;
     }
@@ -282,10 +290,11 @@ void main()
     const vec3 gravity = gravitySample >= 0.5f ? g_Gravity : vec3(0.f);
 
     const vec2 turbulence = HasFlag(emitter.Flags, Emitter_HasTurbulence_Mask) ? SampleEmitterCurve(emitterIndex, EmitterCurve_Turbulence, lifeAlpha).xy : vec2(0.f);
-    particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, gravity, emitter.NoiseOffset, turbulence) * g_DeltaTime;
-    Particle_ApplyDrag(particle.Velocity, drag, g_DeltaTime);
+    particle.Velocity += Particle_ComputeForce(emitter, particle.Position, emitterRotation, gravity, emitter.NoiseOffset, turbulence) * dt;
+    Particle_ApplyDrag(particle.Velocity, drag, dt);
 
-    if (emitter.CollisionType != ParticleCollisionType_None)
+    // A paused particle doesn't collide. It isn't moving, but the depth buffer can change
+    if (emitter.CollisionType != ParticleCollisionType_None && dt > 0.f)
     {
         vec4 position = g_ViewProj * vec4(particle.Position, 1.0);
         if (position.w > 0.f)
@@ -327,7 +336,7 @@ void main()
     if (emitter.TextureIndex != EG_INVALID_INDEX)
     {
         const float animationFPS = emitter.AnimationSpeed * float(emitter.AnimationImagesNum.x * emitter.AnimationImagesNum.y) / particle.Lifetime;
-        const float previousLifetime = max(particle.CurrentLifetime - g_DeltaTime, 0.f);
+        const float previousLifetime = max(particle.CurrentLifetime - dt, 0.f);
         const uint advanceAnimationCount = uint(particle.CurrentLifetime * animationFPS) - uint(previousLifetime * animationFPS);
         animationLerp = fract(particle.CurrentLifetime * animationFPS);
 
@@ -347,7 +356,7 @@ void main()
     const vec3 velocity = ApplyVelocityCoef(particle.Velocity + velocityOverLifetime, velocityCoef, emitterRotation, bWorldSpaceVelocity);
 
     particle.Size = sizeRotation.xy * particle.SizeScale;
-    particle.Position += velocity * g_DeltaTime;
+    particle.Position += velocity * dt;
     particle.Flags = EmitterFlagsToParticleFlags(emitter.Flags);
     particle.RotationZ = rotationZ;
     particle.EffectiveVelocity = velocity;

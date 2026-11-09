@@ -177,7 +177,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Postprocessing. Auto Exposure");
 
 		const auto& options = m_Renderer.GetOptions_RT().AutoExposure;
-		const float ts = Application::Get().GetTimestep();
+		const float ts = m_Renderer.GetDeltaTime_RT();
 		
 		const float minLogLum = options.MinLogLum;
 		const float maxLogLum = options.MaxLogLum;
@@ -291,7 +291,7 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Postprocessing. Lens Pass");
 
 		const auto& lens = m_Renderer.GetOptions_RT().Lens;
-		const Timestep ts = Application::Get().GetTimestep();
+		const float ts = m_Renderer.GetDeltaTime_RT();
 
 		struct PushData
 		{

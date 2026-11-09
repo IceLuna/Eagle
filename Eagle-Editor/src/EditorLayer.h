@@ -57,6 +57,8 @@ namespace Eagle
 		bool IsViewportFocused() const { return m_ViewportFocused; }
 		bool IsViewportHovered() const { return m_ViewportHovered; }
 
+		bool IsAnyEditorWindowFocused() const;
+
 		SnapSettings& GetSnapSettings() { return m_SnapSettings; }
 		const SnapSettings& GetSnapSettings() const { return m_SnapSettings; }
 		bool IsDrawingAllTextUIBounds() const { return bDrawAllTextUIBounds; }
@@ -217,10 +219,11 @@ namespace Eagle
 		glm::vec2 m_WindowSizeBeforeFS;
 		glm::vec2 m_WindowPosBeforeFS;
 
-		bool m_WindowFocused = true;
+		bool m_WindowFocused = true; // The main window has the focus
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;
+		bool m_bViewportVisible = true;
 		bool m_bFullScreen = false;
 		bool m_ShowSaveScenePopupForNewScene = false;
 		bool m_bDrawEditorMisc = true;

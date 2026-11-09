@@ -4,7 +4,6 @@
 #include "Eagle/Renderer/VidWrappers/PipelineCompute.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/Renderer/Tasks/SortTask.h"
-#include "Eagle/Utils/Timer.h"
 
 namespace Eagle
 {
@@ -21,11 +20,15 @@ namespace Eagle
 		void OnResize(glm::uvec2 size) override;
 		void InitWithOptions(const SceneRendererSettings& settings);
 
-		void AddParticleSystem(const ParticleSystemComponent& system);
+		void AddParticleSystem(const ParticleSystemComponent& system, float timeScale);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
 		void RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval);
 		void RemoveAllParticleSystems();
 		void UpdateTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
+
+		// The particles of a system are simulated at the frame's time step multiplied by its time scale (0 - they're paused).
+		// @systemTimeScales. Pairs of a system ID and its time scale. Only the ones that changed are needed
+		void SetTimeScales(std::vector<std::pair<GUID, float>>&& systemTimeScales);
 
 		// Instead of decompositing it on GPU side per particle every frame, we'll send it there
 		// Must match `DecompositedTransform` in particle_system/common.h.
@@ -75,8 +78,12 @@ namespace Eagle
 		};
 
 	private:
-		bool AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform);
+		bool AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform, float timeScale);
 		bool RemoveEmitter(const ParticleEmitter& emitter, const GUID& systemID, bool bForceImmediateRemoval = false);
+
+		float GetSystemTimeScale(const GUID& systemID) const;
+		float GetSlotTimeScale(uint32_t transformIndex) const;
+		void AdvanceDeadEmitters();
 
 		void InitResources();
 		void InitPipelines();
@@ -95,6 +102,7 @@ namespace Eagle
 		void ReadBackDroppedParticles(const Ref<CommandBuffer>& cmd);
 		void ResetGPUState(const Ref<CommandBuffer>& cmd);
 		void ReclaimDeadEmitters();
+		void UploadTimeScales(const Ref<CommandBuffer>& cmd);
 		void UpdateMeshEmittersData(const Ref<CommandBuffer>& cmd);
 		void WriteEmitterCurves(const Ref<CommandBuffer>& cmd, const ParticleEmitter& emitter, uint32_t emitterIndex);
 		void WriteSubEmitterLinks(const Ref<CommandBuffer>& cmd, const GUID& systemID);
@@ -148,18 +156,13 @@ namespace Eagle
 
 		struct DeadEmitterData
 		{
-			Timer TimeOfDeath;
 			uint32_t EmitterIndex = 0; // index of the emitter inside of `m_EmittersBuffer`
 			uint32_t TransformIndex = 0;
-			float TimeTillDead = 0.f; // In seconds
+			float TimeLeft = 0.f;
 
 			bool IsDead() const
 			{
-				const double duration = TimeOfDeath.GetSeconds();
-				if (duration >= TimeTillDead)
-					return true;
-
-				return false;
+				return TimeLeft <= 0.f;
 			}
 		};
 
@@ -173,8 +176,14 @@ namespace Eagle
 		std::vector<DecompositedTransform> m_DecompositedTransforms;
 		std::vector<uint32_t> m_FreeTransformSlots; // Free slots inside of `m_Transforms`
 
+		std::vector<float> m_TimeScales;
+		std::vector<float> m_TimeScalesToUpload; // The resolved `m_TimeScales`. To avoid allocations
+		ankerl::unordered_dense::map<GUID, float> m_SystemTimeScales; // Key - Particle system. To add its new emitters with it
+		float m_UploadedGameTimeScale = 1.f; // The game's time scale that `m_TimeScalesBuffer` was resolved with
+
 		Ref<Buffer> m_TransformsBuffer;
 		Ref<Buffer> m_DecompositedTransformsBuffer;
+		Ref<Buffer> m_TimeScalesBuffer;
 		Ref<Buffer> m_ParticlesBuffer;
 		Ref<Buffer> m_EmittersSpawnCountBuffer;
 		Ref<Buffer> m_EmittersBuffer;
@@ -224,6 +233,7 @@ namespace Eagle
 		uint32_t m_PingPong = 0; // Pre/Post simulation index
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bUpdateTransforms = false;
+		bool bUpdateTimeScales = false;
 		bool bSortOpaque = false;
 		bool bResetGPUState = false;
 		bool bMaxParticlesBudgetChanged = false;
@@ -241,5 +251,6 @@ namespace Eagle
 
 		constexpr static uint32_t s_InvalidEmitterIndex = uint32_t(-1);
 		constexpr static uint32_t s_InitialMaxParticles = 100000u;
+		constexpr static float s_DefaultTimeScale = -1.f;
 	};
 }

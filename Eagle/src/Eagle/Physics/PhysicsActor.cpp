@@ -519,6 +519,10 @@ namespace Eagle
 		if (!ScriptEngine::IsEntityModuleValid(m_Entity))
 			return;
 
+		const Scene* scene = m_Entity.GetScene();
+		if (scene && !scene->IsEntityProcessing(m_Entity))
+			return;
+
 		ScriptEngine::OnPhysicsUpdateEntity(m_Entity, fixedDeltaTime);
 	}
 	

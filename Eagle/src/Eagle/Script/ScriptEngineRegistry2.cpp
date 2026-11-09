@@ -35,6 +35,16 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::RemoveOutline_Native", Eagle::Script::Eagle_Entity_RemoveOutline);
 		mono_add_internal_call("Eagle.Entity::HasOutline_Native", Eagle::Script::Eagle_Entity_HasOutline);
 		mono_add_internal_call("Eagle.Entity::GetOutline_Native", Eagle::Script::Eagle_Entity_GetOutline);
+		mono_add_internal_call("Eagle.Entity::SetProcessMode_Native", Eagle::Script::Eagle_Entity_SetProcessMode);
+		mono_add_internal_call("Eagle.Entity::GetProcessMode_Native", Eagle::Script::Eagle_Entity_GetProcessMode);
+		mono_add_internal_call("Eagle.Entity::SetTimeScale_Native", Eagle::Script::Eagle_Entity_SetTimeScale);
+		mono_add_internal_call("Eagle.Entity::GetTimeScale_Native", Eagle::Script::Eagle_Entity_GetTimeScale);
+		mono_add_internal_call("Eagle.Entity::SetSceneTimeScaleMode_Native", Eagle::Script::Eagle_Entity_SetSceneTimeScaleMode);
+		mono_add_internal_call("Eagle.Entity::GetSceneTimeScaleMode_Native", Eagle::Script::Eagle_Entity_GetSceneTimeScaleMode);
+		mono_add_internal_call("Eagle.Entity::SetInheritTimeScale_Native", Eagle::Script::Eagle_Entity_SetInheritTimeScale);
+		mono_add_internal_call("Eagle.Entity::GetInheritTimeScale_Native", Eagle::Script::Eagle_Entity_GetInheritTimeScale);
+		mono_add_internal_call("Eagle.Entity::IsProcessing_Native", Eagle::Script::Eagle_Entity_IsProcessing);
+		mono_add_internal_call("Eagle.Entity::GetEffectiveTimeScale_Native", Eagle::Script::Eagle_Entity_GetEffectiveTimeScale);
 
 		//Input
 		mono_add_internal_call("Eagle.Input::IsMouseButtonPressed_Native", Eagle::Script::Eagle_Input_IsMouseButtonPressed);
@@ -736,6 +746,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OpenSceneAsync_Native", Eagle::Script::Eagle_Scene_OpenSceneAsync);
 		mono_add_internal_call("Eagle.Scene::GetActiveSceneLoad_Native", Eagle::Script::Eagle_Scene_GetActiveSceneLoad);
 		mono_add_internal_call("Eagle.Scene::QuitGame_Native", Eagle::Script::Eagle_Scene_QuitGame);
+		mono_add_internal_call("Eagle.Scene::SetPaused_Native", Eagle::Script::Eagle_Scene_SetPaused);
+		mono_add_internal_call("Eagle.Scene::IsPaused_Native", Eagle::Script::Eagle_Scene_IsPaused);
+		mono_add_internal_call("Eagle.Scene::SetTimeScale_Native", Eagle::Script::Eagle_Scene_SetTimeScale);
+		mono_add_internal_call("Eagle.Scene::GetTimeScale_Native", Eagle::Script::Eagle_Scene_GetTimeScale);
 		mono_add_internal_call("Eagle.Scene::GetUIEntityAt_Native", Eagle::Script::Eagle_Scene_GetUIEntityAt);
 		mono_add_internal_call("Eagle.Scene::GetHoveredUIEntity_Native", Eagle::Script::Eagle_Scene_GetHoveredUIEntity);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);

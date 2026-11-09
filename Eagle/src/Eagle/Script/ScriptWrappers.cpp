@@ -639,6 +639,138 @@ namespace Eagle
 		return true;
 	}
 
+	void Script::Eagle_Entity_SetProcessMode(GUID entityID, ProcessMode mode)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `ProcessMode`. Entity is null");
+			return;
+		}
+		if (!magic_enum::enum_contains(mode))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `ProcessMode`. Invalid value: {}", int(mode));
+			return;
+		}
+
+		entity.GetComponent<ProcessModeComponent>().Mode = mode;
+	}
+
+	ProcessMode Script::Eagle_Entity_GetProcessMode(GUID entityID)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `ProcessMode`. Entity is null");
+			return ProcessMode::Inherit;
+		}
+
+		return entity.GetComponent<ProcessModeComponent>().Mode;
+	}
+
+	void Script::Eagle_Entity_SetSceneTimeScaleMode(GUID entityID, SceneTimeScaleMode mode)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `SceneTimeScale`. Entity is null");
+			return;
+		}
+		if (!magic_enum::enum_contains(mode))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `SceneTimeScale`. Invalid value: {}", int(mode));
+			return;
+		}
+
+		entity.GetComponent<ProcessModeComponent>().SceneTimeScale = mode;
+	}
+
+	SceneTimeScaleMode Script::Eagle_Entity_GetSceneTimeScaleMode(GUID entityID)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `SceneTimeScale`. Entity is null");
+			return SceneTimeScaleMode::Inherit;
+		}
+
+		return entity.GetComponent<ProcessModeComponent>().SceneTimeScale;
+	}
+
+	void Script::Eagle_Entity_SetTimeScale(GUID entityID, float timeScale)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `TimeScale`. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<ProcessModeComponent>().TimeScale = glm::max(timeScale, 0.f);
+	}
+
+	float Script::Eagle_Entity_GetTimeScale(GUID entityID)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `TimeScale`. Entity is null");
+			return 1.f;
+		}
+
+		return entity.GetComponent<ProcessModeComponent>().TimeScale;
+	}
+
+	void Script::Eagle_Entity_SetInheritTimeScale(GUID entityID, bool bInherit)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `InheritTimeScale`. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<ProcessModeComponent>().bInheritTimeScale = bInherit;
+	}
+
+	bool Script::Eagle_Entity_GetInheritTimeScale(GUID entityID)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `InheritTimeScale`. Entity is null");
+			return true;
+		}
+
+		return entity.GetComponent<ProcessModeComponent>().bInheritTimeScale;
+	}
+
+	bool Script::Eagle_Entity_IsProcessing(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsProcessing`. Entity is null");
+			return false;
+		}
+
+		return scene->IsEntityProcessing(entity);
+	}
+
+	float Script::Eagle_Entity_GetEffectiveTimeScale(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `EffectiveTimeScale`. Entity is null");
+			return 1.f;
+		}
+
+		return scene->GetEntityProcessState(entity).TimeScale;
+	}
+
 	//-------------- Scene Component --------------
 	void Script::Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
 	{

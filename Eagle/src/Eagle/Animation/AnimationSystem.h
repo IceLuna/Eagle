@@ -24,9 +24,11 @@ namespace Eagle
 	class AnimationSystem
 	{
 	public:
-		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
+		// @deltaTimes. The time step of each mesh (must be the same size as `meshes`)
+		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
 		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
-		static ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> Update(const std::vector<ParticleSystemComponent*>& systems, float ts, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
+		// @deltaTimes. The time step of each system (must be the same size as `systems`)
+		static ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> Update(const std::vector<ParticleSystemComponent*>& systems, const std::vector<float>& deltaTimes, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
 
 		// @currentTime - current time of animation to calculate
 		static void Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose);

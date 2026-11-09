@@ -396,18 +396,22 @@ namespace Eagle
         {
             SkeletalMeshComponent* Mesh = nullptr;
             std::vector<glm::mat4>* Transforms = nullptr;
+            float DeltaTime = 0.f;
         };
 
-        static void PrepareSkeletalMeshJobs(const std::vector<SkeletalMeshComponent*>& meshes, ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& transformsMap, std::vector<Utils::SkeletalMeshJob>* jobs)
+        static void PrepareSkeletalMeshJobs(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>* deltaTimes, ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& transformsMap, std::vector<Utils::SkeletalMeshJob>* jobs)
         {
+            EG_CORE_ASSERT(!deltaTimes || deltaTimes->size() == meshes.size());
+
             jobs->clear();
             jobs->reserve(meshes.size());
-            for (auto& mesh : meshes)
+            for (size_t i = 0; i < meshes.size(); ++i)
             {
+                SkeletalMeshComponent* mesh = meshes[i];
                 if (!mesh->GetMeshAsset())
                     continue;
 
-                jobs->push_back({ mesh, nullptr });
+                jobs->push_back({ mesh, nullptr, deltaTimes ? (*deltaTimes)[i] : 0.f });
                 transformsMap.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
             }
 
@@ -501,7 +505,7 @@ namespace Eagle
         }
     }
     
-    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts, bool bApplyRootMotion, std::vector<AnimationEventData>* outEventsToTrigger)
+    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion, std::vector<AnimationEventData>* outEventsToTrigger)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
@@ -509,11 +513,11 @@ namespace Eagle
 
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
-        Utils::PrepareSkeletalMeshJobs(meshes, s_Transforms, &s_Jobs);
+        Utils::PrepareSkeletalMeshJobs(meshes, &deltaTimes, s_Transforms, &s_Jobs);
 
-        s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [ts](size_t i)
+        s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [](size_t i)
         {
-            Utils::UpdateSkeletalMeshComponent(s_Jobs[i].Mesh, *s_Jobs[i].Transforms, ts);
+            Utils::UpdateSkeletalMeshComponent(s_Jobs[i].Mesh, *s_Jobs[i].Transforms, s_Jobs[i].DeltaTime);
         });
         s_ThreadPool->wait();
 
@@ -546,7 +550,7 @@ namespace Eagle
         s_ThreadPool->wait();
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
-        Utils::PrepareSkeletalMeshJobs(meshes, s_Transforms, &s_Jobs);
+        Utils::PrepareSkeletalMeshJobs(meshes, nullptr, s_Transforms, &s_Jobs);
 
         s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [](size_t i)
         {
@@ -577,8 +581,9 @@ namespace Eagle
         return std::exchange(s_Transforms, {});
     }
     
-    ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> AnimationSystem::Update(const std::vector<ParticleSystemComponent*>& systems, float ts, std::vector<AnimationEventData>* outEventsToTrigger)
+    ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> AnimationSystem::Update(const std::vector<ParticleSystemComponent*>& systems, const std::vector<float>& deltaTimes, std::vector<AnimationEventData>* outEventsToTrigger)
     {
+        EG_CORE_ASSERT(deltaTimes.size() == systems.size());
         if (systems.empty())
             return {};
 
@@ -608,12 +613,14 @@ namespace Eagle
             }
         }
 
-        for (auto& system : systems)
+        for (size_t systemIndex = 0; systemIndex < systems.size(); ++systemIndex)
         {
+            ParticleSystemComponent* system = systems[systemIndex];
             const auto& asset = system->GetAsset();
             if (!asset)
                 continue;
 
+            const float ts = deltaTimes[systemIndex];
             const auto& emitters = asset->GetEmitters();
             const size_t emittersCount = emitters.size();
             auto& perEmitterTransforms = s_EmittersTransforms[system->GetSystemID()];

@@ -218,7 +218,7 @@ namespace Eagle
 		{
 			if (!m_FogNoise)
 				CreateFogNoise(cmd);
-			UpdateFogNoiseOffsets(Application::Get().GetTimestep());
+			UpdateFogNoiseOffsets(m_Renderer.GetGameDeltaTime_RT());
 		}
 
 		struct VolumetricPushData

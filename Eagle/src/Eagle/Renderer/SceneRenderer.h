@@ -96,7 +96,9 @@ namespace Eagle
 	public:
 		SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options = {});
 
-		void Render(Timestep ts, const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection);
+		// @ts. The real time step of the frame
+		// @gameTimeScale. Time scale of the scene. 0 while the game is paused
+		void Render(Timestep ts, float gameTimeScale, const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition, glm::vec3 viewDirection);
 		void SetOutputImage(const Ref<Image>& image);
 
 		ImageSpecifications GetOutputImageSpecs() const; // Can be used to create an output image that can be used be the renderer (SetOutputImage)
@@ -124,11 +126,14 @@ namespace Eagle
 		float GetUIScale() const { return GetUIScaleSettings().GetScale(glm::vec2(m_Size)); }
 
 		void SetDecals(const std::vector<const DecalComponent*>& decals);
-		void AddParticleSystem(const ParticleSystemComponent& system);
+		void AddParticleSystem(const ParticleSystemComponent& system, float timeScale);
 		void UpdateParticleSystem(const ParticleSystemComponent& system);
 		void RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval);
 		void UpdateParticleTransforms(const std::unordered_set<const ParticleSystemComponent*>& systems);
 		void RemoveAllParticleSystems();
+		// The particles of a system are simulated at the frame's time step multiplied by its time scale (0 - they're paused).
+		// @systemTimeScales. Pairs of a system ID and its time scale. Only the ones that changed
+		void SetParticleTimeScales(std::vector<std::pair<GUID, float>>&& systemTimeScales);
 		//--------------------------------------------------------------------------------------
 		//---------------------------------- Render functions ----------------------------------
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards);
@@ -176,7 +181,11 @@ namespace Eagle
 		void SetGravity(const glm::vec3& gravity) { m_Gravity = gravity; }
 		glm::vec3 GetGravity() const { return m_Gravity; }
 
+		// The real time step of the frame that's being rendered
 		float GetDeltaTime_RT() const { return m_DeltaTime; }
+		// The time step of the game's world in the frame that's being rendered
+		float GetGameDeltaTime_RT() const { return m_DeltaTime * m_GameTimeScale; }
+		float GetGameTimeScale_RT() const { return m_GameTimeScale; }
 
 		void SetOptions(const SceneRendererSettings& options);
 		void SetViewportSize(const glm::uvec2 size);
@@ -438,7 +447,8 @@ namespace Eagle
 		float m_PhotoLinearScale = 1.f;
 		float m_ZNear = 1.f;
 		glm::vec3 m_Gravity = glm::vec3(0);
-		float m_DeltaTime = 0.f;
+		float m_DeltaTime = 0.f; // Render thread
+		float m_GameTimeScale = 1.f; // Render thread
 		float m_ZFar = 1.f;
 		float m_CameraFOV = 1.f;
 		SceneRendererSettings m_Options_RT; // Render thread

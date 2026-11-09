@@ -351,6 +351,7 @@ namespace Eagle
 		ReadBackDroppedParticles(cmd);
 		EmitPass(cmd);
 		SimulatePass(cmd);
+		AdvanceDeadEmitters();
 
 		if (bSortOpaque)
 		{
@@ -588,7 +589,47 @@ namespace Eagle
 		dead.EmitterIndex = emitterData.EmitterIndex;
 		dead.TransformIndex = emitterData.TransformIndex;
 		// Even if the slot gets reused too early, the generation check makes the old particles die instead of using the new emitter
-		dead.TimeTillDead = bDestroyImmediately ? 0.f : data.Emitter.LifetimeMax;
+		dead.TimeLeft = bDestroyImmediately ? 0.f : data.Emitter.LifetimeMax;
+	}
+
+	void ParticleSystemTask::AdvanceDeadEmitters()
+	{
+		// Its particles have aged by its time step during this frame's simulation
+		const float deltaTime = Utils::GetSimulationDeltaTime(m_Renderer);
+		for (auto& dead : m_DeadEmitters)
+			dead.TimeLeft -= deltaTime * GetSlotTimeScale(dead.TransformIndex);
+	}
+
+	float ParticleSystemTask::GetSlotTimeScale(uint32_t transformIndex) const
+	{
+		EG_CORE_ASSERT(transformIndex < m_TimeScales.size());
+		const float timeScale = m_TimeScales[transformIndex];
+		return timeScale == s_DefaultTimeScale ? m_Renderer.GetGameTimeScale_RT() : timeScale;
+	}
+
+	float ParticleSystemTask::GetSystemTimeScale(const GUID& systemID) const
+	{
+		auto it = m_SystemTimeScales.find(systemID);
+		return it != m_SystemTimeScales.end() ? it->second : 1.f;
+	}
+
+	void ParticleSystemTask::UploadTimeScales(const Ref<CommandBuffer>& cmd)
+	{
+		m_UploadedGameTimeScale = m_Renderer.GetGameTimeScale_RT();
+		m_TimeScalesToUpload.resize(m_TimeScales.size());
+		for (size_t i = 0; i < m_TimeScales.size(); ++i)
+			m_TimeScalesToUpload[i] = GetSlotTimeScale(uint32_t(i));
+
+		const size_t size = m_TimeScalesToUpload.size() * sizeof(float);
+		if (size == 0)
+			return;
+
+		if (size > m_TimeScalesBuffer->GetSize())
+		{
+			const size_t newSize = (size * 12) / 10; // Resize policy: increase by 20%
+			m_TimeScalesBuffer->Resize(newSize);
+		}
+		cmd->Write(m_TimeScalesBuffer, m_TimeScalesToUpload.data(), size, 0, m_TimeScalesBuffer->GetLayout(), BufferLayoutType::StorageBuffer);
 	}
 
 	void ParticleSystemTask::ReclaimDeadEmitters()
@@ -670,7 +711,7 @@ namespace Eagle
 		// 2. Check if GPU Emitters buffer is big enough and allocate enough memory if required
 		// 3. Process emitters that need to be added/removed/updated. Update mesh offsets of existing emitters if mesh data was rebuilt
 		// 4. Upload animation data to GPU
-		// 5. Update transforms if required
+		// 5. Update transforms and time scales if required
 		// 6. Check if GPU Particles buffer is big enough and allocate enough memory if required
 
 		EG_GPU_TIMING_SCOPED(cmd, "Particle System. Update");
@@ -828,6 +869,11 @@ namespace Eagle
 			}
 			bUpdateTransforms = false;
 		}
+		if (bUpdateTimeScales || m_UploadedGameTimeScale != m_Renderer.GetGameTimeScale_RT())
+		{
+			UploadTimeScales(cmd);
+			bUpdateTimeScales = false;
+		}
 		
 		// Step 6
 		if (bRecalculateMaxParticles)
@@ -960,6 +1006,7 @@ namespace Eagle
 		m_PrepareData->SetBuffer(m_TransformsBuffer, 0, 5);
 		m_PrepareData->SetBuffer(m_ParticleEventsBuffer, 0, 6);
 		m_PrepareData->SetBuffer(m_EventSpawnOffsetsBuffer, 0, 7);
+		m_PrepareData->SetBuffer(m_TimeScalesBuffer, 0, 8);
 
 		cmd->TransitionLayout(m_DrawArgs, m_DrawArgs->GetLayout(), BufferLayoutType::StorageBuffer);
 		cmd->TransitionLayout(m_DispatchArgs, m_DispatchArgs->GetLayout(), BufferLayoutType::StorageBuffer);
@@ -1090,9 +1137,10 @@ namespace Eagle
 		m_Simulate->SetBuffer(m_ParticleEventsBuffer, 0, 14);
 		m_Simulate->SetBuffer(m_SubEmitterLinksBuffer, 0, 15);
 		m_Simulate->SetBuffer(m_OpaqueIndicesToRender, 0, 16);
+		m_Simulate->SetBuffer(m_TimeScalesBuffer, 0, 17);
 		if (bSortOpaque)
 		{
-			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 17);
+			m_Simulate->SetBuffer(m_OpaqueDistancesBuffer, 0, 18);
 		}
 
 		const ImageLayout oldDepthLayout = gbuffer.Depth->GetLayout();
@@ -1421,7 +1469,7 @@ namespace Eagle
 		}
 	}
 
-	bool ParticleSystemTask::AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform)
+	bool ParticleSystemTask::AddEmitter(const ParticleEmitter& emitter, const GUID& systemID, const glm::mat4& transform, float timeScale)
 	{
 		if (auto it = m_SystemToEmittersMapping.find(systemID); it != m_SystemToEmittersMapping.end())
 		{
@@ -1439,6 +1487,7 @@ namespace Eagle
 			transformIndex = (uint32_t)m_Transforms.size();
 			m_Transforms.emplace_back();
 			m_DecompositedTransforms.emplace_back();
+			m_TimeScales.emplace_back();
 		}
 		else
 		{
@@ -1454,6 +1503,9 @@ namespace Eagle
 
 		m_Transforms[transformIndex] = transform * Math::ToTransformMatrix(emitter.RelativeTransform);
 		m_DecompositedTransforms[transformIndex] = Utils::Decompose(m_Transforms[transformIndex]);
+		m_TimeScales[transformIndex] = timeScale;
+		bUpdateTimeScales = true;
+
 		auto& emitters = m_SystemToEmittersMapping[systemID];
 		emitters[emitter] = request.Indices;
 		AddEmitterMeshData(emitter);
@@ -1503,18 +1555,23 @@ namespace Eagle
 		request.Indices = it->second;
 		RemoveEmitterMeshData(it->first);
 
+		// Its particles that are still alive no longer belong to an entity, they're simulated at the game's time scale
+		m_TimeScales[it->second.TransformIndex] = s_DefaultTimeScale;
+		bUpdateTimeScales = true;
+
 		emitters.erase(it);
 
 		return true;
 	}
 
-	void ParticleSystemTask::AddParticleSystem(const ParticleSystemComponent& system)
+	void ParticleSystemTask::AddParticleSystem(const ParticleSystemComponent& system, float timeScale)
 	{
 		struct SystemUpdateData
 		{
 			std::vector<ParticleEmitter> Emitters;
 			glm::mat4 Transformation;
 			GUID SystemID;
+			float TimeScale = 1.f;
 		};
 
 		const auto& asset = system.GetAsset();
@@ -1525,10 +1582,13 @@ namespace Eagle
 		data.Emitters = asset->GetEmitters();
 		data.Transformation = Math::ToTransformMatrix(system.GetWorldTransform());
 		data.SystemID = system.GetSystemID();
+		data.TimeScale = glm::max(timeScale, 0.f);
 
 		RenderManager::Submit([task = shared_from_this(), updateData = std::move(data)](const Ref<CommandBuffer>&)
 		{
 			auto thisRef = Cast<ParticleSystemTask>(task);
+			thisRef->m_SystemTimeScales[updateData.SystemID] = updateData.TimeScale;
+
 			const auto& emitters = updateData.Emitters;
 			if (emitters.empty())
 			{
@@ -1538,7 +1598,7 @@ namespace Eagle
 			{
 				for (const auto& emitter : emitters)
 				{
-					thisRef->AddEmitter(emitter, updateData.SystemID, updateData.Transformation);
+					thisRef->AddEmitter(emitter, updateData.SystemID, updateData.Transformation, updateData.TimeScale);
 				}
 			}
 		});
@@ -1589,7 +1649,7 @@ namespace Eagle
 			{
 				if (systemEmitters.find(emitter) == systemEmitters.end())
 				{
-					thisRef->AddEmitter(emitter, updateData.SystemID, updateData.Transformation); // New emitter isn't found in the old list, so add it
+					thisRef->AddEmitter(emitter, updateData.SystemID, updateData.Transformation, thisRef->GetSystemTimeScale(updateData.SystemID)); // New emitter isn't found in the old list, so add it
 				}
 				else
 				{
@@ -1648,6 +1708,28 @@ namespace Eagle
 				}
 			}
 			thisRef->m_SystemToEmittersMapping.erase(systemID);
+			thisRef->m_SystemTimeScales.erase(systemID);
+		});
+	}
+
+	void ParticleSystemTask::SetTimeScales(std::vector<std::pair<GUID, float>>&& systemTimeScales)
+	{
+		RenderManager::Submit([task = shared_from_this(), systemTimeScales = std::move(systemTimeScales)](const Ref<CommandBuffer>&)
+		{
+			auto thisRef = Cast<ParticleSystemTask>(task);
+			for (const auto& [systemID, timeScale] : systemTimeScales)
+			{
+				auto itSystem = thisRef->m_SystemToEmittersMapping.find(systemID);
+				if (itSystem == thisRef->m_SystemToEmittersMapping.end())
+					continue; // Not spawned
+
+				const float validTimeScale = glm::max(timeScale, 0.f);
+				thisRef->m_SystemTimeScales[systemID] = validTimeScale;
+				for (const auto& [_, emitterData] : itSystem->second)
+					thisRef->m_TimeScales[emitterData.TransformIndex] = validTimeScale;
+
+				thisRef->bUpdateTimeScales = true;
+			}
 		});
 	}
 
@@ -1667,6 +1749,9 @@ namespace Eagle
 			thisRef->m_Transforms.clear();
 			thisRef->m_DecompositedTransforms.clear();
 			thisRef->m_FreeTransformSlots.clear();
+			thisRef->m_TimeScales.clear();
+			thisRef->m_SystemTimeScales.clear();
+			thisRef->bUpdateTimeScales = false;
 
 			thisRef->m_StaticMeshDataMapping.clear();
 			thisRef->m_SkeletalMeshDataMapping.clear();
@@ -1773,6 +1858,9 @@ namespace Eagle
 
 			specs.Size = m_MaxEmitters * sizeof(uint32_t);
 			m_EmittersSpawnCountBuffer = Buffer::Create(specs, "ParticleSystem_EmittersSpawnCount");
+
+			specs.Size = m_MaxEmitters * sizeof(float);
+			m_TimeScalesBuffer = Buffer::Create(specs, "ParticleSystem_TimeScales");
 		}
 
 		{

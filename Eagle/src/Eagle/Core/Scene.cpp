@@ -151,6 +151,7 @@ namespace Eagle
 
 		SceneAddAndCopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<TagComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<ProcessModeComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<EntityAssetComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
@@ -254,6 +255,7 @@ namespace Eagle
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<TagComponent>();
+		entity.AddComponent<ProcessModeComponent>();
 		entity.AddComponent<OwnershipComponent>();
 
 		m_AliveEntities[guid] = entity;
@@ -788,9 +790,9 @@ namespace Eagle
 		EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera && !bCameraOverrideValid);
 
 		GatherSkeletalMeshes();
-		UpdateAnimations(ts, !bForceAnimationsUpdate, false);
+		UpdateAnimations(ts, !bForceAnimationsUpdate, false, false);
 		UpdateNavMesh(ts);
-		UpdateSceneSequences(ts);
+		UpdateSceneSequences(ts, false);
 		m_PhysicsScene->Simulate(ts, false);
 		if (bRender)
 			RenderScene(ts, false);
@@ -809,13 +811,21 @@ namespace Eagle
 				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
+		// The pause and the time scale change at the start of an update, so that all of it is updated the same way.
+		m_bPaused = m_bPausedRequested;
+		m_TimeScale = m_TimeScaleRequested;
+		// Note: animations, scripts, sequences, and renderer handle game ts manually.
+		// So, currently this is used to drive 3rd party systems (physics, nav mesh)
+		const Timestep gameTs = m_bPaused ? 0.f : ts * m_TimeScale;
+
 		GatherSkeletalMeshes();
-		UpdateAnimations(ts, false, true);
-		UpdateNavMesh(ts);
+		UpdateAnimations(ts, false, true, true);
+		UpdateNavMesh(gameTs);
 		SyncCrowdAgents();
-		m_PhysicsScene->Simulate(ts, true);
+		m_PhysicsScene->Simulate(gameTs, true);
 		UpdateScripts(ts);
-		UpdateSceneSequences(ts);
+		UpdateSceneSequences(ts, true);
+		UpdateAudioProcessing();
 
 		if (bCameraOverrideValid)
 			AudioEngine::SetListenerData(m_OverrideViewPos, m_OverrideViewDir, m_OverrideViewUp);
@@ -827,7 +837,102 @@ namespace Eagle
 		ClearUserDebugDraws();
 	}
 
-	void Scene::UpdateSceneSequences(Timestep ts)
+	EntityProcessState Scene::GetEntityProcessState(const Entity& entity) const
+	{
+		// Triverse the hierarchy to find the first process mode and scene time scale mode that aren't `Inherit`.
+		// The time scales multiply up to the first entity that doesn't inherit its parent's (including it)
+		ProcessMode mode = ProcessMode::Inherit;
+		SceneTimeScaleMode sceneTimeScaleMode = SceneTimeScaleMode::Inherit;
+		float timeScale = 1.f;
+		bool bMultiplyTimeScale = true;
+
+		for (Entity current = entity; current; current = current.GetParent())
+		{
+			const auto& process = current.GetComponent<ProcessModeComponent>();
+			if (bMultiplyTimeScale)
+			{
+				timeScale *= process.TimeScale;
+				bMultiplyTimeScale = process.bInheritTimeScale;
+			}
+
+			if (mode == ProcessMode::Inherit)
+				mode = process.Mode;
+			if (sceneTimeScaleMode == SceneTimeScaleMode::Inherit)
+				sceneTimeScaleMode = process.SceneTimeScale;
+
+			if (!bMultiplyTimeScale && mode != ProcessMode::Inherit && sceneTimeScaleMode != SceneTimeScaleMode::Inherit)
+				break;
+		}
+
+		EntityProcessState state;
+		switch (mode)
+		{
+			case ProcessMode::Inherit:    // An entity without a parent is treated as `Pausable`
+			case ProcessMode::Pausable:   state.bProcessing = !m_bPaused; break;
+			case ProcessMode::WhenPaused: state.bProcessing = m_bPaused; break;
+			case ProcessMode::Always:     state.bProcessing = true; break;
+			case ProcessMode::Disabled:   state.bProcessing = false; break;
+		}
+
+		// An entity without a parent is treated as `Apply`
+		if (sceneTimeScaleMode != SceneTimeScaleMode::Ignore)
+			timeScale *= m_TimeScale;
+
+		state.TimeScale = timeScale;
+		return state;
+	}
+
+	float Scene::GetParticleSystemTimeScale(const Entity& entity) const
+	{
+		if (!bIsPlaying)
+			return 1.f;
+
+		const EntityProcessState state = GetEntityProcessState(entity);
+		return state.bProcessing ? state.TimeScale : 0.f;
+	}
+
+	void Scene::UpdateParticleTimeScales()
+	{
+		if (!m_SceneRenderer)
+			return;
+
+		std::vector<std::pair<GUID, float>> changed;
+		for (auto it = m_ParticleSystemTimeScales.begin(); it != m_ParticleSystemTimeScales.end();)
+		{
+			auto& [systemID, data] = *it;
+			const entt::entity entity = (entt::entity)data.EntityID;
+			if (!m_Registry.valid(entity))
+			{
+				EG_CORE_ASSERT(false);
+				it = m_ParticleSystemTimeScales.erase(it);
+				continue;
+			}
+
+			const float timeScale = GetParticleSystemTimeScale(Entity(entity, this));
+			if (timeScale != data.TimeScale)
+			{
+				data.TimeScale = timeScale;
+				changed.emplace_back(systemID, timeScale);
+			}
+			++it;
+		}
+
+		if (!changed.empty())
+			m_SceneRenderer->SetParticleTimeScales(std::move(changed));
+	}
+
+	void Scene::UpdateAudioProcessing()
+	{
+		auto view = m_Registry.view<AudioComponent>();
+		for (auto e : view)
+		{
+			Entity entity = Entity(e, this);
+			auto& audio = entity.GetComponent<AudioComponent>();
+			audio.SetPausedByProcessing(!IsEntityProcessing(entity));
+		}
+	}
+
+	void Scene::UpdateSceneSequences(Timestep ts, bool bPerEntityTime)
 	{
 		auto view = m_Registry.view<SceneSequenceComponent>();
 		if (view.begin() == view.end())
@@ -839,7 +944,8 @@ namespace Eagle
 		for (auto entity : view)
 		{
 			auto& component = view.get<SceneSequenceComponent>(entity);
-			component.OnUpdate(ts);
+			const float deltaTime = bPerEntityTime ? GetEntityDeltaTime(Entity(entity, this), ts) : float(ts);
+			component.OnUpdate(deltaTime);
 
 			if (bIsPlaying)
 			{
@@ -1023,11 +1129,12 @@ namespace Eagle
 		{
 			for (const auto& [entityID, events] : m_AnimationsToTrigger)
 			{
+				Entity entity((entt::entity)entityID, this);
+				if (!entity || !IsEntityProcessing(entity))
+					continue;
+
 				for (const auto& event : events)
-				{
-					Entity entity((entt::entity)entityID, this);
 					entity.TriggerAnimationEvent(event.Name, event.Time);
-				}
 			}
 			m_AnimationsToTrigger.clear();
 		}
@@ -1037,7 +1144,7 @@ namespace Eagle
 			for (const auto& data : m_SequenceEventsToTrigger)
 			{
 				Entity entity((entt::entity)data.EntityID, this);
-				if (entity)
+				if (entity && IsEntityProcessing(entity))
 				{
 					for (const auto& event : data.Events)
 					{
@@ -1054,8 +1161,10 @@ namespace Eagle
 
 			for (auto entity : view)
 			{
-				auto& nsc = view.get<NativeScriptComponent>(entity);
-				nsc.OnUpdate(Entity{ entity, this }, ts);
+				Entity e = { entity, this };
+				const EntityProcessState state = GetEntityProcessState(e);
+				if (state.bProcessing)
+					e.GetComponent<NativeScriptComponent>().OnUpdate(e, ts * state.TimeScale);
 			}
 		}
 
@@ -1064,8 +1173,10 @@ namespace Eagle
 			auto view = m_Registry.view<ScriptComponent>();
 			for (auto entity : view)
 			{
-				Entity e = { entity, this };
-				ScriptEngine::OnUpdateEntity(e, ts);
+				const Entity e = { entity, this };
+				const EntityProcessState state = GetEntityProcessState(e);
+				if (state.bProcessing)
+					ScriptEngine::OnUpdateEntity(e, ts * state.TimeScale);
 			}
 		}
 
@@ -1073,7 +1184,7 @@ namespace Eagle
 		m_DirtyFlags.bSkeletalMeshesDirty = bDirtyBefore;
 	}
 
-	void Scene::UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion)
+	void Scene::UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion, bool bPerEntityTime)
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Update animations");
 
@@ -1084,7 +1195,11 @@ namespace Eagle
 		}
 		else
 		{
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts, bApplyRootMotion, &m_AnimationsToTrigger);
+			m_SkeletalMeshDeltaTimes.resize(m_SkeletalMeshes.size());
+			for (size_t i = 0; i < m_SkeletalMeshes.size(); ++i)
+				m_SkeletalMeshDeltaTimes[i] = bPerEntityTime ? GetEntityDeltaTime(m_SkeletalMeshes[i]->Parent, ts) : float(ts);
+
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, m_SkeletalMeshDeltaTimes, bApplyRootMotion, &m_AnimationsToTrigger);
 		}
 
 		m_SystemsToUpdateAnims.clear();
@@ -1094,7 +1209,11 @@ namespace Eagle
 			EG_CORE_ASSERT(m_Registry.valid(entity) && m_Registry.all_of<ParticleSystemComponent>(entity));
 			m_SystemsToUpdateAnims.push_back(&m_Registry.get<ParticleSystemComponent>(entity));
 		}
-		m_SkeletalParticlesAnimationTransforms = AnimationSystem::Update(m_SystemsToUpdateAnims, ts, &m_AnimationsToTrigger);
+
+		m_SystemsToUpdateAnimsDeltaTimes.resize(m_SystemsToUpdateAnims.size());
+		for (size_t i = 0; i < m_SystemsToUpdateAnims.size(); ++i)
+			m_SystemsToUpdateAnimsDeltaTimes[i] = bPerEntityTime ? float(ts) * GetParticleSystemTimeScale(m_SystemsToUpdateAnims[i]->Parent) : float(ts);
+		m_SkeletalParticlesAnimationTransforms = AnimationSystem::Update(m_SystemsToUpdateAnims, m_SystemsToUpdateAnimsDeltaTimes, &m_AnimationsToTrigger);
 	}
 
 	CameraComponent* Scene::FindOrCreateRuntimeCamera()
@@ -1331,6 +1450,7 @@ namespace Eagle
 		{
 			m_DirtyTransformParticles.clear();
 			m_SkeletalParticles.clear();
+			m_ParticleSystemTimeScales.clear();
 
 			m_SceneRenderer->RemoveAllParticleSystems();
 
@@ -1339,10 +1459,7 @@ namespace Eagle
 			{
 				auto& ps = view.get<ParticleSystemComponent>(entity);
 				if (ps.bAutospawn)
-				{
-					RegisterSkeletalParticleIfCan(ps);
-					m_SceneRenderer->AddParticleSystem(ps);
-				}
+					AddParticleSystem(ps);
 			}
 		}
 		else
@@ -1365,6 +1482,7 @@ namespace Eagle
 				m_DirtyTransformParticles.clear();
 			}
 		}
+		UpdateParticleTimeScales();
 
 		if (bCameraOverrideValid)
 			m_OverrideCamera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
@@ -1453,7 +1571,8 @@ namespace Eagle
 			: (bIsPlaying ? m_RuntimeCamera->GetForwardVector() : EditorCamera.GetForwardVector());
 		{
 			EG_CPU_TIMING_SCOPED("Scene. Render");
-			m_SceneRenderer->Render(ts, camera, viewMatrix, viewPos, viewDir);
+			const float gameTimeScale = !bIsPlaying ? 1.f : (m_bPaused ? 0.f : m_TimeScale);
+			m_SceneRenderer->Render(ts, gameTimeScale, camera, viewMatrix, viewPos, viewDir);
 		}
 
 		m_DirtyTransformStaticMeshes.clear();
@@ -1556,11 +1675,13 @@ namespace Eagle
 		{
 			if (Entity entity = GetEntityByGUID(previouslyHovered))
 			{
-				ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Exit);
+				if (IsEntityProcessing(entity))
+					ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Exit);
 			}
 			if (GetEntityByGUID(m_UIHoveredEntity))
 			{
-				ScriptEngine::OnUIMouseEvent(hovered, UIMouseEvent::Enter);
+				if (IsEntityProcessing(hovered))
+					ScriptEngine::OnUIMouseEvent(hovered, UIMouseEvent::Enter);
 			}
 		}
 
@@ -1576,7 +1697,7 @@ namespace Eagle
 			if (bPressed)
 			{
 				m_UIPressedEntities[i] = m_UIHoveredEntity;
-				if (hovered)
+				if (hovered && IsEntityProcessing(hovered))
 					ScriptEngine::OnUIMouseEvent(hovered, UIMouseEvent::Down, button);
 				continue;
 			}
@@ -1590,9 +1711,12 @@ namespace Eagle
 			if (!entity)
 				continue;
 			
-			ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Up, button);
-			if (entity == hovered) // Only if it's released over the same entity
-				ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Click, button);
+			if (IsEntityProcessing(entity))
+			{
+				ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Up, button);
+				if (entity == hovered) // Only if it's released over the same entity
+					ScriptEngine::OnUIMouseEvent(entity, UIMouseEvent::Click, button);
+			}
 		}
 	}
 
@@ -1782,7 +1906,7 @@ namespace Eagle
 		}
 	}
 
-	void Scene::OnEventRuntime(Event& e)
+	void Scene::OnEventRuntime(Event& event)
 	{
 		//Running Scripts
 		{
@@ -1790,22 +1914,24 @@ namespace Eagle
 
 			for (auto entity : view)
 			{
-				auto& nsc = view.get<NativeScriptComponent>(entity);
-				nsc.OnEvent(Entity{ entity, this }, e);
+				Entity e = { entity, this };
+				if (IsEntityProcessing(e))
+					e.GetComponent<NativeScriptComponent>().OnEvent(e, event);
 			}
 		}
 
 		// C# scripts
 		{
 			// Create a single event object for all `OnEvent` invocations
-			std::array params = e.GetData();
-			void* eventObject = ScriptEngine::Construct(e.GetCSharpCtor(), true, params.data());
+			std::array params = event.GetData();
+			void* eventObject = ScriptEngine::Construct(event.GetCSharpCtor(), true, params.data());
 
 			auto view = m_Registry.view<ScriptComponent>();
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				ScriptEngine::OnEventEntity(e, eventObject);
+				if (IsEntityProcessing(e))
+					ScriptEngine::OnEventEntity(e, eventObject);
 			}
 		}
 	}
@@ -2145,12 +2271,17 @@ namespace Eagle
 	{
 		RegisterSkeletalParticleIfCan(system);
 		if (m_SceneRenderer)
-			m_SceneRenderer->AddParticleSystem(system);
+		{
+			const float timeScale = GetParticleSystemTimeScale(system.Parent);
+			m_ParticleSystemTimeScales[system.GetSystemID()] = { system.Parent.GetID(), timeScale };
+			m_SceneRenderer->AddParticleSystem(system, timeScale);
+		}
 	}
 
 	void Scene::RemoveParticleSystem(const ParticleSystemComponent& system, bool bForceImmediateRemoval)
 	{
 		m_SkeletalParticles.erase(system.Parent.GetID());
+		m_ParticleSystemTimeScales.erase(system.GetSystemID());
 		if (m_SceneRenderer)
 			m_SceneRenderer->RemoveParticleSystem(system, bForceImmediateRemoval);
 	}
@@ -2398,6 +2529,7 @@ namespace Eagle
 	{
 		EntityCopyComponent<EntityAssetComponent>(source, dest);
 		EntityCopyComponent<TagComponent>(source, dest);
+		EntityCopyComponent<ProcessModeComponent>(source, dest);
 		EntityCopyComponent<NativeScriptComponent>(source, dest);
 		EntityCopyComponent<ScriptComponent>(source, dest);
 		EntityCopyComponent<PointLightComponent>(source, dest);

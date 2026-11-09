@@ -235,6 +235,11 @@ const uint EmitterCurve_Velocity = 3; // xyz - velocity over lifetime, w - gravi
 const uint EmitterCurve_Turbulence = 4; // x - turbulence strength, y - turbulence frequency (1 / swirl size), zw - unused
 const uint EmitterCurve_Count = 5;
 
+float Emitter_GetDeltaTime(float deltaTime, float timeScale)
+{
+	return deltaTime * timeScale;
+}
+
 #ifdef __cplusplus
 void Emitter_SetIsVisible(Emitter& emitter, bool bVisible)
 #else

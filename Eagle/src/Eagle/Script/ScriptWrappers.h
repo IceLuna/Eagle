@@ -64,6 +64,16 @@ namespace Eagle::Script
 	void Eagle_Entity_RemoveOutline(GUID entityID);
 	bool Eagle_Entity_HasOutline(GUID entityID);
 	bool Eagle_Entity_GetOutline(GUID entityID, glm::vec4* outColor, OutlineMode* outMode, float* outThickness, float* outHiddenOpacity);
+	void Eagle_Entity_SetProcessMode(GUID entityID, ProcessMode mode);
+	ProcessMode Eagle_Entity_GetProcessMode(GUID entityID);
+	void Eagle_Entity_SetSceneTimeScaleMode(GUID entityID, SceneTimeScaleMode mode);
+	SceneTimeScaleMode Eagle_Entity_GetSceneTimeScaleMode(GUID entityID);
+	void Eagle_Entity_SetTimeScale(GUID entityID, float timeScale);
+	float Eagle_Entity_GetTimeScale(GUID entityID);
+	void Eagle_Entity_SetInheritTimeScale(GUID entityID, bool bInherit);
+	bool Eagle_Entity_GetInheritTimeScale(GUID entityID);
+	bool Eagle_Entity_IsProcessing(GUID entityID);
+	float Eagle_Entity_GetEffectiveTimeScale(GUID entityID);
 
 	// Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);
@@ -757,6 +767,10 @@ namespace Eagle::Script
 	uint64_t Eagle_Scene_OpenSceneAsync(GUID assetID, bool bActivateWhenReady);
 	uint64_t Eagle_Scene_GetActiveSceneLoad();
 	void Eagle_Scene_QuitGame();
+	void Eagle_Scene_SetPaused(bool bPaused);
+	bool Eagle_Scene_IsPaused();
+	void Eagle_Scene_SetTimeScale(float timeScale);
+	float Eagle_Scene_GetTimeScale();
 	MonoObject* Eagle_Scene_GetUIEntityAt(const glm::vec2* positionInViewport);
 	MonoObject* Eagle_Scene_GetHoveredUIEntity();
 	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, PhysicsQueryType query, CollisionGroup collisionGroup, MonoArray* monoEntitiesToIgnore, MonoObject** outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);

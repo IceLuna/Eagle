@@ -37,6 +37,32 @@ namespace Eagle
 			deserializedEntity.GetComponent<TagComponent>().Tag = tagComponentNode["Tag"].as<std::string>();
 		}
 
+		void SerializeProcessModeComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			const auto& process = entity.GetComponent<ProcessModeComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap;
+			out << YAML::Key << "Mode" << YAML::Value << Utils::GetEnumName(process.Mode);
+			out << YAML::Key << "SceneTimeScale" << YAML::Value << Utils::GetEnumName(process.SceneTimeScale);
+			out << YAML::Key << "TimeScale" << YAML::Value << process.TimeScale;
+			out << YAML::Key << "InheritTimeScale" << YAML::Value << process.bInheritTimeScale;
+			out << YAML::EndMap;
+		}
+
+		void DeserializeProcessModeComponent(Entity deserializedEntity, YAML::Node node)
+		{
+			auto& process = deserializedEntity.GetComponent<ProcessModeComponent>();
+			if (auto modeNode = node["Mode"])
+				process.Mode = Utils::GetEnumFromName<ProcessMode>(modeNode.as<std::string>());
+			if (auto sceneTimeScaleNode = node["SceneTimeScale"])
+				process.SceneTimeScale = Utils::GetEnumFromName<SceneTimeScaleMode>(sceneTimeScaleNode.as<std::string>());
+			if (auto timeScaleNode = node["TimeScale"])
+				process.TimeScale = glm::max(timeScaleNode.as<float>(), 0.f);
+			if (auto inheritTimeScaleNode = node["InheritTimeScale"])
+				process.bInheritTimeScale = inheritTimeScaleNode.as<bool>();
+		}
+
 		void SerializeCameraComponent(YAML::Emitter& out, Entity entity, const char* key)
 		{
 			auto& cameraComponent = entity.GetComponent<CameraComponent>();
@@ -1467,6 +1493,10 @@ namespace Eagle
 			{
 				type.Remove = [](Entity& entity) { entity.GetComponent<TagComponent>().Tag.clear(); }; // All entities have it, so it's cleared instead
 			}
+			else if constexpr (std::is_same_v<T, ProcessModeComponent>)
+			{
+				type.Remove = [](Entity& entity) { entity.GetComponent<ProcessModeComponent>() = ProcessModeComponent{}; }; // All entities have it, so it's cleared instead
+			}
 			else
 			{
 				type.Remove = [](Entity& entity) { entity.RemoveComponent<T>(); };
@@ -1488,6 +1518,7 @@ namespace Eagle
 		{
 			EG_SERIALIZED_COMPONENT(EntityAssetComponent),
 			EG_SERIALIZED_COMPONENT(TagComponent),
+			EG_SERIALIZED_COMPONENT(ProcessModeComponent),
 			EG_SERIALIZED_COMPONENT(CameraComponent),
 			EG_SERIALIZED_COMPONENT(SpriteComponent),
 			EG_SERIALIZED_COMPONENT(BillboardComponent),
