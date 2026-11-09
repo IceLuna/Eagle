@@ -68,17 +68,18 @@ namespace Eagle
 				const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 					| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
 
-				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
-				float lineHeight = (GImGui->FontBaked->Size * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 				const bool bTreeOpened = UI::PushTreeNode(name, true, true, "", typeid(T).hash_code());
+				const ImVec2 headerMin = ImGui::GetItemRectMin();
+				const ImVec2 headerMax = ImGui::GetItemRectMax();
 
 				bool bRemoveComponent = false;
 
 				if (canRemove)
 				{
-					ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
-					if (ImGui::Button("...", ImVec2{ lineHeight, lineHeight }))
+					const float buttonSize = headerMax.y - headerMin.y;
+					ImGui::SameLine();
+					ImGui::SetCursorScreenPos(ImVec2(headerMax.x - buttonSize, headerMin.y));
+					if (ImGui::Button("...", ImVec2{ buttonSize, buttonSize }))
 					{
 						ImGui::OpenPopup("ComponentSettings");
 					}
