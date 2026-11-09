@@ -493,7 +493,9 @@ project "Eagle-Scripts"
 
 	links
 	{
-		"Eagle"
+		"Eagle",
+		"System",
+		"System.Core",
 	}
 
 	files

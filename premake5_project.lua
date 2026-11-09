@@ -55,7 +55,9 @@ project "%{ProjectName}"
 
 	links
 	{
-		"Eagle-Scripts"
+		"Eagle-Scripts",
+		"System",
+		"System.Core",
 	}
 
 	postbuildcommands 
