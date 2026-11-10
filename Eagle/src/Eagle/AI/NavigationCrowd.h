@@ -67,8 +67,13 @@ namespace Eagle::AINavigation
 		bool GetAgentVelocity(int agentIndex, glm::vec3* outVelocity) const;
 		MoveRequestState GetAgentTargetState(int agentIndex) const;
 
-		void SetMoveTarget(int agentIndex, const glm::vec3& pos);
-		void SetMoveTarget(const glm::vec3& pos);
+		// The target is snapped to the nearest point within `searchHalfExtents` of the nav mesh.
+		// If it's not set, the nav mesh's `SearchHalfExtents` are used.
+		// Returns false and keeps the current target if there's no nav mesh there
+		bool SetMoveTarget(int agentIndex, const glm::vec3& target, const std::optional<glm::vec3>& searchHalfExtents = {});
+		bool SetMoveTarget(const glm::vec3& target, const std::optional<glm::vec3>& searchHalfExtents = {});
+
+		void SetSearchHalfExtents(const glm::vec3& searchHalfExtents) { m_SearchHalfExtents = searchHalfExtents; }
 
 		void ResetMoveTarget(int agentIndex);
 		void ResetMoveTarget();
@@ -78,9 +83,14 @@ namespace Eagle::AINavigation
 		void Update(Timestep ts);
 
 	private:
+		// Returns 0 if there's no polygon within `searchHalfExtents` of `pos`
+		dtPolyRef FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outTargetPos) const;
+
+	private:
 		dtCrowd* m_Crowd = nullptr;
 		dtPolyRef m_TargetRef{};
 		glm::vec3 m_TargetPos{};
+		glm::vec3 m_SearchHalfExtents = glm::vec3(0.9f, 2.f, 0.9f);
 
 		// Not owning
 		dtNavMesh* m_NavMesh = nullptr;

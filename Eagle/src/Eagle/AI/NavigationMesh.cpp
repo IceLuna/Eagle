@@ -11,6 +11,57 @@
 
 namespace Eagle::AINavigation
 {
+	// Finds the nav mesh point that lets an agent occupy a position (the nearest one horizontally among the points within the agent's space)
+	class AgentSpaceQuery : public dtPolyQuery
+	{
+	public:
+		AgentSpaceQuery(const dtNavMeshQuery* navQuery, const glm::vec3& pos, float maxHorizontal, float maxBelow, float maxAbove)
+			: m_NavQuery(navQuery), m_Pos(pos), m_MaxHorizontal2(maxHorizontal* maxHorizontal), m_MaxBelow(maxBelow), m_MaxAbove(maxAbove)
+		{}
+
+		void process(const dtMeshTile* tile, dtPoly** polys, dtPolyRef* refs, int count) override
+		{
+			for (int i = 0; i < count; ++i)
+			{
+				glm::vec3 closest;
+				if (dtStatusFailed(m_NavQuery->closestPointOnPoly(refs[i], &m_Pos[0], &closest[0], nullptr)))
+					continue;
+
+				const float dx = m_Pos.x - closest.x;
+				const float dz = m_Pos.z - closest.z;
+				const float horizontal2 = dx * dx + dz * dz;
+				const float above = m_Pos.y - closest.y; // How far `pos` is above the nav mesh point
+				if (horizontal2 > m_MaxHorizontal2 || above > m_MaxAbove || above < -m_MaxBelow)
+					continue;
+
+				// Prefer the point that's horizontally nearest, then the one that's vertically nearest
+				const float verticalDist = glm::abs(above);
+				if (m_Found == 0 || horizontal2 < m_BestHorizontal2 || (horizontal2 == m_BestHorizontal2 && verticalDist < m_BestVertical))
+				{
+					m_Found = refs[i];
+					m_BestPoint = closest;
+					m_BestHorizontal2 = horizontal2;
+					m_BestVertical = verticalDist;
+				}
+			}
+		}
+
+		dtPolyRef GetFound() const { return m_Found; }
+		const glm::vec3& GetBestPoint() const { return m_BestPoint; }
+
+	private:
+		const dtNavMeshQuery* m_NavQuery;
+		glm::vec3 m_Pos;
+		float m_MaxHorizontal2;
+		float m_MaxBelow;
+		float m_MaxAbove;
+
+		dtPolyRef m_Found = 0;
+		glm::vec3 m_BestPoint = glm::vec3(0.f);
+		float m_BestHorizontal2 = 0.f;
+		float m_BestVertical = 0.f;
+	};
+
 	static uint32_t nextPow2(uint32_t v)
 	{
 		v--;
@@ -107,17 +158,6 @@ namespace Eagle::AINavigation
 				}
 			}
 		}
-	}
-
-	// Returns 0 if there's no polygon near `pos`
-	static dtPolyRef FindNearestPoly(const dtNavMeshQuery* navQuery, const glm::vec3& pos, const dtQueryFilter& filter)
-	{
-		const float searchHalfExtent[3] = { 2, 4, 2 }; // TODO: Expose
-		dtPolyRef poly = 0;
-		if (dtStatusFailed(navQuery->findNearestPoly(&pos[0], searchHalfExtent, &filter, &poly, nullptr)))
-			return 0;
-
-		return poly;
 	}
 
 	static void ReportError(std::string&& message)
@@ -218,6 +258,7 @@ namespace Eagle::AINavigation
 				failedTileColumns, 1u << MeshSettings::MaxTileBits));
 		}
 
+		m_Crowd.SetSearchHalfExtents(m_Settings.GetSearchHalfExtents());
 		m_Crowd.Init(crowdSettings, m_NavMesh, m_NavQuery, m_Filter);
 
 		// The source geometry belongs to the caller and isn't needed after the build
@@ -420,13 +461,39 @@ namespace Eagle::AINavigation
 		return bSuccess;
 	}
 
-	std::vector<glm::vec3> Mesh::FindStraightPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys) const
+	void Mesh::SetSearchHalfExtents(const std::optional<glm::vec3>& searchHalfExtents)
+	{
+		m_Settings.OverrideSearchExtents = searchHalfExtents.has_value();
+		if (searchHalfExtents)
+			m_Settings.SearchHalfExtents = glm::max(*searchHalfExtents, glm::vec3(MeshSettings::MinSearchExtent));
+
+		m_Crowd.SetSearchHalfExtents(m_Settings.GetSearchHalfExtents());
+	}
+
+	dtPolyRef Mesh::FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outNearestPoint) const
+	{
+		const glm::vec3 extents = searchHalfExtents ? *searchHalfExtents : m_Settings.GetSearchHalfExtents();
+		if (extents.x <= 0.f || extents.y <= 0.f || extents.z <= 0.f)
+			return 0;
+
+		dtPolyRef poly = 0;
+		glm::vec3 nearest = pos;
+		if (dtStatusFailed(m_NavQuery->findNearestPoly(&pos[0], &extents[0], &m_Filter, &poly, &nearest[0])))
+			return 0;
+
+		if (outNearestPoint && poly != 0)
+			*outNearestPoint = nearest;
+
+		return poly;
+	}
+
+	std::vector<glm::vec3> Mesh::FindStraightPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys, const std::optional<glm::vec3>& searchHalfExtents) const
 	{
 		if (!m_bValid || maxPolys == 0u)
 			return {};
 
-		const dtPolyRef startPoly = FindNearestPoly(m_NavQuery, start, m_Filter);
-		const dtPolyRef endPoly = FindNearestPoly(m_NavQuery, end, m_Filter);
+		const dtPolyRef startPoly = FindNearestPoly(start, searchHalfExtents);
+		const dtPolyRef endPoly = FindNearestPoly(end, searchHalfExtents);
 		if (startPoly == 0 || endPoly == 0)
 			return {};
 
@@ -461,13 +528,13 @@ namespace Eagle::AINavigation
 		return straightPath;
 	}
 
-	std::vector<glm::vec3> Mesh::FindSmoothPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys, uint32_t maxSmooth) const
+	std::vector<glm::vec3> Mesh::FindSmoothPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys, uint32_t maxSmooth, const std::optional<glm::vec3>& searchHalfExtents) const
 	{
 		if (!m_bValid || maxPolys == 0u || maxSmooth == 0u)
 			return {};
 
-		const dtPolyRef startPoly = FindNearestPoly(m_NavQuery, start, m_Filter);
-		const dtPolyRef endPoly = FindNearestPoly(m_NavQuery, end, m_Filter);
+		const dtPolyRef startPoly = FindNearestPoly(start, searchHalfExtents);
+		const dtPolyRef endPoly = FindNearestPoly(end, searchHalfExtents);
 		if (startPoly == 0 || endPoly == 0)
 			return {};
 
@@ -607,20 +674,21 @@ namespace Eagle::AINavigation
 		return smoothPath;
 	}
 
-	bool Mesh::FindDistanceToWall(const glm::vec3& pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance)
+	bool Mesh::FindDistanceToWall(const glm::vec3& pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance, const std::optional<glm::vec3>& searchHalfExtents) const
 	{
 		if (!m_bValid)
 			return false;
 
-		const dtPolyRef poly = FindNearestPoly(m_NavQuery, pos, m_Filter);
+		glm::vec3 center = pos;
+		const dtPolyRef poly = FindNearestPoly(pos, searchHalfExtents, &center);
 		if (poly == 0)
 			return false;
 
-		const dtStatus status = m_NavQuery->findDistanceToWall(poly, &pos[0], maxRadius, &m_Filter, outHitDistance, &outHitPos->x, &outHitNormal->x);
+		const dtStatus status = m_NavQuery->findDistanceToWall(poly, &center[0], maxRadius, &m_Filter, outHitDistance, &outHitPos->x, &outHitNormal->x);
 		return dtStatusSucceed(status);
 	}
 
-	bool Mesh::FindRandomPoint(glm::vec3* outRandomPoint)
+	bool Mesh::FindRandomPoint(glm::vec3* outRandomPoint) const
 	{
 		if (!m_bValid)
 			return false;
@@ -630,27 +698,82 @@ namespace Eagle::AINavigation
 		return dtStatusSucceed(status);
 	}
 
-	bool Mesh::FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint)
+	bool Mesh::FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint, const std::optional<glm::vec3>& searchHalfExtents) const
 	{
 		if (!m_bValid)
 			return false;
 
-		const dtPolyRef poly = FindNearestPoly(m_NavQuery, pos, m_Filter);
+		glm::vec3 center = pos;
+		const dtPolyRef poly = FindNearestPoly(pos, searchHalfExtents, &center);
 		if (poly == 0)
 			return false;
 
 		dtPolyRef randomPoly = 0;
-		const dtStatus status = m_NavQuery->findRandomPointAroundCircle(poly, &pos.x, radius, &m_Filter, Random::Float, &randomPoly, &outRandomPoint->x);
+		const dtStatus status = m_NavQuery->findRandomPointAroundCircle(poly, &center.x, radius, &m_Filter, Random::Float, &randomPoly, &outRandomPoint->x);
 		return dtStatusSucceed(status);
 	}
 
-	bool Mesh::IsValidPoint(const glm::vec3& pos)
+	bool Mesh::FindNearestPoint(const glm::vec3& pos, glm::vec3* outNearestPoint, const std::optional<glm::vec3>& searchHalfExtents) const
 	{
 		if (!m_bValid)
 			return false;
 
-		const dtPolyRef poly = FindNearestPoly(m_NavQuery, pos, m_Filter);
-		return poly != 0 && m_NavQuery->isValidPolyRef(poly, &m_Filter);
+		glm::vec3 nearest = pos;
+		if (FindNearestPoly(pos, searchHalfExtents, &nearest) == 0)
+			return false;
+
+		if (outNearestPoint)
+			*outNearestPoint = nearest;
+
+		return true;
+	}
+
+	bool Mesh::IsValidPoint(const glm::vec3& pos, glm::vec3* outNavMeshPoint) const
+	{
+		if (!m_bValid)
+			return false;
+
+		const float maxHorizontal = m_Settings.GetAgentReach();
+		const float maxAbove = m_Settings.AgentHeight;
+		const float maxBelow = m_Settings.AgentMaxClimb; // Nav mesh heights are approximate, so the real ground can be a bit below it
+
+		// The box that contains every nav mesh point that can be within the agent's space.
+		// `maxAbove`: pos may be up to this far above the nav mesh point. Seen from pos, the nav mesh point may be up to `maxAbove` below it.
+		// `maxBelow`: pos may be up to this far below the nav mesh point. Seen from pos, the nav mesh point may be up to `maxBelow` above it.
+		// So, the nav mesh points the box must contain have heights in [pos.y - maxAbove, pos.y + maxBelow] range.
+		const glm::vec3 center = glm::vec3(pos.x, pos.y + (maxBelow - maxAbove) * 0.5f, pos.z);
+		
+		const glm::vec3 halfExtents = glm::vec3(maxHorizontal, (maxAbove + maxBelow) * 0.5f, maxHorizontal);
+		AgentSpaceQuery query(m_NavQuery, pos, maxHorizontal, maxBelow, maxAbove);
+		if (dtStatusFailed(m_NavQuery->queryPolygons(&center[0], &halfExtents[0], &m_Filter, &query)))
+			return false;
+
+		if (query.GetFound() == 0)
+			return false;
+
+		if (outNavMeshPoint)
+			*outNavMeshPoint = query.GetBestPoint();
+
+		return true;
+	}
+
+	bool Mesh::HasCompletePath(const glm::vec3& from, const glm::vec3& to, const std::optional<glm::vec3>& searchHalfExtents) const
+	{
+		if (!m_bValid)
+			return false;
+
+		glm::vec3 startPos = from;
+		glm::vec3 endPos = to;
+
+		const dtPolyRef startPoly = FindNearestPoly(from, searchHalfExtents, &startPos);
+		const dtPolyRef endPoly = FindNearestPoly(to, searchHalfExtents, &endPos);
+		if (startPoly == 0 || endPoly == 0)
+			return false;
+
+		dtPolyRef path[16];
+		int pathCount = 0;
+		const dtStatus status = m_NavQuery->findPath(startPoly, endPoly, &startPos[0], &endPos[0], &m_Filter, path, &pathCount, (int)std::size(path));
+		return dtStatusSucceed(status) && !dtStatusDetail(status, DT_PARTIAL_RESULT);
 	}
 
 	void Mesh::GetDebugDraw(duDebugDraw* debugDraw) const

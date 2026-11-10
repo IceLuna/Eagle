@@ -2312,18 +2312,19 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_NavigationCrowdAgentComponent_SetMoveTarget(GUID entityID, const glm::vec3* location)
+	bool Script::Eagle_NavigationCrowdAgentComponent_SetMoveTarget(GUID entityID, const glm::vec3* location, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
-			entity.GetComponent<NavigationCrowdAgentComponent>().SetMoveTarget(*location);
+			const std::optional<glm::vec3> extents = bCustomSearchExtents ? std::optional<glm::vec3>(*searchHalfExtents) : std::nullopt;
+			return entity.GetComponent<NavigationCrowdAgentComponent>().SetMoveTarget(*location, extents);
 		}
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMoveTarget` of Navigation Crowd Agent Component. Entity is null");
-			return;
+			return false;
 		}
 	}
 

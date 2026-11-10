@@ -1325,6 +1325,8 @@ namespace Eagle
 				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
 				out << YAML::Key << "EdgeMaxError" << YAML::Value << settings.EdgeMaxError;
 				out << YAML::Key << "BorderSize" << YAML::Value << settings.BorderSize;
+				out << YAML::Key << "OverrideSearchExtents" << YAML::Value << settings.OverrideSearchExtents;
+				out << YAML::Key << "SearchHalfExtents" << YAML::Value << settings.SearchHalfExtents;
 				out << YAML::Key << "FilterLowHangingObstacles" << YAML::Value << settings.FilterLowHangingObstacles;
 				out << YAML::Key << "FilterLedgeSpans" << YAML::Value << settings.FilterLedgeSpans;
 				out << YAML::Key << "FilterWalkableLowHeightSpans" << YAML::Value << settings.FilterWalkableLowHeightSpans;
@@ -1379,6 +1381,10 @@ namespace Eagle
 				settings.AgentRadius = settingsNode["AgentRadius"].as<float>();
 				settings.EdgeMaxError = settingsNode["EdgeMaxError"].as<float>();
 				settings.BorderSize = settingsNode["BorderSize"].as<uint32_t>();
+				if (auto node = settingsNode["OverrideSearchExtents"])
+					settings.OverrideSearchExtents = node.as<bool>();
+				if (auto node = settingsNode["SearchHalfExtents"])
+					settings.SearchHalfExtents = node.as<glm::vec3>();
 				settings.FilterLowHangingObstacles = settingsNode["FilterLowHangingObstacles"].as<bool>();
 				settings.FilterLedgeSpans = settingsNode["FilterLedgeSpans"].as<bool>();
 				settings.FilterWalkableLowHeightSpans = settingsNode["FilterWalkableLowHeightSpans"].as<bool>();

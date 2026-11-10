@@ -29,6 +29,7 @@ namespace Eagle::AINavigation
 		static constexpr uint32_t MaxObstaclesLimit = 65535u;  // Obstacle refs store the index in 16 bits
 		static constexpr uint32_t MaxQueryNodesLimit = 65535u; // dtNavMeshQuery::init
 		static constexpr uint32_t MaxTileBits = 14u;           // At most 2^14 = 16384 tile layers can be addressed
+		static constexpr float MinSearchExtent = 0.01f;
 
 		AABB Bounds = { glm::vec3(-0.5f), glm::vec3(0.5f) };
 		uint32_t MaxQueryNodes = 2048u;
@@ -44,10 +45,17 @@ namespace Eagle::AINavigation
 		float AgentRadius = 0.6f;
 		float EdgeMaxError = 1.3f;
 		uint32_t BorderSize = 3u;
+		
+		// Extents around a point that's searched for the nav mesh: the start/end of a path, a crowd agent's move target, etc.
+		// Points farther from the nav mesh are treated as being off it. Only used if `OverrideSearchExtents` is set. Queries can override it.
+		glm::vec3 SearchHalfExtents = glm::vec3(0.9f, 2.f, 0.9f);
+		bool OverrideSearchExtents = false;
 
 		bool FilterLowHangingObstacles = true;
 		bool FilterLedgeSpans = true;
 		bool FilterWalkableLowHeightSpans = true;
+
+		bool operator==(const MeshSettings&) const = default;
 
 		void Clamp()
 		{
@@ -70,7 +78,24 @@ namespace Eagle::AINavigation
 			AgentRadius   = glm::max(AgentRadius, 0.f);
 			EdgeMaxError  = glm::max(EdgeMaxError, 0.f);
 			MaxSlope      = glm::clamp(MaxSlope, 0.f, 90.f);
+			SearchHalfExtents = glm::max(SearchHalfExtents, glm::vec3(MinSearchExtent));
 		}
+
+		// How far horizontally from the nav mesh an agent standing on it can reach
+		float GetAgentReach() const
+		{
+			const float cellSize = glm::max(CellSize, 0.005f);
+			return std::ceil(AgentRadius / cellSize) * cellSize + cellSize;
+		}
+
+		// Covers points just off the nav mesh, and points up to Agent Height above or below it
+		glm::vec3 GetAutoSearchHalfExtents() const
+		{
+			const float reach = GetAgentReach();
+			return glm::max(glm::vec3(reach, AgentHeight, reach), glm::vec3(MinSearchExtent));
+		}
+
+		glm::vec3 GetSearchHalfExtents() const { return OverrideSearchExtents ? SearchHalfExtents : GetAutoSearchHalfExtents(); }
 	};
 
 	class Mesh
@@ -88,16 +113,34 @@ namespace Eagle::AINavigation
 		dtObstacleRef AddBoxObstacle(const glm::vec3& pos, const glm::vec3& halfExtents, float yRadians);
 		bool RemoveObstacle(dtObstacleRef obstacle); // Returns true if success
 
-		std::vector<glm::vec3> FindStraightPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys = 256u) const;
-		std::vector<glm::vec3> FindSmoothPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys = 256u, uint32_t maxSmooth = 2048u) const;
-		bool FindDistanceToWall(const glm::vec3& pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance);
-		bool FindRandomPoint(glm::vec3* outRandomPoint);
-		bool FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint);
-		bool IsValidPoint(const glm::vec3& pos);
+		// Queries that take points snap them to the nearest point within `searchHalfExtents` of the nav mesh. If it's not set, `GetSearchHalfExtents()` is used.
+		std::vector<glm::vec3> FindStraightPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys = 256u, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
+		std::vector<glm::vec3> FindSmoothPath(const glm::vec3& start, const glm::vec3& end, uint32_t maxPolys = 256u, uint32_t maxSmooth = 2048u, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
+		bool FindDistanceToWall(const glm::vec3& pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
+		bool FindRandomPoint(glm::vec3* outRandomPoint) const;
+		bool FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
+
+		// Returns true if an agent standing on the nav mesh can occupy/reach `pos`, meaning there's a nav mesh point under it, or right next to it within the agent's radius horizontally.
+		// And `pos` is at most `AgentHeight` above it and at most `AgentMaxClimb` below it.
+		// So, for example, it's true for a point at an agent's chest level, but not for a point high above the floor or under it.
+		// Optionally returns that nav mesh point
+		bool IsValidPoint(const glm::vec3& pos, glm::vec3* outNavMeshPoint = nullptr) const;
+
+		// Finds the nearest point on the nav mesh within `searchHalfExtents` of `pos`. Returns false if failed
+		bool FindNearestPoint(const glm::vec3& pos, glm::vec3* outNearestPoint, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
+
+		// Returns true if there's a path from `from` to `to`.
+		// Very long paths might be reported as unreachable if the search runs out of `MaxQueryNodes`
+		bool HasCompletePath(const glm::vec3& from, const glm::vec3& to, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
+
+		glm::vec3 GetSearchHalfExtents() const { return m_Settings.GetSearchHalfExtents(); }
+
+		void SetSearchHalfExtents(const std::optional<glm::vec3>& searchHalfExtents);
 
 		void GetDebugDraw(duDebugDraw* debugDraw) const;
 		const rcConfig& GetConfig() const { return m_Config; }
 		const AABB& GetAABB() const { return m_Settings.Bounds; }
+		const MeshSettings& GetSettings() const { return m_Settings; }
 
 		Crowd& GetCrowd() { return m_Crowd; }
 		const Crowd& GetCrowd() const { return m_Crowd; }
@@ -124,6 +167,9 @@ namespace Eagle::AINavigation
 		bool RasterizeInputPolygonSoup(int x, int y);
 		bool PartitionWalkableSurfaceToSimpleRegions(int x, int y);
 		bool AttachNavigationTileToMesh(NavigationTileData& tileData);
+
+		// Returns 0 if there's no polygon within `searchHalfExtents` of `pos`
+		dtPolyRef FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outNearestPoint = nullptr) const;
 
 	private:
 		dtTileCacheAlloc m_Allocator;

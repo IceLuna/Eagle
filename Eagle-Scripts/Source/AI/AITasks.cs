@@ -82,7 +82,10 @@ namespace Eagle
                 return AINodeStatus.Failed;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
-            return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
+            if (!bFinished)
+                return AINodeStatus.Running;
+
+            return m_MoveState.Result == MoveToTargetResult.NoPath ? AINodeStatus.Failed : AINodeStatus.Succeeded;
         }
 
         public override void OnEnd(AINodeStatus status)
@@ -135,7 +138,10 @@ namespace Eagle
                 return AINodeStatus.Failed;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
-            return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
+            if (!bFinished)
+                return AINodeStatus.Running;
+
+            return m_MoveState.Result == MoveToTargetResult.NoPath ? AINodeStatus.Failed : AINodeStatus.Succeeded;
         }
 
         public override void OnEnd(AINodeStatus status)
@@ -190,7 +196,10 @@ namespace Eagle
                 return AINodeStatus.Failed;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
-            return bFinished ? AINodeStatus.Succeeded : AINodeStatus.Running;
+            if (!bFinished)
+                return AINodeStatus.Running;
+
+            return m_MoveState.Result == MoveToTargetResult.NoPath ? AINodeStatus.Failed : AINodeStatus.Succeeded;
         }
 
         public override void OnEnd(AINodeStatus status)

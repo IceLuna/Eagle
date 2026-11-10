@@ -230,47 +230,61 @@ namespace Eagle::AINavigation
 		return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
 	}
 	
-	void Crowd::SetMoveTarget(int agentIndex, const glm::vec3& pos)
+	dtPolyRef Crowd::FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outTargetPos) const
+	{
+		const glm::vec3& extents = searchHalfExtents ? *searchHalfExtents : m_SearchHalfExtents;
+		if (extents.x <= 0.f || extents.y <= 0.f || extents.z <= 0.f)
+			return 0u;
+
+		dtPolyRef poly = 0u;
+		if (dtStatusFailed(m_NavQuery->findNearestPoly(&pos[0], &extents[0], &m_Filter, &poly, &outTargetPos->x)))
+			return 0;
+
+		return poly;
+	}
+
+	bool Crowd::SetMoveTarget(int agentIndex, const glm::vec3& target, const std::optional<glm::vec3>& searchHalfExtents)
 	{
 		if (!m_Crowd)
 		{
 			EG_CORE_ERROR("Failed to set crowd agent move target. Crowd System isn't initialized");
-			return;
-		}
-
-		const float* searchHalfExtent = m_Crowd->getQueryExtents();
-		dtPolyRef targetRef = 0u;
-		glm::vec3 targetPos = pos;
-		const dtStatus status = m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &targetRef, &targetPos.x);
-		if (dtStatusFailed(status) || targetRef == 0u)
-		{
-			EG_CORE_ERROR("Failed to set the crowd move target for the agent at index {}. No nav mesh polygon near the target (or an invalid position)", agentIndex);
-			return;
+			return false;
 		}
 
 		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
-		if (ag && ag->active)
-			m_Crowd->requestMoveTarget(agentIndex, targetRef, &targetPos.x);
+		if (!ag || !ag->active)
+			return false;
+
+		glm::vec3 targetPos = target;
+		const dtPolyRef targetRef = FindNearestPoly(target, searchHalfExtents, &targetPos);
+		if (targetRef == 0u)
+		{
+			EG_CORE_ERROR("Failed to set the crowd move target for the agent at index {}. No nav mesh polygon near the target (or an invalid position)", agentIndex);
+			return false;
+		}
+
+		return m_Crowd->requestMoveTarget(agentIndex, targetRef, &targetPos.x);
 	}
 	
-	void Crowd::SetMoveTarget(const glm::vec3& pos)
+	bool Crowd::SetMoveTarget(const glm::vec3& target, const std::optional<glm::vec3>& searchHalfExtents)
 	{
 		if (!m_Crowd)
 		{
 			EG_CORE_ERROR("Failed to set crowd agents move target. Crowd System isn't initialized");
-			return;
+			return false;
 		}
 
-		const float* searchHalfExtent = m_Crowd->getQueryExtents();
-		m_TargetRef = 0u;
-		m_TargetPos = pos;
-		const dtStatus status = m_NavQuery->findNearestPoly(&pos.x, searchHalfExtent, &m_Filter, &m_TargetRef, &m_TargetPos.x);
-		if (dtStatusFailed(status) || m_TargetRef == 0u)
+		glm::vec3 targetPos = target;
+		const dtPolyRef targetRef = FindNearestPoly(target, searchHalfExtents, &targetPos);
+		if (targetRef == 0u)
 		{
-			m_TargetRef = 0u;
+			// The current target is kept
 			EG_CORE_ERROR("Failed to set the crowd move target. No nav mesh polygon near the target (or an invalid position)");
-			return;
+			return false;
 		}
+
+		m_TargetRef = targetRef;
+		m_TargetPos = targetPos;
 
 		for (int i = 0; i < m_Crowd->getAgentCount(); ++i)
 		{
@@ -280,6 +294,8 @@ namespace Eagle::AINavigation
 
 			m_Crowd->requestMoveTarget(i, m_TargetRef, &m_TargetPos.x);
 		}
+
+		return true;
 	}
 
 	void Crowd::ResetMoveTarget(int agentIndex)

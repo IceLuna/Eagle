@@ -773,6 +773,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Navigation::FindRandomPoint_Native", Eagle::Script::Eagle_Navigation_FindRandomPoint);
 		mono_add_internal_call("Eagle.Navigation::FindRandomPointInCircle_Native", Eagle::Script::Eagle_Navigation_FindRandomPointInCircle);
 		mono_add_internal_call("Eagle.Navigation::IsValidPoint_Native", Eagle::Script::Eagle_Navigation_IsValidPoint);
+		mono_add_internal_call("Eagle.Navigation::FindNearestPoint_Native", Eagle::Script::Eagle_Navigation_FindNearestPoint);
+		mono_add_internal_call("Eagle.Navigation::HasCompletePath_Native", Eagle::Script::Eagle_Navigation_HasCompletePath);
+		mono_add_internal_call("Eagle.Navigation::GetSearchHalfExtents_Native", Eagle::Script::Eagle_Navigation_GetSearchHalfExtents);
+		mono_add_internal_call("Eagle.Navigation::GetSettings_Native", Eagle::Script::Eagle_Navigation_GetSettings);
 
 		// CrowdNavigation
 		mono_add_internal_call("Eagle.CrowdNavigation::SetMoveTarget_Native", Eagle::Script::Eagle_CrowdNavigation_SetMoveTarget);

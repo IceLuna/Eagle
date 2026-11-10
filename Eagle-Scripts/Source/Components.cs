@@ -3625,9 +3625,13 @@ namespace Eagle
             TeleportAgent_Native(Parent.ID, ref location);
         }
 
-        public void SetMoveTarget(Vector3 location)
+        // `target` is snapped to the nav mesh with `searchHalfExtents`.
+        // If `searchHalfExtents` is not set, the nav mesh's `Search Half Extents` is used.
+        // Returns false and keeps the current target if it's off the nav mesh
+        public bool SetMoveTarget(Vector3 target, Vector3? searchHalfExtents = null)
         {
-            SetMoveTarget_Native(Parent.ID, ref location);
+            bool bCustomExtents = Navigation.ToNativeSearchExtents(searchHalfExtents, out Vector3 extents);
+            return SetMoveTarget_Native(Parent.ID, ref target, bCustomExtents, ref extents);
         }
 
         public void ResetMoveTarget()
@@ -3671,7 +3675,7 @@ namespace Eagle
         internal static extern void TeleportAgent_Native(in GUID entityID, ref Vector3 location);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMoveTarget_Native(in GUID entityID, ref Vector3 location);
+        internal static extern bool SetMoveTarget_Native(in GUID entityID, ref Vector3 location, bool bCustomSearchExtents, ref Vector3 searchHalfExtents);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void ResetMoveTarget_Native(in GUID entityID);

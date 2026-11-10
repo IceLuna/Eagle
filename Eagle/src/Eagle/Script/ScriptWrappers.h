@@ -621,7 +621,7 @@ namespace Eagle::Script
 
 	// NavigationCrowdAgentComponent
 	void Eagle_NavigationCrowdAgentComponent_TeleportAgent(GUID entityID, const glm::vec3* location);
-	void Eagle_NavigationCrowdAgentComponent_SetMoveTarget(GUID entityID, const glm::vec3* location);
+	bool Eagle_NavigationCrowdAgentComponent_SetMoveTarget(GUID entityID, const glm::vec3* location, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
 	void Eagle_NavigationCrowdAgentComponent_ResetMoveTarget(GUID entityID);
 	bool Eagle_NavigationCrowdAgentComponent_IsValid(GUID entityID);
 	void Eagle_NavigationCrowdAgentComponent_SetSettings(GUID entityID, const AINavigation::AgentSettings* settings);
@@ -788,15 +788,19 @@ namespace Eagle::Script
 	GUID Eagle_Scene_SpawnParticleSystem(MonoString* monoName, const Transform* transform, GUID assetID, bool bAutoDestroy);
 
 	// Navigation
-	MonoArray* Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys);
-	MonoArray* Eagle_Navigation_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth);
-	bool Eagle_Navigation_FindDistanceToWall(const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance);
+	MonoArray* Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	MonoArray* Eagle_Navigation_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_FindDistanceToWall(const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
 	bool Eagle_Navigation_FindRandomPoint(glm::vec3* outRandomPoint);
-	bool Eagle_Navigation_FindRandomPointInCircle(const glm::vec3* pos, float radius, glm::vec3* outRandomPoint);
-	bool Eagle_Navigation_IsValidPoint(const glm::vec3* pos);
+	bool Eagle_Navigation_FindRandomPointInCircle(const glm::vec3* pos, float radius, glm::vec3* outRandomPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_FindNearestPoint(const glm::vec3* pos, glm::vec3* outNearestPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_IsValidPoint(const glm::vec3* pos, glm::vec3* outNavMeshPoint);
+	bool Eagle_Navigation_HasCompletePath(const glm::vec3* from, const glm::vec3* to, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_GetSearchHalfExtents(glm::vec3* outSearchExtents);
+	bool Eagle_Navigation_GetSettings(AINavigation::MeshSettings* outSettings);
 
 	// CrowdNavigation
-	void Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* pos);
+	bool Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
 	void Eagle_CrowdNavigation_ResetMoveTarget();
 
 	// Log

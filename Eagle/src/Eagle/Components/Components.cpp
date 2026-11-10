@@ -1725,6 +1725,24 @@ namespace Eagle
 		m_NavMesh->Update(ts);
 	}
 
+	void NavigationMeshComponent::SetSettings(const AINavigation::MeshSettings& settings)
+	{
+		AINavigation::MeshSettings newSettings = settings;
+		newSettings.Clamp();
+
+		AINavigation::MeshSettings oldSettings = m_Settings;
+		oldSettings.SearchHalfExtents = newSettings.SearchHalfExtents;
+		oldSettings.OverrideSearchExtents = newSettings.OverrideSearchExtents;
+
+		const bool bBuildSettingsChanged = oldSettings != newSettings;
+		m_Settings = newSettings;
+		if (m_NavMesh)
+			m_NavMesh->SetSearchHalfExtents(m_Settings.OverrideSearchExtents ? std::optional<glm::vec3>(m_Settings.SearchHalfExtents) : std::nullopt);
+
+		if (bBuildSettingsChanged)
+			OnChanged();
+	}
+
 	void NavigationMeshComponent::Build()
 	{
 		auto& physicsScene = Parent.GetScene()->GetPhysicsScene();
@@ -1799,16 +1817,16 @@ namespace Eagle
 		CreateAgent(location);
 	}
 
-	void NavigationCrowdAgentComponent::SetMoveTarget(const glm::vec3& pos)
+	bool NavigationCrowdAgentComponent::SetMoveTarget(const glm::vec3& target, const std::optional<glm::vec3>& searchHalfExtents)
 	{
 		if (!IsValid())
-			return;
+			return false;
 
 		const auto& navMesh = Parent.GetScene()->GetNavMesh();
 		if (!navMesh)
-			return;
+			return false;
 
-		navMesh->GetCrowd().SetMoveTarget(m_AgentIndex, pos);
+		return navMesh->GetCrowd().SetMoveTarget(m_AgentIndex, target, searchHalfExtents);
 	}
 
 	void NavigationCrowdAgentComponent::ResetMoveTarget()

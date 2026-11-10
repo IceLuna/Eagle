@@ -2586,12 +2586,7 @@ namespace Eagle
 			OnChanged();
 		}
 
-		void SetSettings(const AINavigation::MeshSettings& settings)
-		{
-			m_Settings = settings;
-			m_Settings.Clamp();
-			OnChanged();
-		}
+		void SetSettings(const AINavigation::MeshSettings& settings);
 
 		void SetCrowdSettings(const AINavigation::CrowdSettings& settings)
 		{
@@ -2645,7 +2640,10 @@ namespace Eagle
 		// this function can be used. It'll recreate an agent at a new location
 		void TeleportAgent(const glm::vec3& location);
 
-		void SetMoveTarget(const glm::vec3& pos);
+		// The target is snapped to the nav mesh to the nearest point within `searchHalfExtents`.
+		// If it's not set, the nav mesh's Search Extents are used.
+		// Returns false if failed.
+		bool SetMoveTarget(const glm::vec3& target, const std::optional<glm::vec3>& searchHalfExtents = {});
 		void ResetMoveTarget();
 
 		bool GetLocation(glm::vec3* outLocation) const;

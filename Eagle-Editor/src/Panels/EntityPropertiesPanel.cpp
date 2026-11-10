@@ -35,6 +35,10 @@ namespace Eagle
 	static const char* s_ObstacleHelpMsg = "Can be used for AI Navigation to block the path. Note: nav mesh obstacles are upright. A tilted box is covered by the smallest upright box around it, "
 		"a capsule by an upright cylinder or a box along it (whichever is smaller), and a sphere by an upright cylinder.\n"
 		"It works for triggers and colliders with disabled collision too. For example, a trigger can mark a zone that AI should avoid.\nMesh colliders can't be obstacles";
+	static const char* s_SearchExtentsHelpMsg = "Extents around a point that's searched for the nav mesh: the start/end of a path, a crowd agent's move target, etc. "
+		"Points farther from the nav mesh are treated as being off it.\n"
+		"Scripts can override it per query. Changing it doesn't rebuild the nav mesh";
+	static const char* s_OverrideSearchExtentsHelpMsg = "If not set, Search Half Extents are calculated based on the agent radius and height settings";
 	static const char* s_AffectsNavMeshHelpMsg = "If set to false, it won't affect NavMesh builds. It still can be used as an obstacle though.\n"
 		"Only static colliders/triggers affect NavMesh builds";
 	static const char* s_FilterLowHangingObstaclesHelpMsg = "Marks non-walkable spans as walkable if their maximum is within AgentMaxClimb of the span below them.\n"
@@ -2465,73 +2469,33 @@ namespace Eagle
 
 						bChanged |= UI::PropertyDrag("Bounds Min", settings.Bounds.Min, 0.1f, 0, 0);
 						bChanged |= UI::PropertyDrag("Bounds Max", settings.Bounds.Max, 0.1f, 0, 0);
-
-						if (UI::PropertyDrag("Max Query Nodes", settings.MaxQueryNodes, 32.f, 1, 65535, "Maximum number of search nodes. [Limits: 0 < value <= 65535]"))
+						bChanged |= UI::PropertyDrag("Max Query Nodes", settings.MaxQueryNodes, 32.f, 1, (int)AINavigation::MeshSettings::MaxQueryNodesLimit, "Maximum number of search nodes. [Limits: 0 < value <= 65535]");
+						bChanged |= UI::PropertyDrag("Expected Layers per tile", settings.ExpectedLayersPerTile, 1.f, 1, (int)AINavigation::MeshSettings::MaxLayersLimit, "[Limits: 1 <= value <= 63]");
+						bChanged |= UI::PropertyDrag("Max Layers", settings.MaxLayers, 1.f, 1, (int)AINavigation::MeshSettings::MaxLayersLimit, "[Limits: 1 <= value <= 63]");
+						bChanged |= UI::PropertyDrag("Max Obstacles", settings.MaxObstacles, 1.f, 1, (int)AINavigation::MeshSettings::MaxObstaclesLimit, "[Limits: 1 <= value <= 65535]");
+						bChanged |= UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, (int)AINavigation::MeshSettings::MinTileSizeLimit, (int)AINavigation::MeshSettings::MaxTileSizeLimit, "The width/height size of tile's on the xz-plane. [Limits: 8 <= value <= 255]");
+						bChanged |= UI::PropertyDrag("Cell Size", settings.CellSize, 0.001f, 0, 0, "The xz-plane cell size to use for fields");
+						bChanged |= UI::PropertyDrag("Cell Height", settings.CellHeight, 0.001f, 0, 0, "The y-axis cell size to use for fields");
+						bChanged |= UI::PropertyDrag("Max Slope", settings.MaxSlope, 1.f, 0.f, 90.f, "The maximum slope that is considered walkable");
+						bChanged |= UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.01f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable");
+						bChanged |= UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.01f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable");
+						bChanged |= UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.01f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions");
+						bChanged |= UI::PropertyDrag("Edge Max Error", settings.EdgeMaxError, 0.05f, 0.f, 0.f, "The maximum distance a simplified contour's border edges should deviate the original raw contour");
+						bChanged |= UI::PropertyDrag("Border Size", settings.BorderSize, 1, (int)AINavigation::MeshSettings::MinBorderSizeLimit, 0, "The size of the non-navigable border around the heightfield. [Limits: value >= 2]");
+						if (UI::Property("Override Search Extents", settings.OverrideSearchExtents, s_OverrideSearchExtentsHelpMsg))
 						{
-							settings.MaxQueryNodes = glm::clamp(settings.MaxQueryNodes, 1u, 65535u);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Expected Layers per tile", settings.ExpectedLayersPerTile, 1.f, 1, (int)AINavigation::MeshSettings::MaxLayersLimit, "[Limits: 1 <= value <= 63]"))
-						{
-							settings.ExpectedLayersPerTile = glm::clamp(settings.ExpectedLayersPerTile, 1u, AINavigation::MeshSettings::MaxLayersLimit);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Max Layers", settings.MaxLayers, 1.f, 1, (int)AINavigation::MeshSettings::MaxLayersLimit, "[Limits: 1 <= value <= 63]"))
-						{
-							settings.MaxLayers = glm::clamp(settings.MaxLayers, 1u, AINavigation::MeshSettings::MaxLayersLimit);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Max Obstacles", settings.MaxObstacles, 1.f, 1, (int)AINavigation::MeshSettings::MaxObstaclesLimit, "[Limits: 1 <= value <= 65535]"))
-						{
-							settings.MaxObstacles = glm::clamp(settings.MaxObstacles, 1u, AINavigation::MeshSettings::MaxObstaclesLimit);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, (int)AINavigation::MeshSettings::MinTileSizeLimit, (int)AINavigation::MeshSettings::MaxTileSizeLimit, "The width/height size of tile's on the xz-plane. [Limits: 8 <= value <= 255]"))
-						{
-							settings.TileSize = glm::clamp(settings.TileSize, AINavigation::MeshSettings::MinTileSizeLimit, AINavigation::MeshSettings::MaxTileSizeLimit);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Cell Size", settings.CellSize, 0.001f, 0, 0, "The xz-plane cell size to use for fields"))
-						{
-							settings.CellSize = glm::max(settings.CellSize, 0.005f);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Cell Height", settings.CellHeight, 0.001f, 0, 0, "The y-axis cell size to use for fields"))
-						{
-							settings.CellHeight = glm::max(settings.CellHeight, 0.001f);
+							if (settings.OverrideSearchExtents)
+								settings.SearchHalfExtents = settings.GetAutoSearchHalfExtents();
 							bChanged = true;
 						}
 
-						if (UI::PropertyDrag("Max Slope", settings.MaxSlope, 1.f, 0.f, 90.f, "The maximum slope that is considered walkable"))
-						{
-							settings.MaxSlope = glm::clamp(settings.MaxSlope, 0.f, 90.f);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.01f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable"))
-						{
-							settings.AgentHeight = glm::max(settings.AgentHeight, 0.001f);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.01f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable"))
-						{
-							settings.AgentMaxClimb = glm::max(settings.AgentMaxClimb, 0.0f);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.01f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions"))
-						{
-							settings.AgentRadius = glm::max(settings.AgentRadius, 0.0f);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Edge Max Error", settings.EdgeMaxError, 0.05f, 0.f, 0.f, "The maximum distance a simplified contour's border edges should deviate the original raw contour"))
-						{
-							settings.EdgeMaxError = glm::max(settings.EdgeMaxError, 0.0f);
-							bChanged = true;
-						}
-						if (UI::PropertyDrag("Border Size", settings.BorderSize, 1, (int)AINavigation::MeshSettings::MinBorderSizeLimit, 0, "The size of the non-navigable border around the heightfield. [Limits: value >= 2]"))
-						{
-							settings.BorderSize = glm::max(settings.BorderSize, AINavigation::MeshSettings::MinBorderSizeLimit);
-							bChanged = true;
-						}
+						if (!settings.OverrideSearchExtents)
+							UI::PushItemDisabled();
+						glm::vec3 searchHalfExtents = settings.GetSearchHalfExtents();
+						bChanged |= UI::PropertyDrag("Search Half Extents", searchHalfExtents, 0.05f, 0.f, 0.f, s_SearchExtentsHelpMsg);
+						if (!settings.OverrideSearchExtents)
+							UI::PopItemDisabled();
+
 						bChanged |= UI::Property("Filter Low Hanging Obstacles", settings.FilterLowHangingObstacles, s_FilterLowHangingObstaclesHelpMsg);
 						bChanged |= UI::Property("Filter Ledge Spans", settings.FilterLedgeSpans, s_FilterLedgeSpans);
 						bChanged |= UI::Property("Filter Walkable Low Height Spans", settings.FilterWalkableLowHeightSpans, s_FilterWalkableLowHeightSpans);
@@ -2554,17 +2518,8 @@ namespace Eagle
 						auto settings = component.GetCrowdSettings();
 						bool bCrowdChanged = false;
 
-						if (UI::PropertyDrag("Max Agents", settings.MaxAgents, 1.f, 1, (int)AINavigation::CrowdSettings::MaxAgentsLimit, "[Limits: 1 <= value <= 16383]"))
-						{
-							settings.MaxAgents = glm::clamp(settings.MaxAgents, 1u, AINavigation::CrowdSettings::MaxAgentsLimit);
-							bCrowdChanged = true;
-						}
-
-						if (UI::PropertyDrag("Max Agent Radius", settings.MaxAgentRadius, 0.05f, 0.f, 0.f, "[Limits: value >= 0.01]"))
-						{
-							settings.MaxAgentRadius = glm::max(settings.MaxAgentRadius, AINavigation::CrowdSettings::MinAgentRadius);
-							bCrowdChanged = true;
-						}
+						bCrowdChanged |= UI::PropertyDrag("Max Agents", settings.MaxAgents, 1.f, 1, (int)AINavigation::CrowdSettings::MaxAgentsLimit, "[Limits: 1 <= value <= 16383]");
+						bCrowdChanged |= UI::PropertyDrag("Max Agent Radius", settings.MaxAgentRadius, 0.05f, 0.f, 0.f, "[Limits: value >= 0.01]");
 
 						if (bCrowdChanged)
 						{
