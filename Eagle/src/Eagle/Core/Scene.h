@@ -506,7 +506,8 @@ namespace Eagle
 		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 		void UpdateNavMesh(Timestep ts);
 		void UpdateSceneSequences(Timestep ts, bool bPerEntityTime);
-		void SyncCrowdAgents();
+		void MoveCrowdAgentEntities(Timestep ts);
+		void SyncCrowdAgentsFromEntities();
 		void SetupOnAppAssemblyReloadedCallback();
 
 		void DestroyNavMesh_Internal(NavigationMeshComponent& navMesh);

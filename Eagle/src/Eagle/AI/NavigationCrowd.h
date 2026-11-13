@@ -65,6 +65,11 @@ namespace Eagle::AINavigation
 
 		bool GetAgentLocation(int agentIndex, glm::vec3* outLocation) const;
 		bool GetAgentVelocity(int agentIndex, glm::vec3* outVelocity) const;
+
+		// Moves the agent keeping its path.
+		// If the location is far from the agent, it's placed at the nearest point of the nav mesh, and its move target is requested again.
+		// @velocity. The entity's actual velocity, so that the crowd steers from it. Only its horizontal part is used
+		void SetAgentLocation(int agentIndex, const glm::vec3& location, const glm::vec3& velocity);
 		MoveRequestState GetAgentTargetState(int agentIndex) const;
 
 		// The target is snapped to the nearest point within `searchHalfExtents` of the nav mesh.

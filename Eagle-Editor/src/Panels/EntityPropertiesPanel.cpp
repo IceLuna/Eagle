@@ -320,12 +320,6 @@ namespace Eagle
 		if (m_SelectedComponent == SelectedComponent::None && entity.HasComponent<TransformComponent>())
 		{
 			DrawEntityTransformNode(entity);
-			DrawComponent<TagComponent>("Tag", entity, [this](auto& component)
-			{
-				UI::BeginPropertyGrid("TagComponent");
-				bEntityChanged |= UI::PropertyText("Tag", component.Tag);
-				UI::EndPropertyGrid();
-			}, false);
 			DrawComponent<ProcessModeComponent>("Processing", entity, [this, &entity](ProcessModeComponent& component)
 			{
 				UI::BeginPropertyGrid("ProcessModeComponent");
@@ -349,6 +343,12 @@ namespace Eagle
 					ImGui::NextColumn();
 				}
 
+				UI::EndPropertyGrid();
+			}, false);
+			DrawComponent<TagComponent>("Tag", entity, [this](auto& component)
+			{
+				UI::BeginPropertyGrid("TagComponent");
+				bEntityChanged |= UI::PropertyText("Tag", component.Tag);
 				UI::EndPropertyGrid();
 			}, false);
 		}

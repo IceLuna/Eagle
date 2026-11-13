@@ -1175,8 +1175,9 @@ namespace Eagle
 		GatherSkeletalMeshes();
 		UpdateAnimations(ts, false, true, true);
 		UpdateNavMesh(gameTs);
-		SyncCrowdAgents();
+		MoveCrowdAgentEntities(gameTs);
 		m_PhysicsScene->Simulate(gameTs, true);
+		SyncCrowdAgentsFromEntities();
 		UpdateScripts(ts);
 		UpdateSceneSequences(ts, true);
 		UpdateAudioProcessing();
@@ -1338,18 +1339,26 @@ namespace Eagle
 		}
 	}
 
-	void Scene::SyncCrowdAgents()
+	void Scene::MoveCrowdAgentEntities(Timestep ts)
+	{
+		const glm::vec3 gravity = GetGravity();
+		auto view = m_Registry.view<NavigationCrowdAgentComponent>();
+		for (auto e : view)
+		{
+			auto& agent = view.get<NavigationCrowdAgentComponent>(e);
+			if (agent.IsValid())
+				agent.MoveEntity(ts, gravity);
+		}
+	}
+
+	void Scene::SyncCrowdAgentsFromEntities()
 	{
 		auto view = m_Registry.view<NavigationCrowdAgentComponent>();
-		for (auto& e : view)
+		for (auto e : view)
 		{
-			Entity entity = Entity(e, this);
-			auto& component = entity.GetComponent<NavigationCrowdAgentComponent>();
-			glm::vec3 location;
-			if (component.GetLocation(&location))
-			{
-				entity.SetWorldLocation(location);
-			}
+			auto& agent = view.get<NavigationCrowdAgentComponent>(e);
+			if (agent.IsValid())
+				agent.SyncFromEntity();
 		}
 	}
 

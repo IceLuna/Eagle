@@ -1904,8 +1904,17 @@ namespace Eagle
 		if (!IsValid())
 			return;
 
+		glm::vec3 oldLocation;
+		const bool bHadLocation = GetLocation(&oldLocation);
+
 		RemoveAgent();
 		CreateAgent(location);
+
+		// Otherwise the agent would be moved back to the entity. It's moved by the same amount to keep its offset from the agent
+		const Movement movement = GetMovement();
+		glm::vec3 newLocation;
+		if (bHadLocation && (movement == Movement::CharacterController || movement == Movement::DynamicRigidBody) && GetLocation(&newLocation))
+			Parent.SetWorldLocation(Parent.GetWorldLocation() + (newLocation - oldLocation));
 	}
 
 	const Ref<AINavigation::Mesh>& NavigationCrowdAgentComponent::GetNavMesh() const
@@ -2029,6 +2038,85 @@ namespace Eagle
 
 		m_AgentIndex = -1;
 		m_NavMeshSlot = Scene::InvalidNavMeshSlot;
+		m_FallVelocity = glm::vec3(0.f);
+	}
+
+	NavigationCrowdAgentComponent::Movement NavigationCrowdAgentComponent::GetMovement() const
+	{
+		if (Parent.HasComponent<CharacterControllerComponent>())
+			return Movement::CharacterController;
+
+		if (Parent.HasComponent<RigidBodyComponent>())
+		{
+			const auto& rigidBody = Parent.GetComponent<RigidBodyComponent>();
+			if (rigidBody.GetBodyType() == PhysicsBodyType::Dynamic && rigidBody.GetPhysicsActor())
+				return rigidBody.IsKinematic() ? Movement::KinematicRigidBody : Movement::DynamicRigidBody;
+		}
+
+		return Movement::Teleport;
+	}
+
+	void NavigationCrowdAgentComponent::MoveEntity(Timestep ts, const glm::vec3& gravity)
+	{
+		glm::vec3 location;
+		glm::vec3 velocity;
+		if (!GetLocation(&location) || !GetVelocity(&velocity))
+			return;
+
+		// The crowd moves on the nav mesh and its velocity is horizontal
+		velocity.y = 0.f;
+		ts = glm::max(0.0001f, float(ts)); // Guard against division by 0 if the game is paused
+
+		switch (GetMovement())
+		{
+			case Movement::CharacterController:
+			{
+				auto& controller = Parent.GetComponent<CharacterControllerComponent>();
+				const glm::vec3 footLocation = controller.GetControllerFootWorldLocation();
+
+				m_FallVelocity += gravity * float(ts);
+				const auto flags = controller.Move((velocity + m_FallVelocity) * float(ts), 0.001f, ts);
+				if (HasFlags(flags, CharacterControllerCollisionFlags::Down))
+					m_FallVelocity = glm::vec3(0.f);
+
+				const glm::vec3 newFootLocation = controller.GetControllerFootWorldLocation();
+				if (const auto& navMesh = GetNavMesh())
+					navMesh->GetCrowd().SetAgentLocation(m_AgentIndex, newFootLocation, (newFootLocation - footLocation) / float(ts));
+
+				break;
+			}
+			case Movement::DynamicRigidBody:
+			{
+				// Only while the crowd moves it, so that a standing agent can still be pushed around by physics
+				if (GetAgentTargetState() == MoveRequestState::DT_CROWDAGENT_TARGET_NONE && glm::dot(velocity, velocity) < 1e-6f)
+					break;
+
+				auto& actor = Parent.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+				const glm::vec3 bodyVelocity = actor->GetLinearVelocity();
+				actor->SetLinearVelocity(glm::vec3(velocity.x, bodyVelocity.y, velocity.z));
+				break;
+			}
+			case Movement::KinematicRigidBody:
+				Parent.GetComponent<RigidBodyComponent>().GetPhysicsActor()->SetKinematicTargetLocation(location);
+				break;
+			case Movement::Teleport:
+				Parent.SetWorldLocation(location);
+				break;
+		}
+	}
+
+	void NavigationCrowdAgentComponent::SyncFromEntity()
+	{
+		if (GetMovement() != Movement::DynamicRigidBody)
+			return;
+
+		const auto& navMesh = GetNavMesh();
+		if (!navMesh)
+			return;
+
+		// Physics doesn't step every frame, so its velocity is used instead of the distance moved
+		const auto& actor = Parent.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+		navMesh->GetCrowd().SetAgentLocation(m_AgentIndex, Parent.GetWorldLocation(), actor->GetLinearVelocity());
 	}
 	
 	void NativeScriptComponent::OnUpdate(Entity entity, Timestep ts)

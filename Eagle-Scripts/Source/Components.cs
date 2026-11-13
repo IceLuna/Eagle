@@ -3656,7 +3656,8 @@ namespace Eagle
     public class NavigationCrowdAgentComponent : Component
     {
         // Agents are controlled by the crowd system. But if teleportation is required,
-        // this function can be used. It'll recreate an agent at a new location
+        // this function can be used. It'll recreate an agent at a new location.
+        // An entity moved by physics (a character controller or a dynamic rigid body) is moved along with it.
         public void TeleportAgent(Vector3 location)
         {
             TeleportAgent_Native(Parent.ID, ref location);

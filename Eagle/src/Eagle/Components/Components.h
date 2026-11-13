@@ -2669,7 +2669,8 @@ namespace Eagle
 		NavigationCrowdAgentComponent& operator=(NavigationCrowdAgentComponent&&) noexcept = default;
 
 		// Agents are controlled by the crowd system. But if teleportation is required,
-		// this function can be used. It'll recreate an agent at a new location
+		// this function can be used. It'll recreate an agent at a new location.
+		// An entity moved by physics (a character controller or a dynamic rigid body) is moved along with it.
 		void TeleportAgent(const glm::vec3& location);
 
 		// The target is snapped to the nav mesh to the nearest point within `searchHalfExtents`.
@@ -2702,8 +2703,25 @@ namespace Eagle
 		void RemoveAgent();
 		friend class Scene;
 
+		// Used to respect physics when an agent moves
+		enum class Movement
+		{
+			CharacterController, // `Move` with the agent's velocity and gravity
+			DynamicRigidBody,    // The agent's velocity, horizontally. Physics does the rest
+			KinematicRigidBody,  // A kinematic target at the agent's location
+			Teleport             // Without physics, the entity is placed at the agent's location
+		};
+		Movement GetMovement() const;
+
+		// Called before the physics update
+		void MoveEntity(Timestep ts, const glm::vec3& gravity);
+
+		// Called after the physics update. Syncs the agent with the physics
+		void SyncFromEntity();
+
 	private:
 		AINavigation::AgentSettings m_Settings{};
+		glm::vec3 m_FallVelocity = glm::vec3(0.f); // Used for a character controller
 		int m_AgentIndex = -1;
 		uint32_t m_NavMeshSlot = ~0u;
 		uint32_t m_AgentTypeID = AINavigation::AutoAgentTypeID;

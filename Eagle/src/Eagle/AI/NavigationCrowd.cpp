@@ -2,6 +2,8 @@
 #include "NavigationCrowd.h"
 #include "NavigationUtils.h"
 
+#include <DetourCommon.h>
+
 #include "Eagle/Core/Application.h"
 
 namespace Eagle::AINavigation
@@ -211,6 +213,51 @@ namespace Eagle::AINavigation
 		}
 		
 		return false;
+	}
+
+	void Crowd::SetAgentLocation(int agentIndex, const glm::vec3& location, const glm::vec3& velocity)
+	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to set crowd agent location. Crowd System isn't initialized");
+			return;
+		}
+
+		dtCrowdAgent* ag = m_Crowd->getEditableAgent(agentIndex);
+		if (!ag || !ag->active || ag->state != DT_CROWDAGENT_STATE_WALKING)
+			return;
+
+		ag->vel[0] = velocity.x;
+		ag->vel[1] = 0.f;
+		ag->vel[2] = velocity.z;
+
+		// Along the nav mesh surface from where the agent is, so that its path corridor stays valid
+		const dtQueryFilter* filter = m_Crowd->getFilter(ag->params.queryFilterType);
+		if (ag->corridor.movePosition(&location.x, m_NavQuery, filter))
+			dtVcopy(ag->npos, ag->corridor.getPos());
+
+		// `movePosition` stops at the nav mesh's edges and after a few polygons
+		const float radiusSq = ag->params.radius * ag->params.radius;
+		if (dtVdist2DSqr(ag->npos, &location.x) <= radiusSq)
+			return;
+
+		// Pushed a bit off the nav mesh, the agent stays at its edge
+		glm::vec3 nearest = location;
+		const dtPolyRef ref = FindNearestPoly(location, {}, &nearest);
+		if (ref == 0u || dtVdist2DSqr(ag->npos, &nearest.x) <= radiusSq)
+			return;
+
+		// Teleported, the agent is placed at `location`
+		ag->corridor.reset(ref, &nearest.x);
+		ag->boundary.reset();
+		dtVcopy(ag->npos, &nearest.x);
+
+		// The path is planned again from the new location
+		if (ag->targetState != DT_CROWDAGENT_TARGET_NONE && ag->targetState != DT_CROWDAGENT_TARGET_FAILED && ag->targetState != DT_CROWDAGENT_TARGET_VELOCITY && ag->targetRef)
+		{
+			const glm::vec3 targetPos = glm::vec3(ag->targetPos[0], ag->targetPos[1], ag->targetPos[2]);
+			m_Crowd->requestMoveTarget(agentIndex, ag->targetRef, &targetPos.x);
+		}
 	}
 
 	MoveRequestState Crowd::GetAgentTargetState(int agentIndex) const
