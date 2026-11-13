@@ -28,6 +28,7 @@ namespace Eagle
 			case FieldType::Color3: return 4 * 3;
 			case FieldType::Color4: return 4 * 4;
 			case FieldType::Enum: return 4;
+			case FieldType::NavAgentType: return sizeof(uint32_t);
 			case FieldType::Entity:
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:

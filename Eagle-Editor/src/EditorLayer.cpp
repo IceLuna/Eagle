@@ -291,7 +291,13 @@ namespace Eagle
 
 		m_CurrentScene->bDrawMiscellaneous = m_bDrawEditorMisc;
 		m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
+		m_CurrentScene->NavMeshOpacity = NavMeshOpacity;
 		m_CurrentScene->bDrawMeshAABBs = bDrawMeshAABBs;
+		{
+			const Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+			const bool bSelectedInScene = selectedEntity && selectedEntity.GetScene() == m_CurrentScene.get();
+			m_CurrentScene->NavMeshDebugSelectedEntity = bSelectedInScene ? selectedEntity.GetGUID() : GUID(0, 0);
+		}
 
 		{
 			std::scoped_lock lock(s_DeferredCallsMutex);
@@ -353,7 +359,6 @@ namespace Eagle
 
 		Event::Dispatch<WindowCloseEvent>(e, EG_BIND_FN(EditorLayer::OnWindowClose));
 		Event::Dispatch<KeyPressedEvent>(e, EG_BIND_FN(EditorLayer::OnKeyPressed));
-		Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(EditorLayer::HandleEntitySelection));
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -640,31 +645,6 @@ namespace Eagle
 			if (m_SimulationScene)
 				m_SimulationScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
-	}
-
-	bool EditorLayer::HandleEntitySelection(MouseButtonPressedEvent& e)
-	{
-		if (m_EditorState == EditorState::Play || e.GetMouseCode() != Mouse::ButtonLeft)
-			return false;
-
-		// Entity Selection
-		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		bool bUsingImGuizmo = selectedEntity && m_SelectionGuizmo.IsUsingOrHovered();
-		if (m_ViewportHovered && !m_bViewportToolbarHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
-		{
-			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-			const glm::ivec2 mouse = GetMousePosWithinViewport();
-
-			if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
-			{
-				int32_t data = -1;
-				m_CurrentScene->GetSceneRenderer()->GetObjectIDUnderMouse(data);
-				const Entity newSelection = data == -1 ? Entity::Null : Entity{ (entt::entity)data, m_CurrentScene.get() };
-				m_SceneHierarchyPanel.OnViewportEntityClicked(newSelection);
-				return true;
-			}
-		}
-		return false;
 	}
 
 	void EditorLayer::ToggleWindowFullscreenState()
@@ -2342,6 +2322,13 @@ namespace Eagle
 			m_OpenedSceneAsset->SetDirty(true);
 	}
 
+	void EditorLayer::OnNavAgentTypesChanged()
+	{
+		AssetEntity::OnNavAgentTypesChanged();
+		if (m_EditorScene->OnNavAgentTypesChanged() && m_OpenedSceneAsset)
+			m_OpenedSceneAsset->SetDirty(true);
+	}
+
 	void EditorLayer::PreviewSplashScreen()
 	{
 		// The same description the game build makes, so that the preview matches it
@@ -2545,6 +2532,8 @@ namespace Eagle
 				m_CurrentScene->SetForceShowCollision(bForceShowCollision);
 			UI::Property("Draw Editor Miscellaneous", m_bDrawEditorMisc);
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);
+			if (UI::PropertySlider("Nav Mesh Opacity", NavMeshOpacity, 0.f, 4.f, "Multiplies the opacity of the drawn nav meshes. At 1, polygons are 25% opaque. At 4, they're opaque"))
+				NavMeshOpacity = glm::clamp(NavMeshOpacity, 0.f, 4.f);
 			UI::Property("Draw AABBs of Meshes", bDrawMeshAABBs);
 			UI::Property("Draw All Text & UI Bounds", bDrawAllTextUIBounds, "Outlines the boxes of all 2D/3D texts and 2D images");
 			if (UI::Property("Debug lines depth test", bEnableDebugLinesDepthTest, "If disabled, debug lines will be drawn over everything"))
@@ -2663,6 +2652,15 @@ namespace Eagle
 				m_ViewportHovered = ImGui::IsWindowHovered();
 			m_ViewportFocused = ImGui::IsWindowFocused();
 			m_CurrentScene->bViewportHovered = m_ViewportHovered;
+
+			{
+				const bool bUsingGuizmo = m_SceneHierarchyPanel.GetSelectedEntity() && m_SelectionGuizmo.IsUsingOrHovered();
+				const bool bCanClick = m_EditorState != EditorState::Play && m_ViewportHovered && !m_bViewportToolbarHovered && !bUsingGuizmo;
+				m_ViewportClickSelection.Update(m_CurrentScene, m_ViewportBounds[0], m_ViewportBounds[1], bCanClick, [this](Entity entity, bool bCtrl)
+				{
+					m_SceneHierarchyPanel.OnViewportEntityClicked(entity, bCtrl);
+				});
+			}
 
 			if (m_EditorState == EditorState::Edit)
 			{

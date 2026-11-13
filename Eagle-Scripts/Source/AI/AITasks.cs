@@ -67,6 +67,10 @@ namespace Eagle
         [UIName("Acceptance Distance")]
         public float AcceptanceDistance = 0.5f;
 
+        [UIName("Fallback Agent Type")]
+        [Tooltip("Nav mesh to move on if the owner doesn't have a Navigation Crowd Agent Component (crowd agents always move on the nav mesh of their agent).\nAuto - the default agent type")]
+        public NavAgentType FallbackAgentType;
+
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
@@ -81,7 +85,7 @@ namespace Eagle
             if (m_Owner == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState, FallbackAgentType);
             if (!bFinished)
                 return AINodeStatus.Running;
 
@@ -123,6 +127,10 @@ namespace Eagle
         [UIName("Acceptance Distance")]
         public float AcceptanceDistance = 0.5f;
 
+        [UIName("Fallback Agent Type")]
+        [Tooltip("Nav mesh to move on if the owner doesn't have a Navigation Crowd Agent Component (crowd agents always move on the nav mesh of their agent).\nAuto - the default agent type")]
+        public NavAgentType FallbackAgentType;
+
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
@@ -137,7 +145,7 @@ namespace Eagle
             if (m_Owner == null || m_TargetEntity == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState, FallbackAgentType);
             if (!bFinished)
                 return AINodeStatus.Running;
 
@@ -179,6 +187,10 @@ namespace Eagle
         [UIName("Acceptance Distance")]
         public float AcceptanceDistance = 0.5f;
 
+        [UIName("Fallback Agent Type")]
+        [Tooltip("Nav mesh to move on if the owner doesn't have a Navigation Crowd Agent Component (crowd agents always move on the nav mesh of their agent).\nAuto - the default agent type")]
+        public NavAgentType FallbackAgentType;
+
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
@@ -186,16 +198,21 @@ namespace Eagle
             m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
             m_MoveState.Reset();
 
+            m_bHasTarget = false;
             if (m_Owner != null && m_Blackboard.TryGetValue(Radius, out float radius))
-                Navigation.FindRandomPointInCircle(m_Owner.WorldLocation, radius, out m_Target);
+            {
+                NavMesh navMesh = NavMesh.GetNavMeshFor(m_Owner, FallbackAgentType);
+                if (navMesh.IsValid() && navMesh.FindRandomPointInCircle(m_Owner.WorldLocation, radius, out m_Target))
+                    m_bHasTarget = true;
+            }
         }
 
         protected override AINodeStatus Update(float ts)
         {
-            if (m_Owner == null)
+            if (m_Owner == null || !m_bHasTarget)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState, FallbackAgentType);
             if (!bFinished)
                 return AINodeStatus.Running;
 
@@ -214,6 +231,7 @@ namespace Eagle
         protected MoveToTargetState m_MoveState = new MoveToTargetState();
         protected Entity m_Owner = null;
         protected Vector3 m_Target = new Vector3(0);
+        protected bool m_bHasTarget = false;
         protected float m_MoveSpeed = 1f;
         protected float m_RotationSpeed = 3.5f;
     }

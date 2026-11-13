@@ -14,7 +14,13 @@ namespace Eagle
 		RenderTrianglesTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+
+		void OnResize(const glm::uvec2 size) override
+		{
+			m_Pipeline->Resize(size.x, size.y);
+			m_TranslucentPipeline->Resize(size.x, size.y);
+		}
+
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
 			if (settings.bEnableDebugLinesDepthTest == bEnableDebugLinesDepthTest)
@@ -22,20 +28,22 @@ namespace Eagle
 
 			bEnableDebugLinesDepthTest = settings.bEnableDebugLinesDepthTest;
 
-			InitPipeline();
+			InitPipelines();
 		}
 
-		void SetDebugTriangles(const std::vector<RendererTriangle>& lines);
+		void SetDebugTriangles(const std::vector<RendererTriangle>& triangles);
 
 	private:
-		void InitPipeline();
+		void InitPipelines();
 		void RenderTriangles(const Ref<CommandBuffer>& cmd);
 		void UploadVertexBuffer(const Ref<CommandBuffer>& cmd);
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
+		Ref<PipelineGraphics> m_TranslucentPipeline;
 		Ref<Buffer> m_VertexBuffer;
-		std::vector<RendererDebugVertex> m_Vertices;
+		std::vector<RendererDebugVertex> m_Vertices; // Opaque triangles first, then translucent ones
+		uint32_t m_OpaqueVerticesCount = 0u;
 		bool bEnableDebugLinesDepthTest = true;
 
 		static constexpr size_t s_DefaultTrianglesCount = 256; // How much triangles we can render without reallocating

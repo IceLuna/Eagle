@@ -84,26 +84,21 @@ namespace Eagle
 
 		Serializer::SerializeProjectCollisionGroupGUIDs(out);
 
-		// Save EntityID that has a valid nav mesh. It'll be used during deserialization to build the nav mesh after a scene has been loaded
+		// Save active nav mesh components. It'll be used during deserialization to build the nav mesh after a scene has been loaded
 		{
-			GUID navMeshEntity = GUID(0, 0);
-			if (scene->GetNavMesh())
+			const std::vector<NavigationMeshComponent*> navMeshes = scene->GetActiveNavMeshComponents();
+			if (!navMeshes.empty())
 			{
-				auto view = scene->GetAllEntitiesWith<NavigationMeshComponent>();
-				for (auto& e : view)
+				out << YAML::Key << "NavMeshes" << YAML::Value << YAML::BeginSeq;
+				for (const NavigationMeshComponent* navMesh : navMeshes)
 				{
-					Entity entity(e, scene.get());
-					const auto& component = entity.GetComponent<NavigationMeshComponent>();
-					if (component.GetNavMesh())
-					{
-						navMeshEntity = entity.GetGUID();
-						break;
-					}
+					out << YAML::BeginMap;
+					out << YAML::Key << "Entity" << YAML::Value << navMesh->Parent.GetGUID();
+					out << YAML::Key << "AgentType" << YAML::Value << navMesh->GetAgentTypeID();
+					out << YAML::Key << "Built" << YAML::Value << (navMesh->GetNavMesh() != nullptr);
+					out << YAML::EndMap;
 				}
-			}
-			if (!navMeshEntity.IsNull())
-			{
-				out << YAML::Key << "NavMesh" << YAML::Value << navMeshEntity;
+				out << YAML::EndSeq;
 			}
 		}
 
@@ -156,6 +151,14 @@ namespace Eagle
 
 	bool SceneSerializer::Deserialize(const Ref<Scene>& scene, YAML::Node& baseNode, const std::function<bool(size_t done, size_t total)>& onProgress)
 	{
+		// The active nav mesh components that were saved
+		struct SavedNavMesh
+		{
+			GUID Entity;
+			uint32_t AgentTypeID = AINavigation::InvalidAgentTypeID;
+			bool bBuilt = false;
+		};
+
 		AssetType assetType = AssetType::None;
 		if (auto node = baseNode["Type"])
 			assetType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
@@ -168,8 +171,6 @@ namespace Eagle
 		YAML::Node data = baseNode["Scene"];
 		if (!data)
 			return true; // It's an empty scene
-
-		GUID navMeshEntityGUID = GUID(0, 0);
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
@@ -203,9 +204,16 @@ namespace Eagle
 
 		const uint32_t collisionGroupValidMasks = Serializer::DeserializeProjectCollisionGroupGUIDs(data);
 
-		if (auto node = data["NavMesh"])
+		std::vector<SavedNavMesh> navMeshes;
+		if (auto node = data["NavMeshes"])
 		{
-			navMeshEntityGUID = node.as<GUID>();
+			for (const auto& navMeshNode : node)
+			{
+				SavedNavMesh& navMesh = navMeshes.emplace_back();
+				navMesh.Entity = navMeshNode["Entity"].as<GUID>();
+				navMesh.AgentTypeID = navMeshNode["AgentType"].as<uint32_t>();
+				navMesh.bBuilt = navMeshNode["Built"].as<bool>();
+			}
 		}
 
 		DeserializeSkybox(scene, data);
@@ -245,11 +253,29 @@ namespace Eagle
 			}
 		}
 
-		if (!navMeshEntityGUID.IsNull())
+		// While the entities were loaded, the first component of each agent type became active. The saved ones become active instead.
+		// Nothing is built while the entities are loaded, so no nav mesh is destroyed by it
+		auto FindNavMeshComponent = [&scene](const GUID& guid) -> NavigationMeshComponent*
 		{
-			Entity entity = scene->GetEntityByGUID(navMeshEntityGUID);
-			EG_CORE_ASSERT(entity && entity.HasComponent<NavigationMeshComponent>());
-			scene->BuildNavMesh(&entity.GetComponent<NavigationMeshComponent>());
+			Entity entity = scene->GetEntityByGUID(guid);
+			return entity && entity.HasComponent<NavigationMeshComponent>() ? &entity.GetComponent<NavigationMeshComponent>() : nullptr;
+		};
+		for (const SavedNavMesh& navMesh : navMeshes)
+		{
+			// A component whose type was removed from the project fell back to another type while it was loaded.
+			// It doesn't take that type from the component that was saved as active for it
+			NavigationMeshComponent* component = FindNavMeshComponent(navMesh.Entity);
+			const bool bSameType = component && (component->GetAgentTypeID() == navMesh.AgentTypeID);
+			if (bSameType)
+				scene->SetActiveNavMeshComponent(*component);
+		}
+
+		// After all of them are active, so that building one doesn't depend on the order
+		for (const SavedNavMesh& navMesh : navMeshes)
+		{
+			NavigationMeshComponent* component = navMesh.bBuilt ? FindNavMeshComponent(navMesh.Entity) : nullptr;
+			if (component && component->IsActive())
+				scene->BuildNavMesh(*component);
 		}
 
 		return true;

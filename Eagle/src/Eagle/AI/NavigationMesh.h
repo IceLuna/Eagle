@@ -19,6 +19,37 @@ namespace Eagle
 
 namespace Eagle::AINavigation
 {
+	inline constexpr uint32_t MaxAgentTypes = 8u;
+	inline constexpr uint32_t InvalidAgentTypeID = 0xFFFFFFFFu;
+
+	// Where an agent type can be picked automatically (crowd agents, `NavAgentType` script fields), this ID means Auto. No agent type has it
+	inline constexpr uint32_t AutoAgentTypeID = 0u;
+
+	// The agent type a nav mesh is built for
+	struct AgentType
+	{
+		uint32_t ID = InvalidAgentTypeID;
+		std::string Name;
+		glm::vec3 DebugColor = glm::vec3(0.f, 0.6f, 1.f);
+		float Radius = 0.6f;
+		float Height = 2.f;
+		float MaxClimb = 0.25f;
+		float MaxSlope = 45.f;
+
+		void Clamp()
+		{
+			Radius   = glm::max(Radius, 0.f);
+			Height   = glm::max(Height, 0.001f);
+			MaxClimb = glm::max(MaxClimb, 0.f);
+			MaxSlope = glm::clamp(MaxSlope, 0.f, 90.f);
+		}
+
+		bool HasSameDimensions(const AgentType& other) const
+		{
+			return Radius == other.Radius && Height == other.Height && MaxClimb == other.MaxClimb && MaxSlope == other.MaxSlope;
+		}
+	};
+
 	struct MeshSettings
 	{
 		// Limits of Recast/Detour
@@ -37,12 +68,8 @@ namespace Eagle::AINavigation
 		uint32_t MaxLayers = 32u;
 		uint32_t MaxObstacles = 128u;
 		uint32_t TileSize = 8u;
-		float CellSize = 0.3f;
+		float CellSize = 0.2f;
 		float CellHeight = 0.1f;
-		float MaxSlope = 45.f;
-		float AgentHeight = 2.f;
-		float AgentMaxClimb = 0.9f;
-		float AgentRadius = 0.6f;
 		float EdgeMaxError = 1.3f;
 		uint32_t BorderSize = 3u;
 		
@@ -73,35 +100,31 @@ namespace Eagle::AINavigation
 
 			CellSize      = glm::max(CellSize, 0.005f);
 			CellHeight    = glm::max(CellHeight, 0.001f);
-			AgentHeight   = glm::max(AgentHeight, 0.001f);
-			AgentMaxClimb = glm::max(AgentMaxClimb, 0.f);
-			AgentRadius   = glm::max(AgentRadius, 0.f);
 			EdgeMaxError  = glm::max(EdgeMaxError, 0.f);
-			MaxSlope      = glm::clamp(MaxSlope, 0.f, 90.f);
 			SearchHalfExtents = glm::max(SearchHalfExtents, glm::vec3(MinSearchExtent));
 		}
 
 		// How far horizontally from the nav mesh an agent standing on it can reach
-		float GetAgentReach() const
+		float GetAgentReach(const AgentType& agentType) const
 		{
 			const float cellSize = glm::max(CellSize, 0.005f);
-			return std::ceil(AgentRadius / cellSize) * cellSize + cellSize;
+			return std::ceil(agentType.Radius / cellSize) * cellSize + cellSize;
 		}
 
 		// Covers points just off the nav mesh, and points up to Agent Height above or below it
-		glm::vec3 GetAutoSearchHalfExtents() const
+		glm::vec3 GetAutoSearchHalfExtents(const AgentType& agentType) const
 		{
-			const float reach = GetAgentReach();
-			return glm::max(glm::vec3(reach, AgentHeight, reach), glm::vec3(MinSearchExtent));
+			const float reach = GetAgentReach(agentType);
+			return glm::max(glm::vec3(reach, agentType.Height, reach), glm::vec3(MinSearchExtent));
 		}
 
-		glm::vec3 GetSearchHalfExtents() const { return OverrideSearchExtents ? SearchHalfExtents : GetAutoSearchHalfExtents(); }
+		glm::vec3 GetSearchHalfExtents(const AgentType& agentType) const { return OverrideSearchExtents ? SearchHalfExtents : GetAutoSearchHalfExtents(agentType); }
 	};
 
 	class Mesh
 	{
 	public:
-		Mesh(const OverlapGeometryData& tiles, const MeshSettings& meshSettings, const CrowdSettings& crowdSettings);
+		Mesh(const OverlapGeometryData& tiles, const MeshSettings& meshSettings, const AgentType& agentType, const CrowdSettings& crowdSettings);
 		~Mesh();
 
 		// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests (up to `MaxTileRebuildsPerUpdate`).
@@ -121,7 +144,7 @@ namespace Eagle::AINavigation
 		bool FindRandomPointInCircle(const glm::vec3& pos, float radius, glm::vec3* outRandomPoint, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
 
 		// Returns true if an agent standing on the nav mesh can occupy/reach `pos`, meaning there's a nav mesh point under it, or right next to it within the agent's radius horizontally.
-		// And `pos` is at most `AgentHeight` above it and at most `AgentMaxClimb` below it.
+		// And `pos` is at most the agent's `Height` above it and at most its `MaxClimb` below it.
 		// So, for example, it's true for a point at an agent's chest level, but not for a point high above the floor or under it.
 		// Optionally returns that nav mesh point
 		bool IsValidPoint(const glm::vec3& pos, glm::vec3* outNavMeshPoint = nullptr) const;
@@ -133,7 +156,7 @@ namespace Eagle::AINavigation
 		// Very long paths might be reported as unreachable if the search runs out of `MaxQueryNodes`
 		bool HasCompletePath(const glm::vec3& from, const glm::vec3& to, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
 
-		glm::vec3 GetSearchHalfExtents() const { return m_Settings.GetSearchHalfExtents(); }
+		glm::vec3 GetSearchHalfExtents() const { return m_Settings.GetSearchHalfExtents(m_AgentType); }
 
 		void SetSearchHalfExtents(const std::optional<glm::vec3>& searchHalfExtents);
 
@@ -141,12 +164,13 @@ namespace Eagle::AINavigation
 		const rcConfig& GetConfig() const { return m_Config; }
 		const AABB& GetAABB() const { return m_Settings.Bounds; }
 		const MeshSettings& GetSettings() const { return m_Settings; }
+		const AgentType& GetAgentType() const { return m_AgentType; }
 
 		Crowd& GetCrowd() { return m_Crowd; }
 		const Crowd& GetCrowd() const { return m_Crowd; }
 
 		// Returns null if the build failed
-		static Ref<Mesh> Create(const OverlapGeometryData& tiles, const MeshSettings& settings, const CrowdSettings& crowdSettings);
+		static Ref<Mesh> Create(const OverlapGeometryData& tiles, const MeshSettings& settings, const AgentType& agentType, const CrowdSettings& crowdSettings);
 
 		// Per-frame budget for `Update()`.
 		// Detour's tile cache rebuilds one tile per `dtTileCache::update` call.
@@ -200,6 +224,7 @@ namespace Eagle::AINavigation
 		} m_Context;
 
 		MeshSettings m_Settings;
+		AgentType m_AgentType;
 		rcConfig m_Config{};
 		dtTileCacheParams m_TileCacheConfig{};
 		dtQueryFilter m_Filter{};

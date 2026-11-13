@@ -579,10 +579,10 @@ namespace Eagle
 				SerializeStructField(out, field);
 				break;
 			case FieldType::Int:
-				SerializeField<int>(out, field);
+				SerializeField<int32_t>(out, field);
 				break;
 			case FieldType::UnsignedInt:
-				SerializeField<unsigned int>(out, field);
+				SerializeField<uint32_t>(out, field);
 				break;
 			case FieldType::Float:
 				SerializeField<float>(out, field);
@@ -605,7 +605,10 @@ namespace Eagle
 				SerializeField<bool>(out, field);
 				break;
 			case FieldType::Enum:
-				SerializeField<int>(out, field);
+				SerializeField<int32_t>(out, field);
+				break;
+			case FieldType::NavAgentType:
+				SerializeField<uint32_t>(out, field);
 				break;
 			case FieldType::Entity:
 			case FieldType::Asset:
@@ -683,10 +686,10 @@ namespace Eagle
 					switch (fieldType)
 					{
 						case FieldType::Int:
-							SetStoredValue<int>(node, field, i);
+							SetStoredValue<int32_t>(node, field, i);
 							break;
 						case FieldType::UnsignedInt:
-							SetStoredValue<unsigned int>(node, field, i);
+							SetStoredValue<uint32_t>(node, field, i);
 							break;
 						case FieldType::Float:
 							SetStoredValue<float>(node, field, i);
@@ -709,7 +712,10 @@ namespace Eagle
 							SetStoredValue<bool>(node, field, i);
 							break;
 						case FieldType::Enum:
-							SetStoredValue<int>(node, field, i);
+							SetStoredValue<int32_t>(node, field, i);
+							break;
+						case FieldType::NavAgentType:
+							SetStoredValue<uint32_t>(node, field, i);
 							break;
 						case FieldType::Entity:
 						case FieldType::Asset:
@@ -752,6 +758,7 @@ namespace Eagle
 			case FieldType::Color3:
 			case FieldType::Color4:
 			case FieldType::Enum:
+			case FieldType::NavAgentType:
 			case FieldType::Entity:
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:

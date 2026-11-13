@@ -3,6 +3,7 @@
 #include "SerializerInternal.h"
 
 #include "Eagle/Components/Components.h"
+#include "Eagle/Core/Project.h"
 #include "Eagle/Utils/SerializerUtils.h"
 
 namespace Eagle
@@ -1299,6 +1300,8 @@ namespace Eagle
 
 			Serializer::SerializeRelativeTransform(out, component.GetRelativeTransform());
 			out << YAML::Key << "bAutoRebuild" << YAML::Value << component.bAutoRebuild;
+			out << YAML::Key << "bDebugDraw" << YAML::Value << component.bDebugDraw;
+			out << YAML::Key << "AgentType" << YAML::Value << component.GetAgentTypeID();
 
 			// Settings
 			{
@@ -1319,10 +1322,6 @@ namespace Eagle
 				out << YAML::Key << "TileSize" << YAML::Value << settings.TileSize;
 				out << YAML::Key << "CellSize" << YAML::Value << settings.CellSize;
 				out << YAML::Key << "CellHeight" << YAML::Value << settings.CellHeight;
-				out << YAML::Key << "MaxSlope" << YAML::Value << settings.MaxSlope;
-				out << YAML::Key << "AgentHeight" << YAML::Value << settings.AgentHeight;
-				out << YAML::Key << "AgentMaxClimb" << YAML::Value << settings.AgentMaxClimb;
-				out << YAML::Key << "AgentRadius" << YAML::Value << settings.AgentRadius;
 				out << YAML::Key << "EdgeMaxError" << YAML::Value << settings.EdgeMaxError;
 				out << YAML::Key << "BorderSize" << YAML::Value << settings.BorderSize;
 				out << YAML::Key << "OverrideSearchExtents" << YAML::Value << settings.OverrideSearchExtents;
@@ -1358,6 +1357,10 @@ namespace Eagle
 			component.SetRelativeTransform(relativeTransform);
 			if (auto rebuildNode = componentNode["bAutoRebuild"])
 				component.bAutoRebuild = rebuildNode.as<bool>();
+			if (auto node = componentNode["bDebugDraw"])
+				component.bDebugDraw = node.as<bool>();
+			if (auto node = componentNode["AgentType"])
+				component.SetAgentTypeIDOrFallback(node.as<uint32_t>());
 
 			AINavigation::MeshSettings settings{};
 			AINavigation::CrowdSettings crowdSettings{};
@@ -1375,10 +1378,6 @@ namespace Eagle
 				settings.TileSize = settingsNode["TileSize"].as<uint32_t>();
 				settings.CellSize = settingsNode["CellSize"].as<float>();
 				settings.CellHeight = settingsNode["CellHeight"].as<float>();
-				settings.MaxSlope = settingsNode["MaxSlope"].as<float>();
-				settings.AgentHeight = settingsNode["AgentHeight"].as<float>();
-				settings.AgentMaxClimb = settingsNode["AgentMaxClimb"].as<float>();
-				settings.AgentRadius = settingsNode["AgentRadius"].as<float>();
 				settings.EdgeMaxError = settingsNode["EdgeMaxError"].as<float>();
 				settings.BorderSize = settingsNode["BorderSize"].as<uint32_t>();
 				if (auto node = settingsNode["OverrideSearchExtents"])
@@ -1408,6 +1407,8 @@ namespace Eagle
 			out << YAML::Key << key;
 			out << YAML::BeginMap; // NavigationCrowdAgentComponent
 
+			out << YAML::Key << "AgentType" << YAML::Value << component.GetAgentTypeID();
+
 			// Settings
 			{
 				const auto& settings = component.GetSettings();
@@ -1428,12 +1429,15 @@ namespace Eagle
 				out << YAML::EndMap;
 			}
 
-			out << YAML::EndMap; // NavigationMeshComponent
+			out << YAML::EndMap; // NavigationCrowdAgentComponent
 		}
 
 		void DeserializeNavigationCrowdAgentComponent(Entity deserializedEntity, YAML::Node componentNode)
 		{
 			auto& component = deserializedEntity.AddComponent<NavigationCrowdAgentComponent>();
+
+			if (auto node = componentNode["AgentType"])
+				component.SetAgentTypeID(node.as<uint32_t>());
 
 			AINavigation::AgentSettings settings{};
 			if (auto settingsNode = componentNode["Settings"])
@@ -1711,13 +1715,17 @@ namespace Eagle
 				bRecreate[i] |= s_SerializedComponentTypes[i].bCollider;
 		}
 
-		// The nav mesh of the scene is removed along with its component. When a scene is loaded, it's built after its entities were deserialized
+		// A nav mesh is removed along with its component. When a scene is loaded, it's built after its entities were deserialized
 		Scene* scene = entity.GetScene();
 		bool bRebuildNavMesh = false;
+		bool bNavMeshWasActive = false;
+		uint32_t navMeshAgentTypeID = AINavigation::InvalidAgentTypeID;
 		if (entity.HasComponent<NavigationMeshComponent>())
 		{
-			const auto& navMesh = entity.GetComponent<NavigationMeshComponent>().GetNavMesh();
-			bRebuildNavMesh = navMesh && navMesh == scene->GetNavMesh();
+			const auto& navMesh = entity.GetComponent<NavigationMeshComponent>();
+			bRebuildNavMesh = navMesh.GetNavMesh() != nullptr;
+			bNavMeshWasActive = navMesh.IsActive();
+			navMeshAgentTypeID = navMesh.GetAgentTypeID();
 		}
 
 		// Removed in the reverse order, so that, for example, colliders are removed before the rigid body
@@ -1736,11 +1744,14 @@ namespace Eagle
 
 		DeserializeComponents(entity, recreatedNode, DeserializeProjectCollisionGroupGUIDs(componentsNode));
 
-		if (bRebuildNavMesh && entity.HasComponent<NavigationMeshComponent>())
+		if (entity.HasComponent<NavigationMeshComponent>())
 		{
 			auto& navMesh = entity.GetComponent<NavigationMeshComponent>();
-			if (!navMesh.GetNavMesh())
-				scene->BuildNavMesh(&navMesh);
+			// While it was removed, another component of its type became active. It takes its place back
+			if (bNavMeshWasActive && navMesh.GetAgentTypeID() == navMeshAgentTypeID)
+				scene->SetActiveNavMeshComponent(navMesh);
+			if (bRebuildNavMesh && !navMesh.GetNavMesh() && navMesh.IsActive())
+				scene->BuildNavMesh(navMesh);
 		}
 	}
 }

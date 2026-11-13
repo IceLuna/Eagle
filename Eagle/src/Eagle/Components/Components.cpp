@@ -9,6 +9,7 @@
 #include "Eagle/Physics/PhysicsShapes.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Physics/PhysicsCharacterController.h"
+#include "Eagle/Core/Project.h"
 
 namespace Eagle
 {
@@ -189,7 +190,7 @@ namespace Eagle
 			if (Parent.HasComponent<MeshColliderComponent>())
 				Parent.GetComponent<MeshColliderComponent>().OnInit();
 
-			Parent.GetScene()->RebuildNavMesh();
+			Parent.GetScene()->RebuildNavMeshes();
 		}
 	}
 
@@ -620,21 +621,62 @@ namespace Eagle
 		return *this;
 	}
 
-	bool BaseColliderComponent::RemoveObstacle()
+	bool BaseColliderComponent::RemoveObstacle(uint32_t slot)
 	{
-		if (m_ObstacleID == 0u)
-			return false;
+		if (m_ObstacleIDs[slot] == 0u)
+			return true;
 
-		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
+		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMeshInSlot(slot);
 		if (!navMesh)
-			return false;
-
-		if (navMesh->RemoveObstacle(m_ObstacleID))
 		{
-			m_ObstacleID = 0u;
+			m_ObstacleIDs[slot] = 0u;
 			return true;
 		}
+
+		if (navMesh->RemoveObstacle(m_ObstacleIDs[slot]))
+		{
+			m_ObstacleIDs[slot] = 0u;
+			return true;
+		}
+
 		return false;
+	}
+
+	bool BaseColliderComponent::RemoveObstacle()
+	{
+		bool bRemoved = true;
+		for (uint32_t slot = 0; slot < (uint32_t)m_ObstacleIDs.size(); ++slot)
+			bRemoved &= RemoveObstacle(slot);
+
+		return bRemoved;
+	}
+
+	void BaseColliderComponent::CreateObstacle(uint32_t slot)
+	{
+		if (!RemoveObstacle(slot))
+			return;
+
+		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMeshInSlot(slot);
+		if (!navMesh)
+			return;
+
+		ObstacleShape shape;
+		if (!GetObstacleShape(&shape))
+			return;
+
+		if (!AABB::Overlap(shape.Bounds, navMesh->GetAABB()))
+			return;
+
+		if (shape.bBox)
+			m_ObstacleIDs[slot] = navMesh->AddBoxObstacle(shape.Location, shape.BoxHalfExtents, shape.BoxYaw);
+		else
+			m_ObstacleIDs[slot] = navMesh->AddCylinderObstacle(shape.Location, shape.CylinderRadius, shape.CylinderHeight);
+	}
+
+	void BaseColliderComponent::CreateObstacle()
+	{
+		for (uint32_t slot = 0; slot < (uint32_t)m_ObstacleIDs.size(); ++slot)
+			CreateObstacle(slot);
 	}
 	
 	BoxColliderComponent& BoxColliderComponent::operator=(const BoxColliderComponent& other)
@@ -660,28 +702,21 @@ namespace Eagle
 		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
-	void BoxColliderComponent::CreateObstacle()
+	bool BoxColliderComponent::GetObstacleShape(ObstacleShape* outShape) const
 	{
-		if (m_ObstacleID != 0u)
-		{
-			if (RemoveObstacle() == false)
-				return; // Remove failed, so we shouldn't create a new one.
-		}
-
-		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
-		if (!navMesh)
-			return;
-
 		const glm::vec3 halfExtents = m_Shape->GetColliderScale() * 0.5f;
 		const glm::quat& rotation = WorldTransform.Rotation.GetQuat();
 		const glm::vec3 worldExtents = ObstacleUtils::GetRotatedBoxExtents(rotation, halfExtents);
-		AABB aabb(WorldTransform.Location - worldExtents, WorldTransform.Location + worldExtents);
-		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
-			return; // Don't create if it doesn't overlap a nav mesh
+		outShape->Bounds = AABB(WorldTransform.Location - worldExtents, WorldTransform.Location + worldExtents);
 
 		// Detour boxes can only be rotated around Y. A tilted box is covered by the smallest upright box around it
 		const ObstacleUtils::UprightBox box = ObstacleUtils::GetUprightBoxAround(rotation, halfExtents);
-		m_ObstacleID = navMesh->AddBoxObstacle(WorldTransform.Location, box.HalfExtents, box.Yaw);
+		outShape->bBox = true;
+		outShape->Location = WorldTransform.Location;
+		outShape->BoxHalfExtents = box.HalfExtents;
+		outShape->BoxYaw = box.Yaw;
+
+		return true;
 	}
 
 	void BoxColliderComponent::UpdateShowCollisionState()
@@ -786,26 +821,17 @@ namespace Eagle
 		m_Shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
-	void SphereColliderComponent::CreateObstacle()
+	bool SphereColliderComponent::GetObstacleShape(ObstacleShape* outShape) const
 	{
-		if (m_ObstacleID != 0u)
-		{
-			if (RemoveObstacle() == false)
-				return; // Remove failed, so we shouldn't create a new one.
-		}
-
-		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
-		if (!navMesh)
-			return;
-
 		const float radius = m_Shape->GetColliderScale().x;
+		outShape->Bounds = AABB(WorldTransform.Location - radius, WorldTransform.Location + radius);
 
-		AABB aabb(WorldTransform.Location - radius, WorldTransform.Location + radius);
-		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
-			return; // Don't create if it doesn't overlap a nav mesh
+		outShape->bBox = false;
+		outShape->Location = WorldTransform.Location - glm::vec3(0.f, radius, 0.f); // Detour cylinders start at the bottom
+		outShape->CylinderRadius = radius;
+		outShape->CylinderHeight = radius * 2.f;
 
-		const float height = radius * 2.f;
-		m_ObstacleID = navMesh->AddCylinderObstacle(WorldTransform.Location - glm::vec3(0.f, radius, 0.f), radius, height);
+		return true;
 	}
 
 	void SphereColliderComponent::UpdateShowCollisionState()
@@ -942,18 +968,8 @@ namespace Eagle
 		}
 	}
 
-	void CapsuleColliderComponent::CreateObstacle()
+	bool CapsuleColliderComponent::GetObstacleShape(ObstacleShape* outShape) const
 	{
-		if (m_ObstacleID != 0u)
-		{
-			if (RemoveObstacle() == false)
-				return; // Remove failed, so we shouldn't create a new one.
-		}
-
-		const Ref<AINavigation::Mesh>& navMesh = Parent.GetScene()->GetNavMesh();
-		if (!navMesh)
-			return;
-
 		// Like in PhysX, the capsule lies along its X axis and is centered at its location.
 		// Its segment has a length of `height`, plus `radius` at each end
 		const glm::vec3& scale = m_Shape->GetColliderScale();
@@ -974,14 +990,23 @@ namespace Eagle
 
 		const glm::vec3 extents = bUseBox ? ObstacleUtils::GetRotatedBoxExtents(glm::angleAxis(ObstacleUtils::YawOf(axis), glm::vec3(0.f, 1.f, 0.f)), boxHalfExtents)
 		                                  : glm::vec3(cylinderRadius, halfY, cylinderRadius);
-		AABB aabb(center - extents, center + extents);
-		if (!AABB::Overlap(aabb, navMesh->GetAABB()))
-			return; // Don't create if it doesn't overlap a nav mesh
+		outShape->Bounds = AABB(center - extents, center + extents);
 
+		outShape->bBox = bUseBox;
 		if (bUseBox)
-			m_ObstacleID = navMesh->AddBoxObstacle(center, boxHalfExtents, ObstacleUtils::YawOf(axis));
+		{
+			outShape->Location = center;
+			outShape->BoxHalfExtents = boxHalfExtents;
+			outShape->BoxYaw = ObstacleUtils::YawOf(axis);
+		}
 		else
-			m_ObstacleID = navMesh->AddCylinderObstacle(center - glm::vec3(0.f, halfY, 0.f), cylinderRadius, halfY * 2.f); // Detour cylinders start at the bottom
+		{
+			outShape->Location = center - glm::vec3(0.f, halfY, 0.f); // Detour cylinders start at the bottom
+			outShape->CylinderRadius = cylinderRadius;
+			outShape->CylinderHeight = halfY * 2.f;
+		}
+
+		return true;
 	}
 
 	void CapsuleColliderComponent::OnRemoved()
@@ -1056,11 +1081,12 @@ namespace Eagle
 				shape->SetPhysicsMaterial(m_MaterialAsset);
 	}
 
-	void MeshColliderComponent::CreateObstacle()
+	bool MeshColliderComponent::GetObstacleShape(ObstacleShape* outShape) const
 	{
-		// When/If support is added, update `Scene::BuildNavMesh()`
+		// When/If support is added, update `Scene::GatherObstacleColliders()`
 		EG_CORE_ASSERT(false);
 		EG_CORE_ERROR("MeshColliderComponent can't be an obstacle!");
+		return false;
 	}
 
 	void MeshColliderComponent::UpdateShowCollisionState()
@@ -1691,22 +1717,86 @@ namespace Eagle
 			}
 		}
 	}
-	
+
+	NavigationMeshComponent::NavigationMeshComponent(const Entity& entity)
+		: SceneComponent(entity), m_AgentTypeID(Project::GetDefaultNavAgentTypeID())
+	{
+	}
+
 	NavigationMeshComponent& NavigationMeshComponent::operator=(const NavigationMeshComponent& other)
 	{
 		if (this == &other)
 			return *this;
 
+		Scene* scene = Parent.GetScene();
 		SceneComponent::operator=(other);
 		bAutoRebuild = other.bAutoRebuild;
+		bDebugDraw = other.bDebugDraw;
 		m_Settings = other.m_Settings;
 		m_CrowdSettings = other.m_CrowdSettings;
-		if (other.m_NavMesh)
-		{
-			Parent.GetScene()->BuildNavMesh(this);
-		}
+		m_bBuildRequested = other.m_bBuildRequested;
+		SetAgentTypeIDOrFallback(other.m_AgentTypeID);
+
+		if (other.m_NavMesh && IsActive())
+			scene->BuildNavMesh(*this);
 
 		return *this;
+	}
+
+	bool NavigationMeshComponent::SetAgentTypeID(uint32_t agentTypeID)
+	{
+		if (!Project::FindNavAgentType(agentTypeID))
+		{
+			if (agentTypeID == AINavigation::AutoAgentTypeID)
+				EG_CORE_ERROR("[AINavigation] Couldn't set the agent type of the nav mesh of `{}`. A nav mesh can't use Auto, it's built for one agent type", Parent.GetName());
+			else if (agentTypeID == AINavigation::InvalidAgentTypeID)
+				EG_CORE_ERROR("[AINavigation] Couldn't set the agent type of the nav mesh of `{}`. The agent type is invalid", Parent.GetName());
+			else
+				EG_CORE_ERROR("[AINavigation] Couldn't set the agent type of the nav mesh of `{}`. The project doesn't have an agent type with ID {}", Parent.GetName(), agentTypeID);
+			return false;
+		}
+
+		ChangeAgentType(agentTypeID);
+		return true;
+	}
+
+	void NavigationMeshComponent::SetAgentTypeIDOrFallback(uint32_t agentTypeID)
+	{
+		Scene* scene = Parent.GetScene();
+		if (!Project::FindNavAgentType(agentTypeID))
+		{
+			const uint32_t fallback = scene->GetFallbackNavAgentTypeID(this);
+			const AINavigation::AgentType* fallbackType = Project::FindNavAgentType(fallback);
+			EG_CORE_WARN("[AINavigation] The nav mesh of `{}` can't use the agent type with ID {}, it doesn't exist. It'll use `{}` instead",
+				Parent.GetName(), agentTypeID, fallbackType ? fallbackType->Name : std::string());
+			agentTypeID = fallback;
+		}
+
+		ChangeAgentType(agentTypeID);
+	}
+
+	void NavigationMeshComponent::ChangeAgentType(uint32_t agentTypeID)
+	{
+		if (m_AgentTypeID == agentTypeID)
+			return;
+
+		const uint32_t oldAgentTypeID = m_AgentTypeID;
+		m_AgentTypeID = agentTypeID;
+		Parent.GetScene()->OnNavMeshAgentTypeChanged(*this, oldAgentTypeID);
+	}
+
+	bool NavigationMeshComponent::IsActive() const
+	{
+		return Parent.GetScene()->GetActiveNavMeshComponent(m_AgentTypeID) == this;
+	}
+
+	void NavigationMeshComponent::SetCrowdSettings(const AINavigation::CrowdSettings& settings)
+	{
+		m_CrowdSettings = settings;
+		m_CrowdSettings.Clamp();
+
+		if (m_NavMesh)
+			Parent.GetScene()->RebuildCrowd(*this);
 	}
 
 	void NavigationMeshComponent::GetNavMeshDebugDraw(duDebugDraw* debugDraw) const
@@ -1715,14 +1805,6 @@ namespace Eagle
 			return;
 
 		m_NavMesh->GetDebugDraw(debugDraw);
-	}
-
-	void NavigationMeshComponent::Update(Timestep ts)
-	{
-		if (!m_NavMesh)
-			return;
-
-		m_NavMesh->Update(ts);
 	}
 
 	void NavigationMeshComponent::SetSettings(const AINavigation::MeshSettings& settings)
@@ -1745,6 +1827,13 @@ namespace Eagle
 
 	void NavigationMeshComponent::Build()
 	{
+		m_bBuildRequested = true;
+		m_NavMesh.reset();
+
+		const AINavigation::AgentType* agentType = Project::FindNavAgentType(m_AgentTypeID);
+		if (!agentType)
+			return;
+
 		auto& physicsScene = Parent.GetScene()->GetPhysicsScene();
 
 		glm::mat4 worldTr = Math::ToTransformMatrix(GetWorldTransform());
@@ -1792,7 +1881,7 @@ namespace Eagle
 		}
 
 		auto geometry = physicsScene->AppendColliderGeometry(settings.Bounds, filteredOverlaps);
-		m_NavMesh = AINavigation::Mesh::Create(geometry, settings, m_CrowdSettings);
+		m_NavMesh = AINavigation::Mesh::Create(geometry, settings, *agentType, m_CrowdSettings);
 	}
 	
 	NavigationCrowdAgentComponent& NavigationCrowdAgentComponent::operator=(const NavigationCrowdAgentComponent& other)
@@ -1802,8 +1891,10 @@ namespace Eagle
 
 		Component::operator=(other);
 		m_Settings = other.m_Settings;
-		if (other.IsValid())
-			CreateAgent(Parent.GetWorldLocation());
+		m_AgentTypeID = other.m_AgentTypeID;
+
+		RemoveAgent();
+		CreateAgent(Parent.GetWorldLocation());
 
 		return *this;
 	}
@@ -1817,12 +1908,14 @@ namespace Eagle
 		CreateAgent(location);
 	}
 
+	const Ref<AINavigation::Mesh>& NavigationCrowdAgentComponent::GetNavMesh() const
+	{
+		return Parent.GetScene()->GetNavMeshInSlot(IsValid() ? m_NavMeshSlot : Scene::InvalidNavMeshSlot);
+	}
+
 	bool NavigationCrowdAgentComponent::SetMoveTarget(const glm::vec3& target, const std::optional<glm::vec3>& searchHalfExtents)
 	{
-		if (!IsValid())
-			return false;
-
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		const auto& navMesh = GetNavMesh();
 		if (!navMesh)
 			return false;
 
@@ -1831,22 +1924,13 @@ namespace Eagle
 
 	void NavigationCrowdAgentComponent::ResetMoveTarget()
 	{
-		if (!IsValid())
-			return;
-
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
-		if (!navMesh)
-			return;
-
-		navMesh->GetCrowd().ResetMoveTarget(m_AgentIndex);
+		if (const auto& navMesh = GetNavMesh())
+			navMesh->GetCrowd().ResetMoveTarget(m_AgentIndex);
 	}
 
 	bool NavigationCrowdAgentComponent::GetLocation(glm::vec3* outLocation) const
 	{
-		if (!IsValid())
-			return false;
-
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		const auto& navMesh = GetNavMesh();
 		if (!navMesh)
 			return false;
 
@@ -1855,10 +1939,7 @@ namespace Eagle
 
 	bool NavigationCrowdAgentComponent::GetVelocity(glm::vec3* outVelocity) const
 	{
-		if (!IsValid())
-			return false;
-
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		const auto& navMesh = GetNavMesh();
 		if (!navMesh)
 			return false;
 
@@ -1867,10 +1948,7 @@ namespace Eagle
 
 	MoveRequestState NavigationCrowdAgentComponent::GetAgentTargetState() const
 	{
-		if (!IsValid())
-			return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
-
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		const auto& navMesh = GetNavMesh();
 		if (!navMesh)
 			return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
 
@@ -1879,28 +1957,66 @@ namespace Eagle
 	
 	void NavigationCrowdAgentComponent::SetSettings(const AINavigation::AgentSettings& settings)
 	{
+		const bool bSizeChanged = settings.AgentRadius != m_Settings.AgentRadius || settings.AgentHeight != m_Settings.AgentHeight;
 		m_Settings = settings;
 
-		if (!IsValid())
-			return;
+		const Scene* scene = Parent.GetScene();
+		const uint32_t currentNavMeshSlot = IsValid() ? m_NavMeshSlot : Scene::InvalidNavMeshSlot;
+		const uint32_t newNavMeshSlot = scene->FindNavMeshSlotForAgent(m_AgentTypeID, m_Settings.AgentRadius, m_Settings.AgentHeight);
 
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
-		if (!navMesh)
-			return;
+		if (bSizeChanged && currentNavMeshSlot != newNavMeshSlot)
+		{
+			// Recreate to put it into a newly picked nav mesh
+			glm::vec3 location = Parent.GetWorldLocation();
+			GetLocation(&location);
 
-		navMesh->GetCrowd().UpdateAgentSettings(m_AgentIndex, m_Settings);
+			RemoveAgent();
+			CreateAgent(location);
+
+			return;
+		}
+
+		if (const auto& navMesh = GetNavMesh())
+			navMesh->GetCrowd().UpdateAgentSettings(m_AgentIndex, m_Settings);
+	}
+
+	bool NavigationCrowdAgentComponent::SetAgentTypeID(uint32_t agentTypeID)
+	{
+		// An unknown type is kept anyway, so that the agent doesn't move to make it noticable
+		const bool bKnown = agentTypeID == AINavigation::AutoAgentTypeID || Project::FindNavAgentType(agentTypeID);
+		if (agentTypeID == AINavigation::InvalidAgentTypeID)
+			EG_CORE_ERROR("[AINavigation] The crowd agent of `{}` uses an invalid agent type. It won't move", Parent.GetName());
+		else if (!bKnown)
+			EG_CORE_ERROR("[AINavigation] The crowd agent of `{}` uses the agent type with ID {}, which the project doesn't have. It won't move", Parent.GetName(), agentTypeID);
+
+		if (agentTypeID != m_AgentTypeID)
+		{
+			m_AgentTypeID = agentTypeID;
+
+			glm::vec3 location = Parent.GetWorldLocation();
+			GetLocation(&location);
+			RemoveAgent();
+			CreateAgent(location);
+		}
+
+		return bKnown;
 	}
 	
-	void NavigationCrowdAgentComponent::CreateAgent(const glm::vec3& location)
+	bool NavigationCrowdAgentComponent::CreateAgent(const glm::vec3& location)
 	{
 		if (IsValid())
-			return;
+			return true;
 
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
+		Scene* scene = Parent.GetScene();
+		const uint32_t slot = scene->FindNavMeshSlotForAgent(m_AgentTypeID, m_Settings.AgentRadius, m_Settings.AgentHeight);
+		const auto& navMesh = scene->GetNavMeshInSlot(slot);
 		if (!navMesh)
-			return;
+			return false;
 
 		m_AgentIndex = navMesh->GetCrowd().AddAgent(location, m_Settings);
+		m_NavMeshSlot = m_AgentIndex != -1 ? slot : Scene::InvalidNavMeshSlot;
+
+		return IsValid();
 	}
 	
 	void NavigationCrowdAgentComponent::RemoveAgent()
@@ -1908,12 +2024,11 @@ namespace Eagle
 		if (!IsValid())
 			return;
 
-		const auto& navMesh = Parent.GetScene()->GetNavMesh();
-		if (!navMesh)
-			return;
+		if (const auto& navMesh = Parent.GetScene()->GetNavMeshInSlot(m_NavMeshSlot))
+			navMesh->GetCrowd().RemoveAgent(m_AgentIndex);
 
-		navMesh->GetCrowd().RemoveAgent(m_AgentIndex);
 		m_AgentIndex = -1;
+		m_NavMeshSlot = Scene::InvalidNavMeshSlot;
 	}
 	
 	void NativeScriptComponent::OnUpdate(Entity entity, Timestep ts)

@@ -3,6 +3,7 @@
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Core/SplashScreen.h"
 #include "Eagle/Renderer/RendererUtils.h"
+#include "Eagle/AI/NavigationMesh.h"
 
 namespace Eagle
 {
@@ -34,6 +35,11 @@ namespace Eagle
 		std::vector<GUID64> CollisionGroupGUIDs; // GUIDs of all collision groups. Used to identify if groups were changed
 		UIScaleSettings UIScale;
 		GameSplashScreenSettings SplashScreen;
+
+		// There's always at least one agent type
+		std::vector<AINavigation::AgentType> NavAgentTypes;
+		uint32_t DefaultNavAgentTypeID = AINavigation::InvalidAgentTypeID; // Used by queries and entities that don't pick an agent type
+		uint32_t NextNavAgentTypeID = 1u;
 
 		// The game (also when played in the editor) doesn't update while its window is minimized.
 		// Otherwise, the engine keeps updating its systems without rendering
@@ -76,6 +82,30 @@ namespace Eagle
 		static void RenameUserCollisionGroup(uint32_t mask, const std::string& newName);
 		static bool CanAddUserCollisionGroup();
 		static GUID64 GetCollisionGroupGUIDByMask(uint32_t mask);
+
+		static const std::vector<AINavigation::AgentType>& GetNavAgentTypes() { return s_Info.NavAgentTypes; }
+		static uint32_t GetDefaultNavAgentTypeID() { return s_Info.DefaultNavAgentTypeID; }
+		static const AINavigation::AgentType& GetDefaultNavAgentType(); // Note: returned reference is invalidated when agent types are added or removed
+		static void SetDefaultNavAgentType(uint32_t id);
+		static bool CanAddNavAgentType() { return s_Info.NavAgentTypes.size() < AINavigation::MaxAgentTypes; }
+		static bool CanRemoveNavAgentType() { return s_Info.NavAgentTypes.size() > 1u; }
+
+		// Null if there's no agent type with this ID/name.
+		// Note: returned pointer is invalidated when agent types are added or removed
+		static const AINavigation::AgentType* FindNavAgentType(uint32_t id);
+		static const AINavigation::AgentType* FindNavAgentTypeByName(std::string_view name);
+
+		// Returns the ID of the new type, or `InvalidAgentTypeID` if failed. Its name is made unique
+		static uint32_t AddNavAgentType(const std::string& name);
+
+		// The last agent type can't be removed. If the default type is removed, the first one becomes the default
+		static bool RemoveNavAgentType(uint32_t id);
+
+		// A name must be unique and not empty. Returns false and keeps the old name otherwise
+		static bool RenameNavAgentType(uint32_t id, const std::string& name);
+
+		// Sets everything but the ID and the name of the type with `type.ID` (see `RenameNavAgentType()`). Values are clamped
+		static void SetNavAgentType(const AINavigation::AgentType& type);
 
 		static const Path& GetProjectPath() { return s_Info.BasePath; }
 		static const Path GetProjectFilePath() { return s_Info.BasePath / (s_Info.Name + Project::GetExtension()); }
@@ -120,6 +150,7 @@ namespace Eagle
 
 	private:
 		static bool Load(const Path& filepath, ProjectInfo* outInfo);
+		static bool IsNavAgentTypeNameAvailable(std::string_view name, uint32_t exceptID = AINavigation::InvalidAgentTypeID);
 
 	private:
 		static ProjectInfo s_Info;

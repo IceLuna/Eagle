@@ -45,6 +45,7 @@ namespace Eagle
 		out << YAML::Key << "DrawAxisGuizmo" << YAML::Value << editor->bDrawAxisGuizmo;
 		out << YAML::Key << "ForceDrawGuizmo" << YAML::Value << editor->bForceDrawGuizmo;
 		out << YAML::Key << "DrawNavMesh" << YAML::Value << editor->bDrawNavMesh;
+		out << YAML::Key << "NavMeshOpacity" << YAML::Value << editor->NavMeshOpacity;
 		out << YAML::Key << "DrawMeshAABBs" << YAML::Value << editor->bDrawMeshAABBs;
 		out << YAML::Key << "DrawAllTextUIBounds" << YAML::Value << editor->bDrawAllTextUIBounds;
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(editor->m_StopSimulationKey);
@@ -169,6 +170,8 @@ namespace Eagle
 			bForceDrawGuizmo = node.as<bool>();
 		if (auto node = data["DrawNavMesh"])
 			bDrawNavMesh = node.as<bool>();
+		if (auto node = data["NavMeshOpacity"])
+			editor->NavMeshOpacity = glm::clamp(node.as<float>(), 0.f, 4.f);
 		if (auto node = data["DrawMeshAABBs"])
 			bDrawMeshAABBs = node.as<bool>();
 		if (auto node = data["DrawAllTextUIBounds"])

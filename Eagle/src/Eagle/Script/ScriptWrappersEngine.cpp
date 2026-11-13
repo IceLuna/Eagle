@@ -20,6 +20,32 @@
 
 namespace Eagle
 {
+	static const Ref<AINavigation::Mesh>& GetNavMeshForQuery(uint32_t agentTypeID, std::string_view functionName)
+	{
+		const auto& navMesh = Scene::GetCurrentScene()->GetNavMesh(agentTypeID);
+		if (!navMesh)
+		{
+			if (const AINavigation::AgentType* agentType = Project::FindNavAgentType(agentTypeID))
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `{}`. The scene doesn't have a built navigation mesh of `{}` agent type (ID: {})", functionName, agentType->Name, agentTypeID);
+			else if (agentTypeID == AINavigation::InvalidAgentTypeID)
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `{}`. The agent type is invalid", functionName);
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `{}`. The project doesn't have an agent type with ID {}", functionName, agentTypeID);
+		}
+		return navMesh;
+	}
+
+	static MonoArray* ToMonoArray(const std::vector<glm::vec3>& points)
+	{
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), points.size());
+		size_t index = 0;
+		for (const auto& point : points)
+		{
+			mono_array_set(result, glm::vec3, index++, point);
+		}
+		return result;
+	}
+
 	//--------------Input--------------
 	bool Script::Eagle_Input_IsMouseButtonPressed(Mouse button)
 	{
@@ -1653,132 +1679,83 @@ namespace Eagle
 		return std::nullopt;
 	}
 
-	MonoArray* Script::Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	MonoArray* Script::Eagle_Navigation_FindStraightPath(uint32_t agentTypeID, const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
-
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "FindStraightPath");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindStraightPath`. There's no a navigation mesh");
-			return mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), 0);
-		}
+			return ToMonoArray({});
 
 		std::vector<glm::vec3> path = navMesh->FindStraightPath(*start, *end, maxPolys, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
-		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), path.size());
-		size_t index = 0;
-		for (auto& point : path)
-		{
-			mono_array_set(result, glm::vec3, index++, point);
-		}
-		return result;
+		return ToMonoArray(path);
 	}
 
-	MonoArray* Script::Eagle_Navigation_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	MonoArray* Script::Eagle_Navigation_FindSmoothPath(uint32_t agentTypeID, const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "FindSmoothPath");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindSmoothPath`. There's no a navigation mesh");
-			return mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), 0);
-		}
+			return ToMonoArray({});
 
 		std::vector<glm::vec3> path = navMesh->FindSmoothPath(*start, *end, maxPolys, maxSmooth, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
-		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetVector3Class(), path.size());
-		size_t index = 0;
-		for (auto& point : path)
-		{
-			mono_array_set(result, glm::vec3, index++, point);
-		}
-		return result;
+		return ToMonoArray(path);
 	}
 
-	bool Script::Eagle_Navigation_FindDistanceToWall(const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	bool Script::Eagle_Navigation_FindDistanceToWall(uint32_t agentTypeID, const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "FindDistanceToWall");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindDistanceToWall`. There's no a navigation mesh");
 			return false;
-		}
 
-		const bool bSuccess = navMesh->FindDistanceToWall(*pos, maxRadius, outHitPos, outHitNormal, outHitDistance, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
-		return bSuccess;
+		return navMesh->FindDistanceToWall(*pos, maxRadius, outHitPos, outHitNormal, outHitDistance, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
 	}
 
-	bool Script::Eagle_Navigation_FindRandomPoint(glm::vec3* outRandomPoint)
+	bool Script::Eagle_Navigation_FindRandomPoint(uint32_t agentTypeID, glm::vec3* outRandomPoint)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "FindRandomPoint");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindRandomPoint`. There's no a navigation mesh");
 			return false;
-		}
 
-		const bool bSuccess = navMesh->FindRandomPoint(outRandomPoint);
-		return bSuccess;
+		return navMesh->FindRandomPoint(outRandomPoint);
 	}
 
-	bool Script::Eagle_Navigation_FindRandomPointInCircle(const glm::vec3* pos, float radius, glm::vec3* outRandomPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	bool Script::Eagle_Navigation_FindRandomPointInCircle(uint32_t agentTypeID, const glm::vec3* pos, float radius, glm::vec3* outRandomPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "FindRandomPointInCircle");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindRandomPointInCircle`. There's no a navigation mesh");
 			return false;
-		}
 
-		const bool bSuccess = navMesh->FindRandomPointInCircle(*pos, radius, outRandomPoint, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
-		return bSuccess;
+		return navMesh->FindRandomPointInCircle(*pos, radius, outRandomPoint, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
 	}
 
-	bool Script::Eagle_Navigation_FindNearestPoint(const glm::vec3* pos, glm::vec3* outNearestPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	bool Script::Eagle_Navigation_FindNearestPoint(uint32_t agentTypeID, const glm::vec3* pos, glm::vec3* outNearestPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "FindNearestPoint");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `FindNearestPoint`. There's no a navigation mesh");
 			return false;
-		}
 
 		return navMesh->FindNearestPoint(*pos, outNearestPoint, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
 	}
 
-	bool Script::Eagle_Navigation_IsValidPoint(const glm::vec3* pos, glm::vec3* outNavMeshPoint)
+	bool Script::Eagle_Navigation_IsValidPoint(uint32_t agentTypeID, const glm::vec3* pos, glm::vec3* outNavMeshPoint)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "IsValidPoint");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsValidPoint`. There's no a navigation mesh");
 			return false;
-		}
 
 		return navMesh->IsValidPoint(*pos, outNavMeshPoint);
 	}
 
-	bool Script::Eagle_Navigation_HasCompletePath(const glm::vec3* from, const glm::vec3* to, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	bool Script::Eagle_Navigation_HasCompletePath(uint32_t agentTypeID, const glm::vec3* from, const glm::vec3* to, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "HasCompletePath");
 		if (!navMesh)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `HasCompletePath`. There's no a navigation mesh");
 			return false;
-		}
 
 		return navMesh->HasCompletePath(*from, *to, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
 	}
 
-	bool Script::Eagle_Navigation_GetSearchHalfExtents(glm::vec3* outSearchExtents)
+	bool Script::Eagle_Navigation_GetSearchHalfExtents(uint32_t agentTypeID, glm::vec3* outSearchExtents)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = Scene::GetCurrentScene()->GetNavMesh(agentTypeID);
 		if (!navMesh)
 			return false;
 
@@ -1786,10 +1763,9 @@ namespace Eagle
 		return true;
 	}
 
-	bool Script::Eagle_Navigation_GetSettings(AINavigation::MeshSettings* outSettings)
+	bool Script::Eagle_Navigation_GetSettings(uint32_t agentTypeID, AINavigation::MeshSettings* outSettings)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
+		const auto& navMesh = Scene::GetCurrentScene()->GetNavMesh(agentTypeID);
 		if (!navMesh)
 			return false;
 
@@ -1797,31 +1773,120 @@ namespace Eagle
 		return true;
 	}
 
+	//-------------- NavAgentType --------------
+	uint32_t Script::Eagle_NavAgentType_GetDefaultID()
+	{
+		return Project::GetDefaultNavAgentTypeID();
+	}
+
+	uint32_t Script::Eagle_NavAgentType_GetIDByName(MonoString* name)
+	{
+		if (!name)
+			return AINavigation::InvalidAgentTypeID;
+
+		MonoStringHandler nameStr(name);
+		const AINavigation::AgentType* agentType = nameStr.c_str() ? Project::FindNavAgentTypeByName(nameStr.c_str()) : nullptr;
+		return agentType ? agentType->ID : AINavigation::InvalidAgentTypeID;
+	}
+
+	bool Script::Eagle_NavAgentType_IsValid(uint32_t agentTypeID)
+	{
+		return Project::FindNavAgentType(agentTypeID) != nullptr;
+	}
+
+	MonoString* Script::Eagle_NavAgentType_GetName(uint32_t agentTypeID)
+	{
+		const AINavigation::AgentType* agentType = Project::FindNavAgentType(agentTypeID);
+		return agentType ? mono_string_new(mono_domain_get(), agentType->Name.c_str()) : nullptr;
+	}
+
+	bool Script::Eagle_NavAgentType_GetInfo(uint32_t agentTypeID, uint32_t* outID, glm::vec3* outDebugColor, float* outRadius, float* outHeight, float* outMaxClimb, float* outMaxSlope)
+	{
+		const AINavigation::AgentType* agentType = Project::FindNavAgentType(agentTypeID);
+		if (!agentType)
+		{
+			*outID = AINavigation::InvalidAgentTypeID;
+			*outDebugColor = glm::vec3(0.f);
+			*outRadius = *outHeight = *outMaxClimb = *outMaxSlope = 0.f;
+			return false;
+		}
+
+		*outID = agentType->ID;
+		*outDebugColor = agentType->DebugColor;
+		*outRadius = agentType->Radius;
+		*outHeight = agentType->Height;
+		*outMaxClimb = agentType->MaxClimb;
+		*outMaxSlope = agentType->MaxSlope;
+
+		return true;
+	}
+
+	uint32_t Script::Eagle_NavAgentType_ResolveAuto(float agentRadius, float agentHeight)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const uint32_t slot = scene->FindNavMeshSlotForAgent(AINavigation::AutoAgentTypeID, agentRadius, agentHeight);
+		if (const auto& navMesh = scene->GetNavMeshInSlot(slot))
+			return navMesh->GetAgentType().ID;
+
+		return Project::GetDefaultNavAgentTypeID();
+	}
+
 	//-------------- CrowdNavigation --------------
 	bool Script::Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
-		if (!navMesh)
+		const auto searchExtents = ToSearchExtents(bCustomSearchExtents, searchHalfExtents);
+
+		bool bSuccess = true;
+		bool bAnyNavMesh = false;
+		for (uint32_t slot = 0; slot < AINavigation::MaxAgentTypes; ++slot)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMoveTarget`. There's no a navigation mesh");
-			return false;
+			if (const auto& navMesh = scene->GetNavMeshInSlot(slot))
+			{
+				bAnyNavMesh = true;
+				bSuccess &= navMesh->GetCrowd().SetMoveTarget(*target, searchExtents);
+			}
 		}
 
-		return navMesh->GetCrowd().SetMoveTarget(*target, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
+		if (!bAnyNavMesh)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMoveTarget`. The scene doesn't have a built navigation mesh");
+
+		return bAnyNavMesh && bSuccess;
 	}
 
 	void Script::Eagle_CrowdNavigation_ResetMoveTarget()
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		const auto& navMesh = scene->GetNavMesh();
-		if (!navMesh)
+		bool bAnyNavMesh = false;
+		for (uint32_t slot = 0; slot < AINavigation::MaxAgentTypes; ++slot)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMoveTarget`. There's no a navigation mesh");
-			return;
+			if (const auto& navMesh = scene->GetNavMeshInSlot(slot))
+			{
+				bAnyNavMesh = true;
+				navMesh->GetCrowd().ResetMoveTarget();
+			}
 		}
 
-		navMesh->GetCrowd().ResetMoveTarget();
+		if (!bAnyNavMesh)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `ResetMoveTarget`. The scene doesn't have a built navigation mesh");
+	}
+
+	//-------------- NavMesh --------------
+	bool Script::Eagle_NavMesh_HasNavMesh(uint32_t agentTypeID)
+	{
+		return Scene::GetCurrentScene()->GetNavMesh(agentTypeID) != nullptr;
+	}
+
+	bool Script::Eagle_NavMesh_SetCrowdMoveTarget(uint32_t agentTypeID, const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	{
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "SetCrowdMoveTarget");
+		return navMesh && navMesh->GetCrowd().SetMoveTarget(*target, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
+	}
+
+	void Script::Eagle_NavMesh_ResetCrowdMoveTarget(uint32_t agentTypeID)
+	{
+		if (const auto& navMesh = GetNavMeshForQuery(agentTypeID, "ResetCrowdMoveTarget"))
+			navMesh->GetCrowd().ResetMoveTarget();
 	}
 
 	//-------------- Log --------------

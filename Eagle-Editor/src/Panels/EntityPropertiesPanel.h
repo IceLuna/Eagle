@@ -163,12 +163,6 @@ namespace Eagle
 			bool bAdded = false;
 			if (ImGui::MenuItem(name))
 			{
-				if (std::is_same<T, NavigationMeshComponent>::value)
-				{
-					if (!m_Entity.GetScene()->GetAllEntitiesWith<NavigationMeshComponent>().empty())
-						Application::Get().GetImGuiLayer()->AddMessage("Currently scenes only support one active Navigation Mesh");
-				}
-
 				m_Entity.AddComponent<T>();
 				bAdded = true;
 				EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetName());

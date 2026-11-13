@@ -3587,15 +3587,43 @@ namespace Eagle
             return settings;
         }
 
-        // Currently, only one nav mesh is supported.
-        // Building it will invalidate existing nav mesh.
-        public void Build()
+        // The agent type it's built for (see the project settings).
+        // A scene can have only one nav mesh per agent type. If another nav mesh component is active for the type, this one is inactive.
+        // If it was built, it's rebuilt for the new type.
+        // If the project doesn't have the type, the type isn't changed and false is returned
+        public bool SetAgentType(NavAgentType type)
         {
-            Build_Native(Parent.ID);
+            return SetAgentTypeID_Native(Parent.ID, type.ID);
+        }
+
+        public NavAgentType GetAgentType()
+        {
+            return new NavAgentType(GetAgentTypeID_Native(Parent.ID));
+        }
+
+        // Only one nav mesh component per agent type is active in a scene, and only it can be built.
+        // When the active one is removed or changes its type, another one becomes active (it isn't built automatically)
+        public bool IsActive()
+        {
+            return IsActive_Native(Parent.ID);
+        }
+
+        // The nav mesh of its agent type. Null if it's inactive.
+        // The nav mesh might not be built (see `NavMesh.IsValid`)
+        public NavMesh GetNavMesh()
+        {
+            return IsActive() ? NavMesh.GetNavMeshByID(GetAgentTypeID_Native(Parent.ID)) : null;
+        }
+
+        // Agents of its type are moved to the new nav mesh.
+        // Returns false if failed.
+        public bool Build()
+        {
+            return Build_Native(Parent.ID);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Build_Native(in GUID entityID);
+        internal static extern bool Build_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCrowdSettings_Native(in GUID entityID, ref CrowdSettings settings);
@@ -3614,6 +3642,15 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetAutoRebuild_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool SetAgentTypeID_Native(in GUID entityID, uint agentTypeID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetAgentTypeID_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsActive_Native(in GUID entityID);
     }
 
     public class NavigationCrowdAgentComponent : Component
@@ -3639,9 +3676,31 @@ namespace Eagle
             ResetMoveTarget_Native(Parent.ID);
         }
 
+        // False if the agent isn't in a crowd (for example, if the scene doesn't have a nav mesh for it)
         public bool IsValid()
         {
             return IsValid_Native(Parent.ID);
+        }
+
+        // The agent type of the nav mesh it moves on.
+        // `NavAgentType.Auto` picks the nav mesh by the agent's radius and height: the smallest one whose agent type fits it (the largest one if none fits).
+        // An explicit type uses only the nav mesh of that type. If the scene doesn't have it, the agent isn't valid, so it doesn't move.
+        // If the project doesn't have the type, it's still set, so the agent doesn't move, and false is returned.
+        public bool SetAgentType(NavAgentType type)
+        {
+            return SetAgentTypeID_Native(Parent.ID, type.ID);
+        }
+
+        public NavAgentType GetAgentType()
+        {
+            return new NavAgentType(GetAgentTypeID_Native(Parent.ID));
+        }
+
+        // The nav mesh the agent moves on. Null if the agent isn't valid
+        public NavMesh GetNavMesh()
+        {
+            uint agentTypeID = GetNavMeshAgentType_Native(Parent.ID);
+            return agentTypeID != NavAgentType.InvalidID ? new NavMesh(agentTypeID) : null;
         }
 
         // Entity.WorldLocation should be the same because agents control entities.
@@ -3697,5 +3756,14 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern AgentTargetState GetTargetState_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool SetAgentTypeID_Native(in GUID entityID, uint agentTypeID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetAgentTypeID_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetNavMeshAgentType_Native(in GUID entityID);
     }
 }

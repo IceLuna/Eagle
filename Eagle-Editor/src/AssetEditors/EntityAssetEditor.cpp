@@ -155,7 +155,6 @@ namespace Eagle
 	void EntityAssetEditor::OnEvent(Event& e)
 	{
 		AssetEditor::OnEvent(e);
-		Event::Dispatch<MouseButtonPressedEvent>(e, EG_BIND_FN(EntityAssetEditor::HandleEntitySelection));
 
 		const auto& scene = GetCurrentScene();
 		const bool bEntityChanged = m_SceneHierarchy.OnEvent(scene, e, bViewportFocused);
@@ -163,26 +162,19 @@ namespace Eagle
 			OnEntityChanged();
 	}
 
-	bool EntityAssetEditor::HandleEntitySelection(MouseButtonPressedEvent& e)
+	void EntityAssetEditor::OnViewportEnd()
 	{
-		// Entity Selection
-		Entity selectedEntity = m_SceneHierarchy.GetSelectedEntity();
-		bool bUsingImGuizmo = selectedEntity && m_SelectionGuizmo.IsUsingOrHovered();
-		const auto& scene = GetCurrentScene();
-		if (bViewportHovered && !bViewportToolbarHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		if (bViewportVisible)
 		{
-			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-			const glm::ivec2 mouse = GetMousePosWithinViewport();
-
-			if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
+			const bool bUsingGuizmo = m_SceneHierarchy.GetSelectedEntity() && m_SelectionGuizmo.IsUsingOrHovered();
+			const bool bCanClick = bViewportHovered && !bViewportToolbarHovered && !bUsingGuizmo;
+			m_ViewportClickSelection.Update(GetCurrentScene(), m_ViewportBounds[0], m_ViewportBounds[1], bCanClick, [this](Entity entity, bool bCtrl)
 			{
-				int32_t data = -1;
-				scene->GetSceneRenderer()->GetObjectIDUnderMouse(data);
-				m_SceneHierarchy.OnViewportEntityClicked(data == -1 ? Entity::Null : Entity{ (entt::entity)data, scene.get() });
-				return true;
-			}
+				m_SceneHierarchy.OnViewportEntityClicked(entity, bCtrl);
+			});
 		}
-		return false;
+
+		UpdateGuizmo();
 	}
 
 	void EntityAssetEditor::UpdateGuizmo()

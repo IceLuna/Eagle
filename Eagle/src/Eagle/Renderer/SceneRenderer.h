@@ -302,13 +302,18 @@ namespace Eagle
 		void SetMousePickCoord(std::optional<glm::ivec2> coord) { m_MousePickCoord = coord; }
 		const std::optional<glm::ivec2>& GetMousePickCoord() const { return m_MousePickCoord; }
 
-		// Returns false if it's not known
+		// Returns false if it's not known yet
 		bool GetObjectIDUnderMouse(int32_t& outObjectID) const;
 
 		// ObjectID at an arbitrary viewport coord. Returns false if it's not known yet.
 		// Querying a coord keeps it being read back for the next `s_PickRequestLifetime` frames,
 		// so polling the same coord every frame only misses during the first `FramesInFlight` frames
 		bool GetObjectIDAt(glm::ivec2 coord, int32_t& outObjectID);
+
+		// Same as `GetObjectIDAt()`, but checks if it's from a frame rendered at `minFrame` or later.
+		// For example, for a click: the result is for the clicked pixel after the click, even if the mouse moved since.
+		// Returns false if it's not known yet
+		bool GetObjectIDAtSince(glm::ivec2 coord, uint64_t minFrame, int32_t& outObjectID);
 		// ----------------------------------------------------
 		const Ref<Image>& GetOutput() const { return m_FinalImage; }
 		const Ref<Image>& GetHDROutput() const { return m_HDRRTImage; }
@@ -366,6 +371,8 @@ namespace Eagle
 
 		// Recomputes options from the base settings plus the post process override
 		void RecalculateOptions();
+
+		void RequestPick(glm::ivec2 coord);
 
 	private:
 		Ref<SkinCacheTask> m_SkinCacheTask;
@@ -489,6 +496,7 @@ namespace Eagle
 		{
 			glm::ivec2 Coord;
 			int32_t ObjectID;
+			uint64_t Frame;
 		};
 
 		// Main thread owns slot `RenderManager::GetCurrentFrameIndex_CPU()` between BeginFrame() and EndFrame().
@@ -497,6 +505,6 @@ namespace Eagle
 		std::vector<PickRequest> m_PickRequests; // At most `s_MaxPickRequests - 1` (-1 for the mouse), so that requests + mouse always fit
 		std::vector<PickResult> m_PickResults;   // At most `s_MaxPickRequests`
 		std::optional<glm::ivec2> m_MousePickCoord;
-		std::optional<int32_t> m_MousePickResult;
+		std::optional<PickResult> m_MousePickResult;
 	};
 }

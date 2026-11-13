@@ -130,9 +130,11 @@ namespace Eagle
 	, m_Settings(other->m_Settings)
 	, bDrawMiscellaneous(other->bDrawMiscellaneous)
 	, bDrawNavMesh(other->bDrawNavMesh)
+	, NavMeshOpacity(other->NavMeshOpacity)
 	, bDrawMeshAABBs(other->bDrawMeshAABBs)
 	, bDrawBones(other->bDrawBones)
-	, m_CurrentNavMeshEntityGUID(other->m_CurrentNavMeshEntityGUID)
+	, NavMeshDebugSelectedEntity(other->NavMeshDebugSelectedEntity)
+	, m_ActiveNavMeshes(other->m_ActiveNavMeshes)
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
@@ -181,6 +183,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationCrowdAgentComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		ValidateActiveNavMeshes();
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -204,7 +207,8 @@ namespace Eagle
 
 		DestroyScripts();
 
-		m_CurrentNavMesh.reset();
+		m_NavMeshSlots = {};
+		m_ActiveNavMeshes.clear();
 		m_PhysicsScene.reset();
 		m_RuntimePhysicsScene.reset();
 		m_SpawnedSounds.clear();
@@ -425,6 +429,11 @@ namespace Eagle
 		if (m_EntityOutlines.erase(entity.GetID()) > 0)
 			m_DirtyFlags.bOutlinesDirty = true;
 
+		// Removed while the entity is complete. `destroy()` may remove its GUID and transform first, and the nav callbacks read them.
+		// The crowd agent goes first, so the refresh after the nav mesh is destroyed doesn't recreate it
+		m_Registry.remove<NavigationCrowdAgentComponent>(entity.GetEnttID());
+		m_Registry.remove<NavigationMeshComponent>(entity.GetEnttID());
+
 		m_AliveEntities.erase(entity.GetGUID());
 		m_Registry.destroy(entity.GetEnttID());
 
@@ -635,121 +644,476 @@ namespace Eagle
 		SetSkyboxSettings(settings);
 	}
 
-	void Scene::BuildNavMesh(NavigationMeshComponent* navMesh)
+	std::vector<BaseColliderComponent*> Scene::GatherObstacleColliders()
 	{
 		std::vector<BaseColliderComponent*> colliders;
 		colliders.reserve(100u);
-		// Collect colliders that can be obstacles
 		{
-			// Box colliders
-			{
-				auto view = m_Registry.view<BoxColliderComponent>();
-				for (auto entity : view)
-					colliders.push_back(&view.get<BoxColliderComponent>(entity));
-			}
-			// Sphere colliders
-			{
-				auto view = m_Registry.view<SphereColliderComponent>();
-				for (auto entity : view)
-					colliders.push_back(&view.get<SphereColliderComponent>(entity));
-			}
-			// Capsule colliders
-			{
-				auto view = m_Registry.view<CapsuleColliderComponent>();
-				for (auto entity : view)
-					colliders.push_back(&view.get<CapsuleColliderComponent>(entity));
-			}
+			auto view = m_Registry.view<BoxColliderComponent>();
+			for (auto entity : view)
+				colliders.push_back(&view.get<BoxColliderComponent>(entity));
+		}
+		{
+			auto view = m_Registry.view<SphereColliderComponent>();
+			for (auto entity : view)
+				colliders.push_back(&view.get<SphereColliderComponent>(entity));
+		}
+		{
+			auto view = m_Registry.view<CapsuleColliderComponent>();
+			for (auto entity : view)
+				colliders.push_back(&view.get<CapsuleColliderComponent>(entity));
+		}
+		return colliders;
+	}
+
+	uint32_t Scene::FindNavMeshSlot(const Ref<AINavigation::Mesh>& navMesh) const
+	{
+		if (!navMesh)
+			return InvalidNavMeshSlot;
+
+		for (uint32_t slot = 0; slot < (uint32_t)m_NavMeshSlots.size(); ++slot)
+		{
+			if (m_NavMeshSlots[slot].Mesh == navMesh)
+				return slot;
 		}
 
-		// The current nav mesh is destroyed below, and its obstacles with it. So the colliders just forget their obstacles.
-		// Removing them one by one would queue a request per obstacle on a mesh that's about to be destroyed anyway,
-		// and a failed removal could leave a stale ref that was later sent to the new nav mesh
-		for (BaseColliderComponent* collider : colliders)
-			collider->ForgetObstacle();
+		return InvalidNavMeshSlot;
+	}
 
-		// Go through all agents and delete them
-		auto agentComponents = m_Registry.view<NavigationCrowdAgentComponent>();
-		for (auto entity : agentComponents)
+	const Ref<AINavigation::Mesh>& Scene::GetNavMeshInSlot(uint32_t slot) const
+	{
+		static const Ref<AINavigation::Mesh> s_Null;
+		return slot < (uint32_t)m_NavMeshSlots.size() ? m_NavMeshSlots[slot].Mesh : s_Null;
+	}
+
+	const Ref<AINavigation::Mesh>& Scene::GetNavMesh(uint32_t agentTypeID) const
+	{
+		for (const NavMeshSlot& slot : m_NavMeshSlots)
 		{
-			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
-			component.RemoveAgent();
+			if (slot.Mesh && slot.Mesh->GetAgentType().ID == agentTypeID)
+				return slot.Mesh;
 		}
 
-		// Destroy NavMeshes
+		static const Ref<AINavigation::Mesh> s_Null;
+		return s_Null;
+	}
+
+	NavigationMeshComponent* Scene::GetActiveNavMeshComponent(uint32_t agentTypeID) const
+	{
+		auto it = std::find_if(m_ActiveNavMeshes.begin(), m_ActiveNavMeshes.end(), [agentTypeID](const ActiveNavMesh& active) { return active.AgentTypeID == agentTypeID; });
+		if (it == m_ActiveNavMeshes.end())
+			return nullptr;
+
+		Entity entity = GetEntityByGUID(it->Entity);
+		if (!entity || !entity.HasComponent<NavigationMeshComponent>())
+			return nullptr;
+
+		auto& component = entity.GetComponent<NavigationMeshComponent>();
+		return component.GetAgentTypeID() == agentTypeID ? &component : nullptr;
+	}
+
+	void Scene::SetActiveNavMeshComponent(NavigationMeshComponent& navMesh)
+	{
+		const GUID guid = navMesh.Parent.GetGUID();
+		auto it = std::find_if(m_ActiveNavMeshes.begin(), m_ActiveNavMeshes.end(), [&navMesh](const ActiveNavMesh& active) { return active.AgentTypeID == navMesh.GetAgentTypeID(); });
+		if (it == m_ActiveNavMeshes.end())
 		{
-			m_CurrentNavMesh.reset();
+			m_ActiveNavMeshes.push_back({ guid, navMesh.GetAgentTypeID() });
+			return;
+		}
+
+		if (it->Entity == guid)
+			return;
+
+		// Only an active component can have a nav mesh
+		NavigationMeshComponent* previous = GetActiveNavMeshComponent(navMesh.GetAgentTypeID());
+		it->Entity = guid;
+		if (previous && previous->GetNavMesh())
+		{
+			DestroyNavMesh_Internal(*previous);
+			RefreshCrowdAgents();
+		}
+	}
+
+	void Scene::OnNavMeshAddedAgentType(NavigationMeshComponent& navMesh)
+	{
+		if (!Project::FindNavAgentType(navMesh.GetAgentTypeID()))
+			return;
+
+		const bool bRecorded = std::any_of(m_ActiveNavMeshes.begin(), m_ActiveNavMeshes.end(), [&navMesh](const ActiveNavMesh& active) { return active.AgentTypeID == navMesh.GetAgentTypeID(); });
+		if (!bRecorded)
+			m_ActiveNavMeshes.push_back({ navMesh.Parent.GetGUID(), navMesh.GetAgentTypeID() });
+	}
+
+	void Scene::OnNavMeshRemovedAgentType(NavigationMeshComponent& navMesh, uint32_t agentTypeID)
+	{
+		auto it = std::find_if(m_ActiveNavMeshes.begin(), m_ActiveNavMeshes.end(), [agentTypeID](const ActiveNavMesh& active) { return active.AgentTypeID == agentTypeID; });
+		if (it == m_ActiveNavMeshes.end() || it->Entity != navMesh.Parent.GetGUID())
+			return;
+
+		if (const NavigationMeshComponent* next = FindNavMeshComponentToActivate(agentTypeID, &navMesh))
+			it->Entity = next->Parent.GetGUID();
+		else
+			m_ActiveNavMeshes.erase(it);
+	}
+
+	const NavigationMeshComponent* Scene::FindNavMeshComponentToActivate(uint32_t agentTypeID, const NavigationMeshComponent* exclude) const
+	{
+		const NavigationMeshComponent* result = nullptr;
+		auto view = m_Registry.view<NavigationMeshComponent>();
+		for (auto entity : view)
+		{
+			const auto& component = view.get<NavigationMeshComponent>(entity);
+			if (&component == exclude || component.GetAgentTypeID() != agentTypeID)
+				continue;
+
+			// The lowest GUID, so that the choice doesn't depend on the order of the components in the registry
+			if (!result || component.Parent.GetGUID() < result->Parent.GetGUID())
+				result = &component;
+		}
+		return result;
+	}
+
+	void Scene::ValidateActiveNavMeshes()
+	{
+		// Recorded components that don't exist, or that use another type now
+		std::erase_if(m_ActiveNavMeshes, [this](const ActiveNavMesh& active)
+		{
+			return !Project::FindNavAgentType(active.AgentTypeID) || !GetActiveNavMeshComponent(active.AgentTypeID);
+		});
+
+		// Types that have components but no active one
+		auto view = m_Registry.view<NavigationMeshComponent>();
+		for (auto entity : view)
+		{
+			const uint32_t agentTypeID = view.get<NavigationMeshComponent>(entity).GetAgentTypeID();
+			if (!Project::FindNavAgentType(agentTypeID) || GetActiveNavMeshComponent(agentTypeID))
+				continue;
+
+			m_ActiveNavMeshes.push_back({ FindNavMeshComponentToActivate(agentTypeID, nullptr)->Parent.GetGUID(), agentTypeID });
+		}
+
+		// Only active components can have nav meshes
+		std::vector<NavigationMeshComponent*> builtInactive;
+		for (auto entity : view)
+		{
+			auto& component = view.get<NavigationMeshComponent>(entity);
+			if (component.GetNavMesh() && !component.IsActive())
+				builtInactive.push_back(&component);
+		}
+
+		for (NavigationMeshComponent* component : builtInactive)
+		{
+			EG_CORE_ERROR("[AINavigation] The nav mesh of `{}` was built, but another nav mesh uses its agent type. It's destroyed", component->Parent.GetName());
+			DestroyNavMesh_Internal(*component);
+		}
+
+		if (!builtInactive.empty())
+			RefreshCrowdAgents();
+	}
+
+	uint32_t Scene::FindNavMeshSlotForAgent(uint32_t agentTypeID, float radius, float height) const
+	{
+		if (agentTypeID != AINavigation::AutoAgentTypeID)
+		{
+			for (uint32_t slot = 0; slot < (uint32_t)m_NavMeshSlots.size(); ++slot)
+			{
+				const auto& mesh = m_NavMeshSlots[slot].Mesh;
+				if (mesh && mesh->GetAgentType().ID == agentTypeID)
+					return slot;
+			}
+			return InvalidNavMeshSlot;
+		}
+
+		// Auto. The smallest agent type that fits. If none fits, the largest one
+		auto IsSmaller = [](const AINavigation::AgentType& a, const AINavigation::AgentType& b)
+		{
+			return a.Radius < b.Radius || (a.Radius == b.Radius && a.Height < b.Height);
+		};
+
+		uint32_t bestFitting = InvalidNavMeshSlot;
+		uint32_t largest = InvalidNavMeshSlot;
+		for (uint32_t slot = 0; slot < (uint32_t)m_NavMeshSlots.size(); ++slot)
+		{
+			const auto& mesh = m_NavMeshSlots[slot].Mesh;
+			if (!mesh)
+				continue;
+
+			const AINavigation::AgentType& type = mesh->GetAgentType();
+			if (largest == InvalidNavMeshSlot || IsSmaller(m_NavMeshSlots[largest].Mesh->GetAgentType(), type))
+				largest = slot;
+
+			const bool bFits = type.Radius >= radius && type.Height >= height;
+			if (bFits && (bestFitting == InvalidNavMeshSlot || IsSmaller(type, m_NavMeshSlots[bestFitting].Mesh->GetAgentType())))
+				bestFitting = slot;
+		}
+
+		return bestFitting != InvalidNavMeshSlot ? bestFitting : largest;
+	}
+
+	uint32_t Scene::GetFallbackNavAgentTypeID(const NavigationMeshComponent* exclude) const
+	{
+		auto IsUsed = [this, exclude](uint32_t agentTypeID)
+		{
+			auto view = m_Registry.view<NavigationMeshComponent>();
+			for (auto entity : view)
+			{
+				const auto& component = view.get<NavigationMeshComponent>(entity);
+				if (&component != exclude && component.GetAgentTypeID() == agentTypeID)
+					return true;
+			}
+			return false;
+		};
+
+		const uint32_t defaultID = Project::GetDefaultNavAgentTypeID();
+		if (!IsUsed(defaultID))
+			return defaultID;
+
+		for (const AINavigation::AgentType& type : Project::GetNavAgentTypes())
+		{
+			if (!IsUsed(type.ID))
+				return type.ID;
+		}
+
+		return defaultID;
+	}
+
+	void Scene::DestroyNavMesh_Internal(NavigationMeshComponent& navMesh)
+	{
+		const uint32_t slot = FindNavMeshSlot(navMesh.GetNavMesh());
+		if (slot != InvalidNavMeshSlot)
+		{
+			auto agents = m_Registry.view<NavigationCrowdAgentComponent>();
+			for (auto entity : agents)
+			{
+				auto& agent = agents.get<NavigationCrowdAgentComponent>(entity);
+				if (agent.IsValid() && agent.GetNavMesh() == navMesh.GetNavMesh())
+					agent.RemoveAgent();
+			}
+
+			// The obstacles are destroyed with the nav mesh. So the colliders just forget them.
+			// Removing them one by one would queue a request per obstacle on a mesh that's about to be destroyed anyway,
+			// and a failed removal could leave a stale ref that was later sent to a new nav mesh in this slot
+			for (BaseColliderComponent* collider : GatherObstacleColliders())
+				collider->ForgetObstacle(slot);
+
+			m_NavMeshSlots[slot] = {};
+		}
+
+		navMesh.ReleaseNavMesh();
+	}
+
+	bool Scene::BuildNavMesh(NavigationMeshComponent& navMesh)
+	{
+		const AINavigation::AgentType* agentType = Project::FindNavAgentType(navMesh.GetAgentTypeID());
+		if (!agentType)
+		{
+			EG_CORE_ERROR("[AINavigation] Failed to build the nav mesh of `{}`. Its agent type (ID: {}) doesn't exist", navMesh.Parent.GetName(), navMesh.GetAgentTypeID());
+			return false;
+		}
+
+		if (!navMesh.IsActive())
+		{
+			const NavigationMeshComponent* active = GetActiveNavMeshComponent(navMesh.GetAgentTypeID());
+			EG_CORE_ERROR("[AINavigation] Failed to build the nav mesh of `{}`. `{}` already uses the agent type `{}`. Pick another agent type",
+				navMesh.Parent.GetName(), active ? active->Parent.GetName() : std::string(), agentType->Name);
+			return false;
+		}
+
+		DestroyNavMesh_Internal(navMesh);
+		navMesh.Build();
+		if (!navMesh.GetNavMesh())
+		{
+			RefreshCrowdAgents(); // Agents that were on it might fit another nav mesh
+			return false;
+		}
+
+		uint32_t freeSlot = InvalidNavMeshSlot;
+		for (uint32_t slot = 0; slot < (uint32_t)m_NavMeshSlots.size(); ++slot)
+		{
+			const auto& slotMesh = m_NavMeshSlots[slot].Mesh;
+			EG_CORE_ASSERT(!slotMesh || slotMesh->GetAgentType().ID != agentType->ID); // Only the active component of a type can be built
+			if (!slotMesh && freeSlot == InvalidNavMeshSlot)
+				freeSlot = slot;
+		}
+
+		// There's at most one active component per agent type, and at most `MaxAgentTypes` agent types. So there's always a free slot
+		EG_CORE_ASSERT(freeSlot != InvalidNavMeshSlot);
+		if (freeSlot == InvalidNavMeshSlot)
+		{
+			EG_CORE_ERROR("[AINavigation] Failed to build the nav mesh of `{}`. The scene already has {} nav meshes", navMesh.Parent.GetName(), AINavigation::MaxAgentTypes);
+			navMesh.ReleaseNavMesh();
+			return false;
+		}
+
+		m_NavMeshSlots[freeSlot] = { navMesh.Parent.GetGUID(), navMesh.GetNavMesh() };
+
+		for (BaseColliderComponent* collider : GatherObstacleColliders())
+			collider->RecreateObstacle(freeSlot);
+
+		RefreshCrowdAgents();
+		return true;
+	}
+
+	void Scene::DestroyNavMesh(NavigationMeshComponent& navMesh)
+	{
+		const bool bBuilt = navMesh.GetNavMesh() != nullptr;
+		if (bBuilt)
+			DestroyNavMesh_Internal(navMesh);
+
+		navMesh.DestroyNavMesh();
+
+		if (bBuilt)
+			RefreshCrowdAgents();
+	}
+
+	void Scene::RebuildNavMeshes()
+	{
+		// Copied, since rebuilding changes the slots
+		std::vector<GUID> builtEntities;
+		for (const NavMeshSlot& slot : m_NavMeshSlots)
+		{
+			if (slot.Mesh)
+				builtEntities.push_back(slot.Entity);
+		}
+
+		for (const GUID& guid : builtEntities)
+		{
+			Entity entity = GetEntityByGUID(guid);
+			if (!entity || !entity.HasComponent<NavigationMeshComponent>())
+				continue;
+
+			auto& component = entity.GetComponent<NavigationMeshComponent>();
+			if (component.bAutoRebuild)
+				BuildNavMesh(component);
+		}
+	}
+
+	void Scene::RebuildCrowd(NavigationMeshComponent& navMesh)
+	{
+		const Ref<AINavigation::Mesh>& mesh = navMesh.GetNavMesh();
+		if (FindNavMeshSlot(mesh) == InvalidNavMeshSlot)
+			return;
+
+		auto agents = m_Registry.view<NavigationCrowdAgentComponent>();
+		for (auto entity : agents)
+		{
+			auto& agent = agents.get<NavigationCrowdAgentComponent>(entity);
+			if (agent.IsValid() && agent.GetNavMesh() == mesh)
+				agent.RemoveAgent();
+		}
+
+		mesh->GetCrowd().SetSettings(navMesh.GetCrowdSettings());
+		RefreshCrowdAgents();
+	}
+
+	void Scene::RefreshCrowdAgents()
+	{
+		auto agents = m_Registry.view<NavigationCrowdAgentComponent>();
+		for (auto entity : agents)
+		{
+			auto& agent = agents.get<NavigationCrowdAgentComponent>(entity);
+			const auto& settings = agent.GetSettings();
+			const uint32_t slot = FindNavMeshSlotForAgent(agent.GetAgentTypeID(), settings.AgentRadius, settings.AgentHeight);
+			if (agent.IsValid() && agent.GetNavMesh() == GetNavMeshInSlot(slot))
+				continue;
+
+			agent.RemoveAgent();
+			agent.CreateAgent(agent.Parent.GetWorldLocation());
+		}
+	}
+
+	void Scene::OnNavMeshAgentTypeChanged(NavigationMeshComponent& navMesh, uint32_t oldAgentTypeID)
+	{
+		// The slot is found by the nav mesh itself, so it doesn't matter that the component already has the new type
+		const bool bWasBuilt = navMesh.GetNavMesh() != nullptr;
+		if (bWasBuilt)
+			DestroyNavMesh_Internal(navMesh);
+
+		OnNavMeshRemovedAgentType(navMesh, oldAgentTypeID);
+		OnNavMeshAddedAgentType(navMesh);
+
+		if (bWasBuilt && navMesh.IsActive())
+			BuildNavMesh(navMesh);
+		else if (bWasBuilt)
+			RefreshCrowdAgents();
+	}
+
+	void Scene::OnNavMeshComponentChanged(NavigationMeshComponent& navMesh)
+	{
+		if (navMesh.ShouldAutoRebuild() && navMesh.IsActive())
+			BuildNavMesh(navMesh);
+	}
+
+	bool Scene::OnNavAgentTypesChanged()
+	{
+		bool bChanged = false;
+
+		// Nav mesh components whose agent type was removed
+		{
+			std::vector<NavigationMeshComponent*> invalidComponents;
 			auto view = m_Registry.view<NavigationMeshComponent>();
 			for (auto entity : view)
 			{
 				auto& component = view.get<NavigationMeshComponent>(entity);
-				component.DestroyNavMesh();
+				if (!Project::FindNavAgentType(component.GetAgentTypeID()))
+					invalidComponents.push_back(&component);
+			}
+
+			for (NavigationMeshComponent* component : invalidComponents)
+			{
+				component->SetAgentTypeIDOrFallback(component->GetAgentTypeID());
+				bChanged = true;
+			}
+
+			ValidateActiveNavMeshes();
+		}
+
+		// Built nav meshes whose agent type has changed since they were built
+		{
+			std::vector<GUID> outdated;
+			for (const NavMeshSlot& slot : m_NavMeshSlots)
+			{
+				if (!slot.Mesh)
+					continue;
+
+				const AINavigation::AgentType* type = Project::FindNavAgentType(slot.Mesh->GetAgentType().ID);
+				if (type && !type->HasSameDimensions(slot.Mesh->GetAgentType()))
+					outdated.push_back(slot.Entity);
+			}
+
+			for (const GUID& guid : outdated)
+			{
+				Entity entity = GetEntityByGUID(guid);
+				if (!entity || !entity.HasComponent<NavigationMeshComponent>())
+					continue;
+
+				auto& component = entity.GetComponent<NavigationMeshComponent>();
+				if (component.bAutoRebuild)
+					BuildNavMesh(component);
 			}
 		}
 
-		// Build a new nav mesh
-		if (navMesh)
-		{
-			navMesh->Build();
-			m_CurrentNavMesh = navMesh->GetNavMesh();
-			m_CurrentNavMeshEntityGUID = navMesh->Parent.GetGUID();
-		}
-		else
-		{
-			m_CurrentNavMeshEntityGUID = GUID(0, 0);
-		}
+		// Crowd agents and script fields keep removed agent types, so that they don't move and it's noticed.
+		// The refresh removes the agents of removed types from the crowds
+		RefreshCrowdAgents();
 
-		// Go through all agents and create them back
-		for (auto entity : agentComponents)
-		{
-			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
-			component.CreateAgent(component.Parent.GetWorldLocation());
-		}
-
-		// Go through all colliders and generate obstacles back
-		for (BaseColliderComponent* collider : colliders)
-			collider->RecreateObstacle();
+		return bChanged;
 	}
 
-	void Scene::RebuildNavMesh()
+	std::vector<NavigationMeshComponent*> Scene::GetActiveNavMeshComponents() const
 	{
-		if (m_CurrentNavMeshEntityGUID.IsNull())
-			return;
-
-		Entity entity = GetEntityByGUID(m_CurrentNavMeshEntityGUID);
-		if (!entity)
-			return;
-
-		if (!entity.HasComponent<NavigationMeshComponent>())
-			return;
-
-		auto& comp = entity.GetComponent<NavigationMeshComponent>();
-		if (comp.bAutoRebuild)
-			BuildNavMesh(&comp);
-	}
-
-	void Scene::BuildCrowd(const AINavigation::CrowdSettings& settings)
-	{
-		if (!m_CurrentNavMesh)
-			return;
-
-		auto agentComponents = m_Registry.view<NavigationCrowdAgentComponent>();
-
-		// Go through all agents and delete them
-		for (auto entity : agentComponents)
+		std::vector<NavigationMeshComponent*> result;
+		result.reserve(m_ActiveNavMeshes.size());
+		for (const ActiveNavMesh& active : m_ActiveNavMeshes)
 		{
-			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
-			component.RemoveAgent();
+			if (NavigationMeshComponent* component = GetActiveNavMeshComponent(active.AgentTypeID))
+				result.push_back(component);
 		}
 
-		// Recreate crowd system
-		m_CurrentNavMesh->GetCrowd().SetSettings(settings);
-
-		// Go through all agents and create them back
-		for (auto entity : agentComponents)
-		{
-			auto& component = agentComponents.get<NavigationCrowdAgentComponent>(entity);
-			component.CreateAgent(component.Parent.GetWorldLocation());
-		}
+		// Sorted, so that the order doesn't depend on the order in which the types were used. For example, saving the same scene twice gives the same file
+		std::sort(result.begin(), result.end(), [](const NavigationMeshComponent* a, const NavigationMeshComponent* b) { return a->GetAgentTypeID() < b->GetAgentTypeID(); });
+		return result;
 	}
 
 	GUID Scene::AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func)
@@ -966,18 +1330,16 @@ namespace Eagle
 
 	void Scene::UpdateNavMesh(Timestep ts)
 	{
-		if (!m_CurrentNavMesh)
-			return;
-
 		EG_CPU_TIMING_SCOPED("Scene. Update NavMesh");
-		m_CurrentNavMesh->Update(ts);
+		for (const NavMeshSlot& slot : m_NavMeshSlots)
+		{
+			if (slot.Mesh)
+				slot.Mesh->Update(ts);
+		}
 	}
 
 	void Scene::SyncCrowdAgents()
 	{
-		if (!m_CurrentNavMesh)
-			return;
-
 		auto view = m_Registry.view<NavigationCrowdAgentComponent>();
 		for (auto& e : view)
 		{
@@ -2069,7 +2431,8 @@ namespace Eagle
 		DestroyScripts();
 
 		m_PhysicsScene->Reset();
-		m_CurrentNavMesh.reset();
+		m_NavMeshSlots = {};
+		m_ActiveNavMeshes.clear();
 		m_SpawnedSounds.clear();
 		m_EntityOutlines.clear();
 		m_Registry.clear();
@@ -2381,17 +2744,26 @@ namespace Eagle
 		entity.GetComponent<ParticleSystemComponent>().Destroy();
 	}
 
+	void Scene::OnNavMeshAdded(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		OnNavMeshAddedAgentType(entity.GetComponent<NavigationMeshComponent>());
+	}
+
 	void Scene::OnNavMeshRemoved(entt::registry& r, entt::entity e)
 	{
-		if (!m_CurrentNavMesh)
-			return;
-
 		Entity entity(e, this);
-		const auto& navMesh = entity.GetComponent<NavigationMeshComponent>().GetNavMesh();
-		if (m_CurrentNavMesh == navMesh)
-		{
-			BuildNavMesh(nullptr);
-		}
+		auto& component = entity.GetComponent<NavigationMeshComponent>();
+		const bool bBuilt = FindNavMeshSlot(component.GetNavMesh()) != InvalidNavMeshSlot;
+		if (bBuilt)
+			DestroyNavMesh_Internal(component);
+		else
+			component.ReleaseNavMesh(); // For example, the scene is being cleared
+
+		OnNavMeshRemovedAgentType(component, component.GetAgentTypeID());
+
+		if (bBuilt)
+			RefreshCrowdAgents();
 	}
 
 	void Scene::OnBoxColliderRemoved(entt::registry& r, entt::entity e)
@@ -2485,6 +2857,7 @@ namespace Eagle
 		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 		m_Registry.on_construct<ParticleSystemComponent>().connect<&Scene::OnParticleSystemAdded>(*this);
 		m_Registry.on_destroy<ParticleSystemComponent>().connect<&Scene::OnParticleSystemRemoved>(*this);
+		m_Registry.on_construct<NavigationMeshComponent>().connect<&Scene::OnNavMeshAdded>(*this);
 		m_Registry.on_destroy<NavigationMeshComponent>().connect<&Scene::OnNavMeshRemoved>(*this);
 		m_Registry.on_destroy<BoxColliderComponent>().connect<&Scene::OnBoxColliderRemoved>(*this);
 		m_Registry.on_destroy<SphereColliderComponent>().connect<&Scene::OnSphereColliderRemoved>(*this);

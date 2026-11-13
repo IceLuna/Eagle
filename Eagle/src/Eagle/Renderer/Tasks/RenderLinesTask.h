@@ -14,7 +14,13 @@ namespace Eagle
 		RenderLinesTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+
+		void OnResize(const glm::uvec2 size) override
+		{
+			m_Pipeline->Resize(size.x, size.y);
+			m_TranslucentPipeline->Resize(size.x, size.y);
+		}
+
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
 			if (settings.LineWidth == m_LineWidth
@@ -24,20 +30,22 @@ namespace Eagle
 			m_LineWidth = settings.LineWidth;
 			bEnableDebugLinesDepthTest = settings.bEnableDebugLinesDepthTest;
 
-			InitPipeline();
+			InitPipelines();
 		}
 
 		void SetDebugLines(const std::vector<RendererLine>& lines);
 
 	private:
-		void InitPipeline();
+		void InitPipelines();
 		void RenderLines(const Ref<CommandBuffer>& cmd);
 		void UploadVertexBuffer(const Ref<CommandBuffer>& cmd);
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
+		Ref<PipelineGraphics> m_TranslucentPipeline;
 		Ref<Buffer> m_VertexBuffer;
-		std::vector<RendererDebugVertex> m_Vertices;
+		std::vector<RendererDebugVertex> m_Vertices; // Opaque lines first, then translucent ones
+		uint32_t m_OpaqueVerticesCount = 0u;
 		float m_LineWidth = 1.f;
 		bool bEnableDebugLinesDepthTest = true;
 

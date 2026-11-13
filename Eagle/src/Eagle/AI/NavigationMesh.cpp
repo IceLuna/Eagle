@@ -166,10 +166,12 @@ namespace Eagle::AINavigation
 		Application::Get().GetImGuiLayer()->AddMessage(std::move(message));
 	}
 
-	Mesh::Mesh(const OverlapGeometryData& geometry, const MeshSettings& meshSettings, const CrowdSettings& crowdSettings)
+	Mesh::Mesh(const OverlapGeometryData& geometry, const MeshSettings& meshSettings, const AgentType& agentType, const CrowdSettings& crowdSettings)
 		: m_Settings(meshSettings)
+		, m_AgentType(agentType)
 	{
 		m_Settings.Clamp();
+		m_AgentType.Clamp();
 
 		m_Filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
 		m_Filter.setExcludeFlags(0);
@@ -258,7 +260,7 @@ namespace Eagle::AINavigation
 				failedTileColumns, 1u << MeshSettings::MaxTileBits));
 		}
 
-		m_Crowd.SetSearchHalfExtents(m_Settings.GetSearchHalfExtents());
+		m_Crowd.SetSearchHalfExtents(GetSearchHalfExtents());
 		m_Crowd.Init(crowdSettings, m_NavMesh, m_NavQuery, m_Filter);
 
 		// The source geometry belongs to the caller and isn't needed after the build
@@ -467,12 +469,12 @@ namespace Eagle::AINavigation
 		if (searchHalfExtents)
 			m_Settings.SearchHalfExtents = glm::max(*searchHalfExtents, glm::vec3(MeshSettings::MinSearchExtent));
 
-		m_Crowd.SetSearchHalfExtents(m_Settings.GetSearchHalfExtents());
+		m_Crowd.SetSearchHalfExtents(GetSearchHalfExtents());
 	}
 
 	dtPolyRef Mesh::FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outNearestPoint) const
 	{
-		const glm::vec3 extents = searchHalfExtents ? *searchHalfExtents : m_Settings.GetSearchHalfExtents();
+		const glm::vec3 extents = searchHalfExtents ? *searchHalfExtents : GetSearchHalfExtents();
 		if (extents.x <= 0.f || extents.y <= 0.f || extents.z <= 0.f)
 			return 0;
 
@@ -733,9 +735,9 @@ namespace Eagle::AINavigation
 		if (!m_bValid)
 			return false;
 
-		const float maxHorizontal = m_Settings.GetAgentReach();
-		const float maxAbove = m_Settings.AgentHeight;
-		const float maxBelow = m_Settings.AgentMaxClimb; // Nav mesh heights are approximate, so the real ground can be a bit below it
+		const float maxHorizontal = m_Settings.GetAgentReach(m_AgentType);
+		const float maxAbove = m_AgentType.Height;
+		const float maxBelow = m_AgentType.MaxClimb; // Nav mesh heights are approximate, so the real ground can be a bit below it
 
 		// The box that contains every nav mesh point that can be within the agent's space.
 		// `maxAbove`: pos may be up to this far above the nav mesh point. Seen from pos, the nav mesh point may be up to `maxAbove` below it.
@@ -781,16 +783,17 @@ namespace Eagle::AINavigation
 		if (!m_bValid)
 			return;
 
-		constexpr uint8_t drawFlags = DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST | DU_DRAWNAVMESH_COLOR_TILES;
+		// Polygons are colored by area (see `duDebugDraw::areaToCol`), so that the debug draw can color each nav mesh by its agent type
+		constexpr uint8_t drawFlags = DU_DRAWNAVMESH_OFFMESHCONS | DU_DRAWNAVMESH_CLOSEDLIST;
 
 		//drawTiles(debugDraw, m_TileCache);
 		//drawObstacles(debugDraw, m_TileCache);
-		duDebugDrawNavMeshWithClosedList(debugDraw, *m_NavMesh, *m_NavQuery, drawFlags/*|DU_DRAWNAVMESH_COLOR_TILES*/);
+		duDebugDrawNavMeshWithClosedList(debugDraw, *m_NavMesh, *m_NavQuery, drawFlags);
 	}
 
-	Ref<Mesh> Mesh::Create(const OverlapGeometryData& geometry, const MeshSettings& settings, const CrowdSettings& crowdSettings)
+	Ref<Mesh> Mesh::Create(const OverlapGeometryData& geometry, const MeshSettings& settings, const AgentType& agentType, const CrowdSettings& crowdSettings)
 	{
-		Ref<Mesh> mesh = MakeRef<Mesh>(geometry, settings, crowdSettings);
+		Ref<Mesh> mesh = MakeRef<Mesh>(geometry, settings, agentType, crowdSettings);
 		if (!mesh->m_bValid)
 		{
 			EG_CORE_ERROR("[AINavigation] Failed to build the navigation mesh");
@@ -812,10 +815,10 @@ namespace Eagle::AINavigation
 			memset(&cfg, 0, sizeof(cfg));
 			cfg.cs = m_Settings.CellSize;
 			cfg.ch = m_Settings.CellHeight;
-			cfg.walkableSlopeAngle = m_Settings.MaxSlope;
-			cfg.walkableHeight = (int)ceilf(m_Settings.AgentHeight / cfg.ch);
-			cfg.walkableClimb = (int)floorf(m_Settings.AgentMaxClimb / cfg.ch);
-			cfg.walkableRadius = (int)ceilf(m_Settings.AgentRadius / cfg.cs);
+			cfg.walkableSlopeAngle = m_AgentType.MaxSlope;
+			cfg.walkableHeight = (int)ceilf(m_AgentType.Height / cfg.ch);
+			cfg.walkableClimb = (int)floorf(m_AgentType.MaxClimb / cfg.ch);
+			cfg.walkableRadius = (int)ceilf(m_AgentType.Radius / cfg.cs);
 			cfg.maxSimplificationError = m_Settings.EdgeMaxError;
 			cfg.tileSize = (int)m_Settings.TileSize;
 			cfg.borderSize = cfg.walkableRadius + (int)m_Settings.BorderSize; // Reserve enough padding.
@@ -866,9 +869,9 @@ namespace Eagle::AINavigation
 			tcparams.ch = m_Settings.CellHeight;
 			tcparams.width = (int)m_Settings.TileSize;
 			tcparams.height = (int)m_Settings.TileSize;
-			tcparams.walkableHeight = m_Settings.AgentHeight;
-			tcparams.walkableRadius = m_Settings.AgentRadius;
-			tcparams.walkableClimb = m_Settings.AgentMaxClimb;
+			tcparams.walkableHeight = m_AgentType.Height;
+			tcparams.walkableRadius = m_AgentType.Radius;
+			tcparams.walkableClimb = m_AgentType.MaxClimb;
 			tcparams.maxSimplificationError = m_Settings.EdgeMaxError;
 			tcparams.maxTiles = (int)(tw * th * (int)m_Settings.ExpectedLayersPerTile); // Checked above to fit in an int
 			tcparams.maxObstacles = (int)m_Settings.MaxObstacles;

@@ -308,8 +308,10 @@ namespace Eagle
 
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
-			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
+
+			// Triangles first, so that lines (for example, the edges of a nav mesh) are drawn over the translucent ones
 			renderer->m_RenderTrianglesTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
 			
 			if (renderer->m_MotionBlurTask)
 				renderer->m_MotionBlurTask->RecordCommandBuffer(cmd);
@@ -396,6 +398,7 @@ namespace Eagle
 		auto& slot = m_PickSlots[RenderManager::GetCurrentFrameIndex_CPU()];
 		if (!slot.bPending)
 			return;
+
 		slot.bPending = false;
 
 		if (RenderManager::GetFrameNumber_CPU() - slot.SubmittedFrame > RendererConfig::FramesInFlight)
@@ -410,10 +413,13 @@ namespace Eagle
 
 		uint32_t i = 0;
 		if (slot.bHasMouse)
-			m_MousePickResult = ids[i++];
+		{
+			m_MousePickResult = PickResult{ slot.Coords[i], ids[i], slot.SubmittedFrame };
+			++i;
+		}
 
 		for (; i < slot.CoordsCount; ++i)
-			m_PickResults.push_back({ slot.Coords[i], ids[i] });
+			m_PickResults.push_back({ slot.Coords[i], ids[i], slot.SubmittedFrame });
 
 		slot.Readback->Unmap();
 	}
@@ -423,7 +429,7 @@ namespace Eagle
 		if (!m_MousePickResult)
 			return false;
 
-		outObjectID = *m_MousePickResult;
+		outObjectID = m_MousePickResult->ObjectID;
 		return true;
 	}
 
@@ -432,12 +438,7 @@ namespace Eagle
 		if (m_MousePickCoord && *m_MousePickCoord == coord)
 			return GetObjectIDUnderMouse(outObjectID);
 
-		const uint64_t frame = RenderManager::GetFrameNumber_CPU();
-		auto requestIt = std::find_if(m_PickRequests.begin(), m_PickRequests.end(), [coord](const PickRequest& r) { return r.Coord == coord; });
-		if (requestIt != m_PickRequests.end())
-			requestIt->LastRequestedFrame = frame;
-		else if (m_PickRequests.size() < s_MaxPickRequests - 1) // -1 for the mouse
-			m_PickRequests.push_back({ coord, frame });
+		RequestPick(coord);
 
 		auto resultIt = std::find_if(m_PickResults.begin(), m_PickResults.end(), [coord](const PickResult& r) { return r.Coord == coord; });
 		if (resultIt == m_PickResults.end())
@@ -445,6 +446,37 @@ namespace Eagle
 
 		outObjectID = resultIt->ObjectID;
 		return true;
+	}
+
+	bool SceneRenderer::GetObjectIDAtSince(glm::ivec2 coord, uint64_t minFrame, int32_t& outObjectID)
+	{
+		auto IsMatch = [coord, minFrame](const PickResult& r) { return r.Coord == coord && r.Frame >= minFrame; };
+		if (m_MousePickResult && IsMatch(*m_MousePickResult))
+		{
+			outObjectID = m_MousePickResult->ObjectID;
+			return true;
+		}
+
+		auto resultIt = std::find_if(m_PickResults.begin(), m_PickResults.end(), IsMatch);
+		if (resultIt != m_PickResults.end())
+		{
+			outObjectID = resultIt->ObjectID;
+			return true;
+		}
+
+		RequestPick(coord);
+
+		return false;
+	}
+
+	void SceneRenderer::RequestPick(glm::ivec2 coord)
+	{
+		const uint64_t frame = RenderManager::GetFrameNumber_CPU();
+		auto requestIt = std::find_if(m_PickRequests.begin(), m_PickRequests.end(), [coord](const PickRequest& r) { return r.Coord == coord; });
+		if (requestIt != m_PickRequests.end())
+			requestIt->LastRequestedFrame = frame;
+		else if (m_PickRequests.size() < s_MaxPickRequests - 1) // -1 for the mouse
+			m_PickRequests.push_back({ coord, frame });
 	}
 
 	void SceneRenderer::SetProjectUIScaleSettings(const UIScaleSettings& settings)

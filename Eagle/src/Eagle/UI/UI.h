@@ -59,6 +59,16 @@ namespace Eagle::UI
 	void BeginPropertyGrid(const std::string_view gridName);
 	void EndPropertyGrid();
 
+	// Limits the width of the value widgets of the property functions. By default, they fill the value column of a property grid.
+	// @width. In pixels. 0 means no limit
+	void PushPropertyMaxValueWidth(float width);
+	void PopPropertyMaxValueWidth();
+	float GetPropertyMaxValueWidth(); // 0 if there's no limit
+
+	// Pushes the item width that fills the rest of the value column, but at most `GetPropertyMaxValueWidth()`.
+	void PushPropertyValueWidth();
+	void PopPropertyValueWidth();
+
 	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 	bool Property(const std::string_view label, const std::vector<std::string>& customLabels, bool* values, const std::string_view helpMessage = "");
 	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "", ImGuiInputTextFlags flags = 0, const std::function<void()>& customLabelCallback = {});
@@ -110,8 +120,8 @@ namespace Eagle::UI
 	bool PushTreeNode(const std::string_view label, bool bOpenedByDefault = false, bool bFramed = true, const std::string_view helpMessage = "", uint64_t uniqueID = 0);
 	void PopTreeNode();
 	
-	//Returns true if selection changed.
-	//outSelectedIndex - index of the selected option
+	// Returns true if selection changed.
+	// outSelectedIndex - index of the selected option
 	// ComboWithNone adds a 'None' option as first. outSelectedIndex is -1 if None is selected
 	// OptionsSize can be smaller to cutoff some options
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
@@ -119,6 +129,13 @@ namespace Eagle::UI
 	bool ComboWithNone(const std::string_view label, int currentSelectionIndex, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
 	bool ComboWithNone(const std::string_view label, std::string& moduleName, const std::map<std::string, EntityScriptClass>& entityClasses);
 	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
+
+	// An ID that isn't a type of the project is shown as unknown, and it's kept until another type is picked.
+	// @bAllowAuto. Adds "Auto" (`AINavigation::AutoAgentTypeID`) as the first option.
+	// @getDisabledReason. Optional. An option is grayed out and can't be picked if it returns a reason, which is shown in its tooltip
+	// Returns true if it was changed.
+	bool NavAgentTypeCombo(const std::string_view label, uint32_t& agentTypeID, bool bAllowAuto, const std::string_view helpMessage = "",
+		const std::function<std::string(uint32_t)>& getDisabledReason = {}, const std::function<void()>& customLabelCallback = {});
 
 	// How an enum value is shown: its name split into words, e.g. "MatchWidthOrHeight" -> "Match Width Or Height"
 	std::string GetEnumDisplayName(std::string_view name);
@@ -153,7 +170,7 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		if (ImGui::BeginCombo(GetIDBuffer(), GetEnumDisplayName(current).c_str()))
 		{
@@ -175,7 +192,7 @@ namespace Eagle::UI
 			ImGui::EndCombo();
 		}
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -193,7 +210,7 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 		ImGui::PushID(GetIDBuffer());
 
 		constexpr auto& entries = magic_enum::enum_entries<Enum>();
@@ -214,7 +231,7 @@ namespace Eagle::UI
 		}
 
 		ImGui::PopID();
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -328,7 +345,7 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		const std::string assetName = modifyingAsset ? Utils::AsString(modifyingAsset->GetPath().stem()) : "None";
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
@@ -399,7 +416,7 @@ namespace Eagle::UI
 
 		const bool bApplyMaxWidth = maxItemWidth > 0.f;
 		if (bApplyMaxWidth)
-			ImGui::PushItemWidth(maxItemWidth);
+			ImGui::PushItemWidth(glm::min(maxItemWidth, ImGui::GetContentRegionAvail().x));
 
 		static std::string search;
 		const bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), ImGuiComboFlags_HeightLarge);
@@ -569,7 +586,7 @@ namespace Eagle::UI
 		if (bApplyMaxWidth)
 			ImGui::PopItemWidth();
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		ImGui::PopID();
 

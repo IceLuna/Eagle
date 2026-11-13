@@ -361,6 +361,9 @@ namespace Eagle
 		SendMessageW(hwnd, WM_SETICON, ICON_BIG, (LPARAM)bigIcon);
 		SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
 
+		SetClassLongPtrW(hwnd, GCLP_HICON, (LONG_PTR)bigIcon);
+		SetClassLongPtrW(hwnd, GCLP_HICONSM, (LONG_PTR)smallIcon);
+
 		if (m_BigIcon)
 			DestroyIcon((HICON)m_BigIcon);
 		if (m_SmallIcon)

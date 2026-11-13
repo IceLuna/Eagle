@@ -1605,10 +1605,10 @@ namespace Eagle
 		virtual void SetInteractingCollisionGroup(CollisionGroup groups) = 0;
 		CollisionGroup GetInteractingCollisionGroup() const { return m_InteractingCollisionGroup; }
 
-		// Internal use only. Used by the scene when it destroys its nav mesh, which destroys its obstacles too. The obstacle ref is forgotten
+		// Internal use only. Used by the scene when it destroys a nav mesh, which destroys its obstacles too. The obstacle ref is forgotten
 		// without asking Detour to remove it, so that a stale ref is never sent to a new nav mesh (where it could remove another collider's obstacle)
-		void ForgetObstacle() { m_ObstacleID = 0u; }
-		void RecreateObstacle() { if (bObstacle) CreateObstacle(); }
+		void ForgetObstacle(uint32_t slot) { m_ObstacleIDs[slot] = 0u; }
+		void RecreateObstacle(uint32_t slot) { if (bObstacle) CreateObstacle(slot); }
 
 	protected:
 		BaseColliderComponent(const Entity& entity) : SceneComponent(entity){}
@@ -1619,14 +1619,36 @@ namespace Eagle
 
 		virtual void UpdatePhysicsTransform() = 0;
 		virtual void UpdatePhysicsMaterials() = 0;
-		virtual void CreateObstacle() {} // Should remove an obstacle if it's already created
-		bool RemoveObstacle(); // Returns true if success. It might fail if there have been a lot of nav mesh change requests
+
+		// Detour obstacles are upright boxes (rotated around Y only) and upright cylinders
+		struct ObstacleShape
+		{
+			AABB Bounds;
+			glm::vec3 Location = glm::vec3(0.f); // The center of a box. The bottom center of a cylinder
+			glm::vec3 BoxHalfExtents = glm::vec3(0.f);
+			float BoxYaw = 0.f; // Radians
+			float CylinderRadius = 0.f;
+			float CylinderHeight = 0.f;
+			bool bBox = false;
+		};
+
+		// Returns false if it can't be an obstacle
+		virtual bool GetObstacleShape(ObstacleShape* outShape) const = 0;
+
+		// Creates/recreates the obstacle in every nav mesh of the scene.
+		// Note: if an old obstacle can't be removed from a nav mesh, a new one isn't created
+		void CreateObstacle();
+		void CreateObstacle(uint32_t slot);
+
+		// Returns true if success
+		bool RemoveObstacle();
+		bool RemoveObstacle(uint32_t slot);
 
 	protected:
 		Ref<AssetPhysicsMaterial> m_MaterialAsset;
 		CollisionGroup m_CollisionGroup = s_DefaultCollisionGroup;
 		CollisionGroup m_InteractingCollisionGroup = s_DefaultInteractingCollisionGroup;
-		dtObstacleRef m_ObstacleID = 0u;
+		std::array<dtObstacleRef, AINavigation::MaxAgentTypes> m_ObstacleIDs{};
 		bool bTrigger = false;
 		bool bShowCollision = false;
 		bool bAffectsNavMeshBuild = true; // If set to false, collider won't be used during the nav mesh build process
@@ -1660,7 +1682,7 @@ namespace Eagle
 	protected:
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
-		void CreateObstacle() override;
+		bool GetObstacleShape(ObstacleShape* outShape) const override;
 
 	protected:
 		Ref<BoxColliderShape> m_Shape;
@@ -1694,7 +1716,7 @@ namespace Eagle
 	protected:
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
-		void CreateObstacle() override;
+		bool GetObstacleShape(ObstacleShape* outShape) const override;
 
 	protected:
 		Ref<SphereColliderShape> m_Shape;
@@ -1739,7 +1761,7 @@ namespace Eagle
 	protected:
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
-		void CreateObstacle() override;
+		bool GetObstacleShape(ObstacleShape* outShape) const override;
 
 	protected:
 		Ref<CapsuleColliderShape> m_Shape;
@@ -1791,7 +1813,7 @@ namespace Eagle
 	protected:
 		void UpdatePhysicsTransform() override;
 		void UpdatePhysicsMaterials() override;
-		void CreateObstacle() override;
+		bool GetObstacleShape(ObstacleShape* outShape) const override;
 
 	protected:
 		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
@@ -2567,7 +2589,7 @@ namespace Eagle
 	class NavigationMeshComponent : public SceneComponent
 	{
 	public:
-		NavigationMeshComponent(const Entity& entity) : SceneComponent(entity) {}
+		NavigationMeshComponent(const Entity& entity);
 
 		NavigationMeshComponent& operator=(const NavigationMeshComponent& other);
 		NavigationMeshComponent(const NavigationMeshComponent&) = delete;
@@ -2587,27 +2609,31 @@ namespace Eagle
 		}
 
 		void SetSettings(const AINavigation::MeshSettings& settings);
-
-		void SetCrowdSettings(const AINavigation::CrowdSettings& settings)
-		{
-			m_CrowdSettings = settings;
-			m_CrowdSettings.Clamp();
-
-			Scene* scene = Parent.GetScene();
-			if (m_NavMesh && m_NavMesh == scene->GetNavMesh())
-				scene->BuildCrowd(m_CrowdSettings);
-		}
+		void SetCrowdSettings(const AINavigation::CrowdSettings& settings);
 
 		const AINavigation::MeshSettings& GetSettings() const { return m_Settings; }
 		const AINavigation::CrowdSettings& GetCrowdSettings() const { return m_CrowdSettings; }
 
+		uint32_t GetAgentTypeID() const { return m_AgentTypeID; }
+
+		// Returns false and keeps the current type if the project doesn't have the type.
+		// Rebuilds the nav mesh if it was built
+		bool SetAgentTypeID(uint32_t agentTypeID);
+
+		// Similar to `SetAgentTypeID()`, but on failure it falls back to another one
+		void SetAgentTypeIDOrFallback(uint32_t agentTypeID);
+
+		// Only one nav mesh component per agent type is active in a scene
+		bool IsActive() const;
+
+		bool ShouldAutoRebuild() const { return bAutoRebuild && m_bBuildRequested; }
+
 		void GetNavMeshDebugDraw(duDebugDraw* debugDraw) const;
 		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_NavMesh; }
 
-		void Update(Timestep ts);
-
 	public:
 		bool bAutoRebuild = false; // Rebuilds on changes if activated
+		bool bDebugDraw = false;
 
 	private:
 		void OnChanged()
@@ -2615,15 +2641,21 @@ namespace Eagle
 			Parent.SignalComponentChanged<NavigationMeshComponent>(Notification::OnStateChanged);
 		}
 
+		void ChangeAgentType(uint32_t agentTypeID);
+
 	private:
 		AINavigation::MeshSettings m_Settings;
 		AINavigation::CrowdSettings m_CrowdSettings;
 		Ref<AINavigation::Mesh> m_NavMesh;
+		uint32_t m_AgentTypeID = AINavigation::InvalidAgentTypeID;
+		bool m_bBuildRequested = false; // Auto Rebuild only rebuilds nav meshes that were requested to be built
 
-		// TODO: Ugly, but we only support one NavMesh, so for it to work, scene must control it
+		// The scene builds & destroys nav meshes, since it manages the obstacles and the crowd agents of all of them
 		friend class Scene;
 		void Build();
-		void DestroyNavMesh() { m_NavMesh.reset(); }
+
+		void ReleaseNavMesh() { m_NavMesh.reset(); }
+		void DestroyNavMesh() { m_NavMesh.reset(); m_bBuildRequested = false; }
 	};
 
 	class NavigationCrowdAgentComponent : public Component
@@ -2651,18 +2683,29 @@ namespace Eagle
 		MoveRequestState GetAgentTargetState() const;
 
 		const AINavigation::AgentSettings& GetSettings() const { return m_Settings; }
+
+		// Note: if the radius or the height changes and its agent type is Auto, it might move to another nav mesh
 		void SetSettings(const AINavigation::AgentSettings& settings);
+
+		uint32_t GetAgentTypeID() const { return m_AgentTypeID; }
+		
+		// If the project doesn't have the type, it's still set, so the agent doesn't move, and false is returned.
+		bool SetAgentTypeID(uint32_t agentTypeID);
+
+		// Null if the agent isn't valid
+		const Ref<AINavigation::Mesh>& GetNavMesh() const;
 
 		bool IsValid() const { return m_AgentIndex != -1; }
 
 	private:
-		// TODO: Ugly, but we only support one NavMesh, so for it to work, scene must control it
-		void CreateAgent(const glm::vec3& location);
+		bool CreateAgent(const glm::vec3& location);
 		void RemoveAgent();
 		friend class Scene;
 
 	private:
 		AINavigation::AgentSettings m_Settings{};
 		int m_AgentIndex = -1;
+		uint32_t m_NavMeshSlot = ~0u;
+		uint32_t m_AgentTypeID = AINavigation::AutoAgentTypeID;
 	};
 }

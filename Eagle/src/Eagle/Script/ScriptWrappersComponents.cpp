@@ -2191,18 +2191,24 @@ namespace Eagle
 	}
 
 	//--------------NavigationMesh Component--------------
-	void Script::Eagle_NavigationMeshComponent_Build(GUID entityID)
+	bool Script::Eagle_NavigationMeshComponent_Build(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
-			scene->BuildNavMesh(&entity.GetComponent<NavigationMeshComponent>());
+			auto& component = entity.GetComponent<NavigationMeshComponent>();
+			if (!component.IsActive())
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't build the nav mesh of `{}`. Another nav mesh of the scene uses the same agent type", entity.GetName());
+				return false;
+			}
+			return scene->BuildNavMesh(component);
 		}
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `Build` of Navigation Mesh Component. Entity is null");
-			return;
+			return false;
 		}
 	}
 
@@ -2292,6 +2298,51 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get `bAutoRebuild` of Navigation Mesh Component. Entity is null");
+			return false;
+		}
+	}
+
+	bool Script::Eagle_NavigationMeshComponent_SetAgentTypeID(GUID entityID, uint32_t agentTypeID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationMeshComponent>().SetAgentTypeID(agentTypeID);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `AgentType` of Navigation Mesh Component. Entity is null");
+			return false;
+		}
+	}
+
+	uint32_t Script::Eagle_NavigationMeshComponent_GetAgentTypeID(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationMeshComponent>().GetAgentTypeID();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `AgentType` of Navigation Mesh Component. Entity is null");
+			return AINavigation::InvalidAgentTypeID;
+		}
+	}
+
+	bool Script::Eagle_NavigationMeshComponent_IsActive(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationMeshComponent>().IsActive();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsActive` of Navigation Mesh Component. Entity is null");
 			return false;
 		}
 	}
@@ -2430,6 +2481,52 @@ namespace Eagle
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetTargetState` of Navigation Crowd Agent Component. Entity is null");
 			return MoveRequestState::DT_CROWDAGENT_TARGET_NONE;
+		}
+	}
+
+	bool Script::Eagle_NavigationCrowdAgentComponent_SetAgentTypeID(GUID entityID, uint32_t agentTypeID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().SetAgentTypeID(agentTypeID);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `AgentType` of Navigation Crowd Agent Component. Entity is null");
+			return false;
+		}
+	}
+
+	uint32_t Script::Eagle_NavigationCrowdAgentComponent_GetAgentTypeID(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().GetAgentTypeID();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `AgentType` of Navigation Crowd Agent Component. Entity is null");
+			return AINavigation::InvalidAgentTypeID;
+		}
+	}
+
+	uint32_t Script::Eagle_NavigationCrowdAgentComponent_GetNavMeshAgentType(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& navMesh = entity.GetComponent<NavigationCrowdAgentComponent>().GetNavMesh();
+			return navMesh ? navMesh->GetAgentType().ID : AINavigation::InvalidAgentTypeID;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetNavMesh` of Navigation Crowd Agent Component. Entity is null");
+			return AINavigation::InvalidAgentTypeID;
 		}
 	}
 }

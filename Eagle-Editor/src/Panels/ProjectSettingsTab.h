@@ -9,7 +9,7 @@ namespace Eagle
 	public:
 		enum class Section
 		{
-			General, CollisionGroups, UIScale, SplashScreen
+			General, CollisionGroups, Navigation, UIScale, SplashScreen
 		};
 
 		ProjectSettingsTab() = default;
@@ -33,12 +33,14 @@ namespace Eagle
 		// They return whether a setting was changed
 		bool DrawGeneralSection();
 		bool DrawCollisionGroupsSection();
+		bool DrawNavigationSection();
 		bool DrawUIScaleSection();
 		bool DrawSplashScreenSection();
 
 	private:
 		const std::string m_WindowName = "Project Settings###ProjectSettingsTab";
 		Section m_SelectedSection = Section::General;
+		std::unordered_map<uint32_t, std::string> m_PendingAgentTypeNames; // Agent type ID -> the name being typed
 		bool m_bCloseRequested = false;
 	};
 }

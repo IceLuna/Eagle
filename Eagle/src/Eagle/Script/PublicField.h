@@ -34,6 +34,7 @@ namespace Eagle
 		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene, AssetAnimation, AssetAnimationGraph,
 		AssetParticleSystem, AssetAnimationBlendSpace, AssetBehaviorGraph,
 		Struct, // User-defined C# struct
+		NavAgentType, // `Eagle.NavAgentType`. It's the ID of an AI navigation agent type of the project
 	};
 
 	inline bool IsAssetType(FieldType type)

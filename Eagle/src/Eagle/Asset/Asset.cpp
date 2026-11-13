@@ -544,6 +544,12 @@ namespace Eagle
 		Utils::InvalidateCollisionGroups<MeshColliderComponent>(s_EntityAssetsScene, validMasks);
 	}
 
+	void AssetEntity::OnNavAgentTypesChanged()
+	{
+		if (s_EntityAssetsScene)
+			s_EntityAssetsScene->OnNavAgentTypesChanged();
+	}
+
 	Ref<AssetEntity> AssetEntity::Create(const Path& saveTo, const std::string& filename, Entity entity)
 	{
 		class LocalAssetEntity : public AssetEntity

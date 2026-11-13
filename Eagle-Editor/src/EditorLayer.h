@@ -71,6 +71,7 @@ namespace Eagle
 
 		void OpenProjectSettings();
 		void OnCollisionGroupsChanged();
+		void OnNavAgentTypesChanged();
 		void PreviewSplashScreen();
 
 		// Oh boy... I guess it's better than passing around `EditorLayer`
@@ -84,7 +85,6 @@ namespace Eagle
 		void LoadAppAssembly();
 		void ReloadScriptsIfNecessary();
 		void HandleResize();
-		bool HandleEntitySelection(MouseButtonPressedEvent& e);
 		void ToggleWindowFullscreenState();
 
 		void HandleAssetDragDrop();
@@ -198,6 +198,7 @@ namespace Eagle
 		bool bRenderOnlyWhenFocused = true;
 		bool bUpdateAnimationsInEditor = true;
 		bool bDrawNavMesh = true;
+		float NavMeshOpacity = 1.f;
 		bool bDrawMeshAABBs = false;
 		bool bDrawAxisGuizmo = true;
 		bool bForceDrawGuizmo = false;
@@ -207,6 +208,7 @@ namespace Eagle
 		OutlineSettings m_SelectionOutline{};
 
 		SelectionOutline m_AppliedSelectionOutline;
+		ViewportClickSelection m_ViewportClickSelection;
 		
 		ImGuiWindowClass m_SimulatePanelSettings;
 

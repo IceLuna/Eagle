@@ -9,6 +9,7 @@
 #include "Eagle/Physics/PhysicsSettings.h"
 #include "Eagle/Animation/Animation.h"
 #include "Eagle/SceneSequence/SequenceTrack.h"
+#include "Eagle/AI/NavigationMesh.h"
 #include "GUID.h"
 #include "Notifications.h"
 
@@ -39,6 +40,7 @@ namespace Eagle
 	class SkeletalMeshComponent;
 	class ReverbComponent;
 	class NavigationMeshComponent;
+	class BaseColliderComponent;
 	class CharacterControllerComponent;
 	class EntitySceneNameComponent;
 	class Sound2D;
@@ -49,12 +51,6 @@ namespace Eagle
 	class AssetAnimationGraph;
 	class Component;
 	class SceneLoadRequest;
-
-	namespace AINavigation
-	{
-		class Mesh;
-		struct CrowdSettings;
-	}
 
 	struct EntityProcessState
 	{
@@ -88,6 +84,11 @@ namespace Eagle
 		bool operator==(const SceneSettings& other) const = default;
 	};
 
+	// Note regarding nav meshes:
+	//     A scene has at most one nav mesh per agent type (see the project settings).
+	//     If several nav mesh components use the same agent type, only one is active, and only it can be built.
+	//     The first one that uses a type becomes active. When the active one is removed or changes its type, another one of that type becomes active
+	//     It isn't built automatically
 	class Scene
 	{
 		struct DirtyFlags
@@ -339,12 +340,38 @@ namespace Eagle
 		void SetUseSkyAsBackground(bool value);
 		bool GetUseSkyAsBackground() const { return m_Settings.Skybox.bUseSkyAsBackground; }
 
-		// Currently, scene can only have on NavMesh. So all other NavMeshes are destroyed.
-		// Can pass a nullptr to remove all nav meshes & update obstacles properly
-		void BuildNavMesh(NavigationMeshComponent* navMesh);
-		void RebuildNavMesh(); // Uses current one if available
-		const Ref<AINavigation::Mesh>& GetNavMesh() const { return m_CurrentNavMesh; }
-		void BuildCrowd(const AINavigation::CrowdSettings& settings); // Builds crowd system for the current nav mesh
+		bool BuildNavMesh(NavigationMeshComponent& navMesh); // Returns false on failure
+		void DestroyNavMesh(NavigationMeshComponent& navMesh);
+		void RebuildNavMeshes(); // Rebuilds the built nav meshes that have `Auto Rebuild` enabled
+		void RebuildCrowd(NavigationMeshComponent& navMesh); // Recreates the crowd of a built nav mesh with the component's crowd settings
+
+		// Returns null if the scene doesn't have a built nav mesh of the agent type
+		const Ref<AINavigation::Mesh>& GetNavMesh(uint32_t agentTypeID) const;
+
+		// Returns null if failed
+		NavigationMeshComponent* GetActiveNavMeshComponent(uint32_t agentTypeID) const;
+
+		// Makes the component active for its agent type. The nav mesh of the previously active component is destroyed
+		void SetActiveNavMeshComponent(NavigationMeshComponent& navMesh);
+
+		// Null if the slot is empty or invalid
+		const Ref<AINavigation::Mesh>& GetNavMeshInSlot(uint32_t slot) const;
+
+		// Returns the slot index of the nav mesh that a crowd agent moves on, or `InvalidNavMeshSlot` if there's none.
+		// `AutoAgentTypeID`: the smallest nav mesh whose agent type fits the radius and the height (the largest one if none fits).
+		// Otherwise, only the nav mesh of that agent type
+		uint32_t FindNavMeshSlotForAgent(uint32_t agentTypeID, float radius, float height) const;
+
+		// Returns the first type that no other component uses. Otherwise, the default type.
+		uint32_t GetFallbackNavAgentTypeID(const NavigationMeshComponent* exclude) const;
+
+		// Returns true if anything was changed
+		bool OnNavAgentTypesChanged();
+
+		void OnNavMeshAgentTypeChanged(NavigationMeshComponent& navMesh, uint32_t oldAgentTypeID);
+
+		// The active nav mesh component of each agent type that's used, sorted by agent type ID
+		std::vector<NavigationMeshComponent*> GetActiveNavMeshComponents() const;
 		
 		// ---- Camera override ----
 		// Allows anyone take over what the scene renders through
@@ -482,6 +509,16 @@ namespace Eagle
 		void SyncCrowdAgents();
 		void SetupOnAppAssemblyReloadedCallback();
 
+		void DestroyNavMesh_Internal(NavigationMeshComponent& navMesh);
+		void OnNavMeshAddedAgentType(NavigationMeshComponent& navMesh);
+		void OnNavMeshRemovedAgentType(NavigationMeshComponent& navMesh, uint32_t agentTypeID);
+		const NavigationMeshComponent* FindNavMeshComponentToActivate(uint32_t agentTypeID, const NavigationMeshComponent* exclude) const;
+		void ValidateActiveNavMeshes();
+		void OnNavMeshComponentChanged(NavigationMeshComponent& navMesh);
+		uint32_t FindNavMeshSlot(const Ref<AINavigation::Mesh>& navMesh) const;
+		void RefreshCrowdAgents();
+		std::vector<BaseColliderComponent*> GatherObstacleColliders();
+
 		void GatherLightsInfo();
 		void GatherSkeletalMeshes();
 		void UpdateScripts(Timestep ts);
@@ -510,6 +547,7 @@ namespace Eagle
 		void OnImage2DAddedRemoved(entt::registry& r, entt::entity e);
 		void OnParticleSystemAdded(entt::registry& r, entt::entity e);
 		void OnParticleSystemRemoved(entt::registry& r, entt::entity e);
+		void OnNavMeshAdded(entt::registry& r, entt::entity e);
 		void OnNavMeshRemoved(entt::registry& r, entt::entity e);
 		void OnBoxColliderRemoved(entt::registry& r, entt::entity e);
 		void OnSphereColliderRemoved(entt::registry& r, entt::entity e);
@@ -707,12 +745,7 @@ namespace Eagle
 			if constexpr (std::is_base_of<NavigationMeshComponent, T>::value)
 			{
 				if (notification == Notification::OnStateChanged)
-				{
-					// Checked by GUID rather than by its nav mesh, because after a failed build there's no nav mesh,
-					// but the component is still the scene's active one and should rebuild once its settings are fixed
-					if (component.bAutoRebuild && !m_CurrentNavMeshEntityGUID.IsNull() && component.Parent.GetGUID() == m_CurrentNavMeshEntityGUID)
-						BuildNavMesh(&component);
-				}
+					OnNavMeshComponentChanged(component);
 			}
 
 			if constexpr (std::is_base_of<CameraComponent, T>::value)
@@ -746,11 +779,15 @@ namespace Eagle
 		bool bCanUpdateEditorCamera = false;
 		bool bDrawMiscellaneous = true;
 		bool bDrawNavMesh = false;
+		float NavMeshOpacity = 1.f;
+		GUID NavMeshDebugSelectedEntity = GUID(0, 0);
 		bool bDrawMeshAABBs = false;
 		bool bDrawBones = false;
 
 		GUID TextUIDebugSelectedEntity = GUID(0, 0);
 		bool bDrawAllTextUIBounds = false;
+
+		static constexpr uint32_t InvalidNavMeshSlot = ~0u;
 
 	private:
 		// Implemented in SceneDebugDraw.cpp
@@ -903,8 +940,20 @@ namespace Eagle
 
 		GUID m_GUID;
 
-		Ref<AINavigation::Mesh> m_CurrentNavMesh;
-		GUID m_CurrentNavMeshEntityGUID = GUID(0, 0);
+		struct NavMeshSlot
+		{
+			GUID Entity;
+			Ref<AINavigation::Mesh> Mesh;
+		};
+		std::array<NavMeshSlot, AINavigation::MaxAgentTypes> m_NavMeshSlots;
+
+		// The active nav mesh component of each agent type that's used. GUID is used so that a scene copy keeps the same components active
+		struct ActiveNavMesh
+		{
+			GUID Entity;
+			uint32_t AgentTypeID = AINavigation::InvalidAgentTypeID;
+		};
+		std::vector<ActiveNavMesh> m_ActiveNavMeshes;
 
 		friend class Entity;
 		friend class ComponentsNotificationSystem;

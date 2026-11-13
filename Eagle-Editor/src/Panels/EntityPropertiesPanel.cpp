@@ -38,17 +38,24 @@ namespace Eagle
 	static const char* s_SearchExtentsHelpMsg = "Extents around a point that's searched for the nav mesh: the start/end of a path, a crowd agent's move target, etc. "
 		"Points farther from the nav mesh are treated as being off it.\n"
 		"Scripts can override it per query. Changing it doesn't rebuild the nav mesh";
-	static const char* s_OverrideSearchExtentsHelpMsg = "If not set, Search Half Extents are calculated based on the agent radius and height settings";
+	static const char* s_OverrideSearchExtentsHelpMsg = "If not set, Search Half Extents are calculated based on the radius and height of the agent type";
 	static const char* s_AffectsNavMeshHelpMsg = "If set to false, it won't affect NavMesh builds. It still can be used as an obstacle though.\n"
 		"Only static colliders/triggers affect NavMesh builds";
-	static const char* s_FilterLowHangingObstaclesHelpMsg = "Marks non-walkable spans as walkable if their maximum is within AgentMaxClimb of the span below them.\n"
+	static const char* s_FilterLowHangingObstaclesHelpMsg = "Marks non-walkable spans as walkable if their maximum is within the Max Climb of the agent type of the span below them.\n"
 		"This removes small obstacles and rasterization artifacts that the agent would be able to walk over such as curbs.\n"
 		"It also allows agents to move up terraced structures like stairs.";
-	static const char* s_FilterLedgeSpans = "Marks spans that are ledges as not-walkable.\nA ledge is a span with one or more neighbors whose maximum is further away than AgentMaxClimb from the current span's maximum.\n"
+	static const char* s_FilterLedgeSpans = "Marks spans that are ledges as not-walkable.\nA ledge is a span with one or more neighbors whose maximum is further away than the Max Climb of the agent type from the current span's maximum.\n"
 		"This method removes the impact of the overestimation of conservative voxelization so the resulting mesh will not have regions hanging in the air over ledges.";
-	static const char* s_FilterWalkableLowHeightSpans = "Marks walkable spans as not walkable if the clearance above the span is less than the specified AgentHeight.\n"
+	static const char* s_FilterWalkableLowHeightSpans = "Marks walkable spans as not walkable if the clearance above the span is less than the Height of the agent type.\n"
 		"For this filter, the clearance above the span is the distance from the span's maximum to the minimum of the next higher span in the same column.\n"
 		"If there is no higher span in the column, the clearance is computed as the distance from the top of the span to the maximum heightfield height.";
+	static const char* s_NavMeshAgentTypeHelpMsg = "Agents of this type navigate on this nav mesh. Agent types are configured in the project settings.\n"
+		"A scene can have only one nav mesh per agent type";
+	static const char* s_NavMeshDebugDrawHelpMsg = "If enabled, the nav mesh is always drawn when nav mesh visualization is enabled.\n"
+		"Otherwise, it's drawn only while its entity is selected. If no nav mesh has this enabled and none is selected, all nav meshes are drawn";
+	static const char* s_CrowdAgentTypeHelpMsg = "Nav mesh the agent moves on.\n"
+		"Auto - the smallest nav mesh of the scene whose agent type fits the agent's radius and height (the largest one if none fits).\n"
+		"Otherwise, the nav mesh of the selected type only. If the scene doesn't have it, the agent doesn't move";
 	static const std::vector<std::string> s_LockStrings = { "X", "Y", "Z" };
 	static const char* s_FFTTypeHelpMsg = "Used in spectrum analysis to reduce leakage/transient signals interfering with the analysis.\n"
 		"This is a problem with analysis of continuous signals that only have a small portion of the signal sample (the fft window size).\n"
@@ -2448,16 +2455,65 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<NavigationMeshComponent>());
 				DrawComponent<NavigationMeshComponent>("Navigation Mesh", entity, [&entity, this](NavigationMeshComponent& component)
 				{
+					Scene* scene = entity.GetScene();
 					UI::BeginPropertyGrid("NavigationMeshComponent");
+
+					// Types used by other nav meshes of the scene can't be picked
+					uint32_t agentTypeID = component.GetAgentTypeID();
+					auto GetDisabledReason = [scene, &component](uint32_t id) -> std::string
+					{
+						if (id == component.GetAgentTypeID())
+							return {};
+
+						const NavigationMeshComponent* active = scene->GetActiveNavMeshComponent(id);
+						return active ? "Used by the nav mesh of `" + active->Parent.GetName() + "`" : std::string();
+					};
+
+					if (UI::NavAgentTypeCombo("Agent Type", agentTypeID, false, s_NavMeshAgentTypeHelpMsg, GetDisabledReason))
+					{
+						component.SetAgentTypeID(agentTypeID);
+						bEntityChanged = true;
+					}
+
+					const AINavigation::AgentType* agentType = Project::FindNavAgentType(component.GetAgentTypeID());
+					const bool bActive = component.IsActive();
+					if (!bActive)
+					{
+						const NavigationMeshComponent* active = scene->GetActiveNavMeshComponent(component.GetAgentTypeID());
+						const std::string activeName = active ? active->Parent.GetName() : std::string();
+						UI::Text("Inactive", "Used by `" + activeName + "`", "The nav mesh of `" + activeName + "` already uses this agent type, and a scene can have only one nav mesh per agent type.\n"
+							"This one can't be built until it uses an agent type that no other nav mesh uses");
+						UI::PushItemDisabled();
+					}
+					else if (agentType && component.GetNavMesh() && !agentType->HasSameDimensions(component.GetNavMesh()->GetAgentType()))
+					{
+						UI::Text("Outdated", "Needs a rebuild", "The agent type has changed in the project settings since this nav mesh was built. Rebuild it to apply the changes");
+					}
 
 					if (UI::Button("Build", "Build"))
 					{
-						entity.GetScene()->BuildNavMesh(&component);
+						scene->BuildNavMesh(component);
 						bEntityChanged = true;
 					}
-					bEntityChanged |= UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform or settings are changed");
+					if (!bActive)
+						UI::PopItemDisabled();
+
+					bEntityChanged |= UI::Property("Auto Rebuild", component.bAutoRebuild, "If enabled, nav mesh is rebuilt automatically when its transform, settings or agent type are changed");
+					bEntityChanged |= UI::Property("Debug Draw", component.bDebugDraw, s_NavMeshDebugDrawHelpMsg);
 
 					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (agentType && UI::PushTreeNode("Agent", false, true, "The settings of the agent type. They're edited in the project settings"))
+					{
+						UI::BeginPropertyGrid("NavigationMeshComponent");
+						UI::Text("Radius", std::format("{:.2f}", agentType->Radius), "The distance to erode/shrink the walkable area of the heightfield away from obstructions");
+						UI::Text("Height", std::format("{:.2f}", agentType->Height), "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable");
+						UI::Text("Max Climb", std::format("{:.2f}", agentType->MaxClimb), "Maximum ledge height that is considered to still be traversable");
+						UI::Text("Max Slope", std::format("{:.0f}", agentType->MaxSlope), "Degrees. The maximum slope that is considered walkable");
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
+					}
 
 					ImGui::Separator();
 					if (UI::PushTreeNode("Nav Mesh Settings"))
@@ -2466,6 +2522,7 @@ namespace Eagle
 
 						bool bChanged = false;
 						auto settings = component.GetSettings();
+						const AINavigation::AgentType& extentsAgentType = agentType ? *agentType : Project::GetDefaultNavAgentType();
 
 						bChanged |= UI::PropertyDrag("Bounds Min", settings.Bounds.Min, 0.1f, 0, 0);
 						bChanged |= UI::PropertyDrag("Bounds Max", settings.Bounds.Max, 0.1f, 0, 0);
@@ -2476,22 +2533,18 @@ namespace Eagle
 						bChanged |= UI::PropertyDrag("Tile Size", settings.TileSize, 1.f, (int)AINavigation::MeshSettings::MinTileSizeLimit, (int)AINavigation::MeshSettings::MaxTileSizeLimit, "The width/height size of tile's on the xz-plane. [Limits: 8 <= value <= 255]");
 						bChanged |= UI::PropertyDrag("Cell Size", settings.CellSize, 0.001f, 0, 0, "The xz-plane cell size to use for fields");
 						bChanged |= UI::PropertyDrag("Cell Height", settings.CellHeight, 0.001f, 0, 0, "The y-axis cell size to use for fields");
-						bChanged |= UI::PropertyDrag("Max Slope", settings.MaxSlope, 1.f, 0.f, 90.f, "The maximum slope that is considered walkable");
-						bChanged |= UI::PropertyDrag("Agent Height", settings.AgentHeight, 0.01f, 0.0f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable");
-						bChanged |= UI::PropertyDrag("Agent Max Climb", settings.AgentMaxClimb, 0.01f, 0.f, 0.f, "Maximum ledge height that is considered to still be traversable");
-						bChanged |= UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.01f, 0.f, 0.f, "The distance to erode/shrink the walkable area of the heightfield away from obstructions");
 						bChanged |= UI::PropertyDrag("Edge Max Error", settings.EdgeMaxError, 0.05f, 0.f, 0.f, "The maximum distance a simplified contour's border edges should deviate the original raw contour");
 						bChanged |= UI::PropertyDrag("Border Size", settings.BorderSize, 1, (int)AINavigation::MeshSettings::MinBorderSizeLimit, 0, "The size of the non-navigable border around the heightfield. [Limits: value >= 2]");
 						if (UI::Property("Override Search Extents", settings.OverrideSearchExtents, s_OverrideSearchExtentsHelpMsg))
 						{
 							if (settings.OverrideSearchExtents)
-								settings.SearchHalfExtents = settings.GetAutoSearchHalfExtents();
+								settings.SearchHalfExtents = settings.GetAutoSearchHalfExtents(extentsAgentType);
 							bChanged = true;
 						}
 
 						if (!settings.OverrideSearchExtents)
 							UI::PushItemDisabled();
-						glm::vec3 searchHalfExtents = settings.GetSearchHalfExtents();
+						glm::vec3 searchHalfExtents = settings.GetSearchHalfExtents(extentsAgentType);
 						bChanged |= UI::PropertyDrag("Search Half Extents", searchHalfExtents, 0.05f, 0.f, 0.f, s_SearchExtentsHelpMsg);
 						if (!settings.OverrideSearchExtents)
 							UI::PopItemDisabled();
@@ -2543,6 +2596,42 @@ namespace Eagle
 					bool bChanged = false;
 
 					UI::BeginPropertyGrid("NavigationCrowdAgentComponent");
+
+					uint32_t agentTypeID = component.GetAgentTypeID();
+					if (UI::NavAgentTypeCombo("Agent Type", agentTypeID, true, s_CrowdAgentTypeHelpMsg))
+					{
+						component.SetAgentTypeID(agentTypeID);
+						bEntityChanged = true;
+					}
+
+					// Which nav mesh it'd move on, depending on the nav meshes that are built
+					{
+						const Scene* scene = entity.GetScene();
+						const bool bAuto = component.GetAgentTypeID() == AINavigation::AutoAgentTypeID;
+						const AINavigation::AgentType* explicitType = Project::FindNavAgentType(component.GetAgentTypeID());
+						const uint32_t slot = scene->FindNavMeshSlotForAgent(component.GetAgentTypeID(), settings.AgentRadius, settings.AgentHeight);
+						if (const Ref<AINavigation::Mesh>& navMesh = scene->GetNavMeshInSlot(slot))
+						{
+							// The nav mesh keeps a copy of the agent type made when it was built. The name might have changed since then
+							const AINavigation::AgentType& meshType = navMesh->GetAgentType();
+							const AINavigation::AgentType* projectType = Project::FindNavAgentType(meshType.ID);
+							const NavigationMeshComponent* navMeshComponent = scene->GetActiveNavMeshComponent(meshType.ID);
+
+							UI::Text("Nav Mesh", projectType ? projectType->Name : meshType.Name,
+								std::format("The agent moves on the nav mesh of `{}`. It depends on the nav meshes that are built", navMeshComponent ? navMeshComponent->Parent.GetName() : std::string()));
+
+							if (bAuto && (meshType.Radius < settings.AgentRadius || meshType.Height < settings.AgentHeight))
+								UI::Text("Warning", "Too large", "The agent is larger than the agent types of all nav meshes, so it uses the largest one");
+						}
+						else if (explicitType)
+							UI::Text("Warning", "Won't move", std::format("The scene doesn't have a built nav mesh of `{}` type", explicitType->Name));
+						else if (component.GetAgentTypeID() == AINavigation::InvalidAgentTypeID)
+							UI::Text("Warning", "Won't move", "Its agent type is invalid. Pick another one");
+						else if (!bAuto)
+							UI::Text("Warning", "Won't move", std::format("The project doesn't have an agent type with ID {}. Pick another one", component.GetAgentTypeID()));
+						else
+							UI::Text("Warning", "Won't move", "The scene doesn't have a built nav mesh");
+					}
 					
 					if (UI::PropertyDrag("Agent Radius", settings.AgentRadius, 0.01f))
 					{

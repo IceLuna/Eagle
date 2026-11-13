@@ -8,6 +8,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Core/Project.h"
 #include "Eagle/Renderer/TextureCompressor.h"
 
 #include "Platform/Vulkan/VulkanImage.h"
@@ -74,6 +75,7 @@ namespace Eagle::UI
 	static const char* s_HelpMarker = "(?)";
 	static FontContext s_Fonts;
 	static const char* s_FloatFormat = "%.4f";
+	static std::vector<float> s_PropertyMaxValueWidths;
 
 	namespace
 	{
@@ -333,6 +335,16 @@ namespace Eagle::UI
 				{
 					int value = bRuntime ? field.GetRuntimeValue<int>(instance, fieldIndex) : field.GetStoredValue<int>(fieldIndex);
 					if (UI::Combo(label.data(), value, field.EnumFields, value, field.Tooltip, customLabelCallback))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
+				case FieldType::NavAgentType:
+				{
+					uint32_t value = bRuntime ? field.GetRuntimeValue<uint32_t>(instance, fieldIndex) : field.GetStoredValue<uint32_t>(fieldIndex);
+					if (UI::NavAgentTypeCombo(label.data(), value, true, field.Tooltip, {}, customLabelCallback))
 					{
 						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
 						bChanged = true;
@@ -919,6 +931,34 @@ namespace Eagle::UI
 		return bValueChanged;
 	}
 
+	void PushPropertyMaxValueWidth(float width)
+	{
+		s_PropertyMaxValueWidths.push_back(glm::max(width, 0.f));
+	}
+
+	void PopPropertyMaxValueWidth()
+	{
+		EG_CORE_ASSERT(!s_PropertyMaxValueWidths.empty(), "PopPropertyMaxValueWidth() without PushPropertyMaxValueWidth()");
+		if (!s_PropertyMaxValueWidths.empty())
+			s_PropertyMaxValueWidths.pop_back();
+	}
+
+	float GetPropertyMaxValueWidth()
+	{
+		return s_PropertyMaxValueWidths.empty() ? 0.f : s_PropertyMaxValueWidths.back();
+	}
+
+	void PushPropertyValueWidth()
+	{
+		const float maxWidth = GetPropertyMaxValueWidth();
+		ImGui::PushItemWidth(maxWidth > 0.f ? glm::min(maxWidth, ImGui::GetContentRegionAvail().x) : -1.f);
+	}
+
+	void PopPropertyValueWidth()
+	{
+		ImGui::PopItemWidth();
+	}
+
 	void BeginPropertyGrid(const std::string_view gridName)
 	{
 		ImGui::PushID(gridName.data());
@@ -950,11 +990,11 @@ namespace Eagle::UI
 		}
 		ImGui::SameLine();
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::Checkbox(s_IDBuffer, &value);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 
 		return bModified;
@@ -973,7 +1013,7 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 		
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		const size_t count = customLabels.size();
@@ -1003,7 +1043,7 @@ namespace Eagle::UI
 				ImGui::SameLine();
 		}
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 
 		return bModified;
@@ -1027,13 +1067,13 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		if (UI::InputText(s_IDBuffer, value, flags))
 			bModified = true;
 		ImGui::SetItemKeyOwner(ImGuiMod_Alt);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 
 		return bModified;
@@ -1052,13 +1092,13 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		if (ImGui::InputTextMultiline(s_IDBuffer, value.data(), value.length() + 1, ImVec2{ 0, 0 }, ImGuiInputTextFlags_CtrlEnterForNewLine | ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AllowTabInput, TextResizeCallback, &value))
 			bModified = true;
 		ImGui::SetItemKeyOwner(ImGuiMod_Alt);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 
 		return bModified;
@@ -1096,7 +1136,7 @@ namespace Eagle::UI
 
 		if (!values.empty())
 			ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 		
 		size_t i = 1;
 		for (auto& value : values)
@@ -1114,7 +1154,7 @@ namespace Eagle::UI
 			ImGui::PopID();
 		}
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		if (values.empty())
 			ImGui::NextColumn();
 
@@ -1245,10 +1285,10 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(text.data());
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return false;
 	}
@@ -1284,9 +1324,9 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 		bModified = ImGui::DragInt(s_IDBuffer, &value, speed, min, max);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1309,9 +1349,9 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 		bModified = ImGui::DragInt2(s_IDBuffer, glm::value_ptr(value), speed, min, max);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1352,10 +1392,10 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::DragFloat(s_IDBuffer, &value, speed, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1378,10 +1418,10 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::DragFloat2(s_IDBuffer, &value.x, speed, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1404,10 +1444,10 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::DragFloat3(s_IDBuffer, &value.x, speed, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1430,10 +1470,10 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::DragFloat4(s_IDBuffer, &value.x, speed, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1451,10 +1491,10 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::DragInt3(s_IDBuffer, &value.x, speed, min, max);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1499,10 +1539,10 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::SliderInt(s_IDBuffer, &value, min, max);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1529,10 +1569,10 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::SliderFloat(s_IDBuffer, &value, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1550,10 +1590,10 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::SliderFloat2(s_IDBuffer, &value.x, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1571,10 +1611,10 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::SliderFloat3(s_IDBuffer, &value.x, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1592,10 +1632,10 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bModified = ImGui::SliderFloat4(s_IDBuffer, &value.x, min, max, s_FloatFormat);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1618,14 +1658,14 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		ImGuiColorEditFlags flags = 0;
 		if (bHDR)
 			flags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float;
 
 		bModified = ImGui::ColorEdit3(s_IDBuffer, &value.x, flags);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1648,14 +1688,14 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		ImGuiColorEditFlags flags = 0;
 		if (bHDR)
 			flags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float;
 
 		bModified = ImGui::ColorEdit4(s_IDBuffer, &value.x, flags);
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1694,11 +1734,11 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bool result = ImGui::InputFloat(s_IDBuffer, &value, step, stepFast);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return result;
 	}
@@ -1714,11 +1754,11 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bool result = ImGui::InputDouble(s_IDBuffer, &value, step, stepFast);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return result;
 	}
@@ -1794,7 +1834,7 @@ namespace Eagle::UI
 			UI::HelpMarker(helpMessage);
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		if (ImGui::BeginCombo(s_IDBuffer, currentString.data()))
 		{
@@ -1824,7 +1864,7 @@ namespace Eagle::UI
 			if (!tooltips[currentSelection].empty())
 				Tooltip(tooltips[currentSelection]);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1852,7 +1892,7 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		const bool bNoneSelected = currentSelectionIndex == -1;
 		const std::string& currentString = bNoneSelected ? "None" : options[currentSelectionIndex];
@@ -1900,7 +1940,7 @@ namespace Eagle::UI
 			if (!tooltips[currentSelectionIndex].empty())
 				Tooltip(tooltips[currentSelectionIndex]);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1915,7 +1955,7 @@ namespace Eagle::UI
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.data());
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		if (ImGui::BeginCombo(s_IDBuffer, currentName))
 		{
@@ -1960,7 +2000,90 @@ namespace Eagle::UI
 			ImGui::EndCombo();
 		}
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
+	bool NavAgentTypeCombo(const std::string_view label, uint32_t& agentTypeID, bool bAllowAuto, const std::string_view helpMessage,
+		const std::function<std::string(uint32_t)>& getDisabledReason, const std::function<void()>& customLabelCallback)
+	{
+		constexpr const char* autoName = "Auto";
+		const AINavigation::AgentType* currentType = Project::FindNavAgentType(agentTypeID);
+		const bool bAuto = bAllowAuto && agentTypeID == AINavigation::AutoAgentTypeID;
+		const bool bInvalid = agentTypeID == AINavigation::InvalidAgentTypeID;
+		const bool bUnknown = !currentType && !bAuto;
+		const std::string currentName = currentType ? currentType->Name : bAuto ? autoName : bInvalid ? "Invalid" : std::format("Unknown (ID {})", agentTypeID);
+
+		bool bModified = false;
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
+		}
+		ImGui::NextColumn();
+		PushPropertyValueWidth();
+
+		// A type that the project doesn't have is kept until another one is picked
+		constexpr ImVec4 unknownColor = ImVec4(1.f, 0.8f, 0.2f, 1.f);
+		if (bUnknown)
+			ImGui::PushStyleColor(ImGuiCol_Text, unknownColor);
+		const bool bOpened = ImGui::BeginCombo(s_IDBuffer, currentName.c_str());
+		if (bUnknown)
+		{
+			ImGui::PopStyleColor();
+			if (ImGui::IsItemHovered())
+			{
+				if (bInvalid)
+					ImGui::SetTooltip("The agent type is invalid");
+				else
+					ImGui::SetTooltip("The project doesn't have an agent type with ID %u", agentTypeID);
+			}
+		}
+
+		if (bOpened)
+		{
+			auto Option = [&bModified, &agentTypeID, &getDisabledReason](const char* name, uint32_t id, bool bSelected)
+			{
+				const std::string disabledReason = getDisabledReason ? getDisabledReason(id) : std::string();
+				const bool bDisabled = !disabledReason.empty();
+
+				ImGui::PushID(int(id));
+				if (bDisabled)
+					UI::PushItemDisabled();
+				if (ImGui::Selectable(name, bSelected) && !bDisabled)
+				{
+					bModified = id != agentTypeID;
+					agentTypeID = id;
+				}
+				if (bDisabled)
+				{
+					UI::PopItemDisabled();
+					if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+						ImGui::SetTooltip("%s", disabledReason.c_str());
+				}
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+				ImGui::PopID();
+			};
+
+			if (bAllowAuto)
+				Option(autoName, AINavigation::AutoAgentTypeID, bAuto);
+			for (const AINavigation::AgentType& type : Project::GetNavAgentTypes())
+				Option(type.Name.c_str(), type.ID, currentType == &type);
+
+			ImGui::EndCombo();
+		}
+
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -1989,7 +2112,7 @@ namespace Eagle::UI
 			customLabelCallback();
 		}
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		if (ImGui::BeginCombo(s_IDBuffer, currentString.data()))
 		{
@@ -2017,7 +2140,7 @@ namespace Eagle::UI
 			ImGui::EndCombo();
 		}
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
@@ -2028,11 +2151,11 @@ namespace Eagle::UI
 		ImGui::Text(label.data());
 		ImGui::SameLine();
 		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
+		PushPropertyValueWidth();
 
 		bool result = ImGui::Button(buttonText.data(), size);
 
-		ImGui::PopItemWidth();
+		PopPropertyValueWidth();
 		ImGui::NextColumn();
 		return result;
 	}

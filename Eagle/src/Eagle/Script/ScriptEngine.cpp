@@ -1576,6 +1576,7 @@ namespace Eagle
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetParticleSystem")]      = FieldType::AssetParticleSystem;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAnimationBlendSpace")] = FieldType::AssetAnimationBlendSpace;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetBehaviorGraph")]       = FieldType::AssetBehaviorGraph;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "NavAgentType")]             = FieldType::NavAgentType;
 		s_BuiltInEagleTypes[s_AITaskClass]                                                                  = FieldType::None;
 		s_BuiltInEagleTypes[s_AIDecoratorClass]                                                             = FieldType::None;
 		s_BuiltInEagleTypes[s_AICompositeClass]                                                             = FieldType::None;

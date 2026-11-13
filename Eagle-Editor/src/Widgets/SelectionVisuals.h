@@ -22,6 +22,24 @@ namespace Eagle
 		std::vector<GUID> m_SelectedGUIDsTemp; // To avoid reallocations
 		OutlineSettings m_Settings{};
 	};
+
+	// Responsibe for handling entity selection in a viewport
+	class ViewportClickSelection
+	{
+	public:
+		// Should be called every frame from the viewport's ImGui window
+		void Update(const Ref<Scene>& scene, const glm::vec2& viewportMin, const glm::vec2& viewportMax, bool bCanClick, const std::function<void(Entity, bool)>& onClicked);
+
+	private:
+		struct ClickData
+		{
+			Weak<Scene> ClickedScene;
+			glm::ivec2 Coord;
+			uint64_t Frame;
+			bool bCtrl;
+		};
+		std::optional<ClickData> m_Click;
+	};
 }
 
 namespace Eagle::EditorUtils

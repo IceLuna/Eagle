@@ -91,6 +91,140 @@ namespace Eagle
 		return index < info.CollisionGroupGUIDs.size() ? info.CollisionGroupGUIDs[index] : GUID64(0);
 	}
 
+	// Makes the agent types usable: at least one, at most `MaxAgentTypes`, valid unique IDs and names, and a valid default type
+	static void ValidateNavAgentTypes(ProjectInfo& info)
+	{
+		std::vector<AINavigation::AgentType> validTypes;
+		validTypes.reserve(info.NavAgentTypes.size());
+		for (AINavigation::AgentType& type : info.NavAgentTypes)
+		{
+			if (type.ID == AINavigation::InvalidAgentTypeID || type.ID == AINavigation::AutoAgentTypeID)
+			{
+				EG_CORE_ERROR("[Project] Skipping the navigation agent type `{}`. Its ID is invalid", type.Name);
+				continue;
+			}
+
+			const bool bDuplicateID = std::any_of(validTypes.begin(), validTypes.end(), [&type](const AINavigation::AgentType& other) { return other.ID == type.ID; });
+			if (bDuplicateID)
+			{
+				EG_CORE_ERROR("[Project] Skipping the navigation agent type `{}`. Its ID ({}) is already used", type.Name, type.ID);
+				continue;
+			}
+
+			if (validTypes.size() == AINavigation::MaxAgentTypes)
+			{
+				EG_CORE_ERROR("[Project] Skipping the navigation agent type `{}`. The engine supports at most {} agent types", type.Name, AINavigation::MaxAgentTypes);
+				continue;
+			}
+
+			type.Clamp();
+			validTypes.push_back(std::move(type));
+		}
+		info.NavAgentTypes = std::move(validTypes);
+
+		for (const AINavigation::AgentType& type : info.NavAgentTypes)
+			info.NextNavAgentTypeID = glm::max(info.NextNavAgentTypeID, type.ID + 1u);
+
+		if (info.NavAgentTypes.empty())
+		{
+			AINavigation::AgentType& type = info.NavAgentTypes.emplace_back();
+			type.ID = info.NextNavAgentTypeID++;
+			type.Name = "Default";
+		}
+
+		// Names must be unique and not empty, since scripts can look types up by name
+		for (size_t i = 0; i < info.NavAgentTypes.size(); ++i)
+		{
+			AINavigation::AgentType& type = info.NavAgentTypes[i];
+			auto IsTaken = [&info, i](const std::string& name)
+			{
+				for (size_t j = 0; j < i; ++j)
+				{
+					if (info.NavAgentTypes[j].Name == name)
+						return true;
+				}
+				return false;
+			};
+
+			const std::string baseName = type.Name.empty() ? "Agent Type" : type.Name;
+			std::string name = baseName;
+			for (uint32_t suffix = 2u; IsTaken(name); ++suffix)
+				name = baseName + " " + std::to_string(suffix);
+
+			if (name != type.Name)
+			{
+				EG_CORE_WARN("[Project] The navigation agent type `{}` (ID: {}) was renamed to `{}`. Names must be unique and not empty", type.Name, type.ID, name);
+				type.Name = std::move(name);
+			}
+		}
+
+		const bool bValidDefault = std::any_of(info.NavAgentTypes.begin(), info.NavAgentTypes.end(), [&info](const AINavigation::AgentType& type) { return type.ID == info.DefaultNavAgentTypeID; });
+		if (!bValidDefault)
+			info.DefaultNavAgentTypeID = info.NavAgentTypes.front().ID;
+	}
+
+	static void LoadNavigationSettings(const YAML::Node& node, ProjectInfo& info)
+	{
+		info.NavAgentTypes.clear();
+		info.DefaultNavAgentTypeID = AINavigation::InvalidAgentTypeID;
+		info.NextNavAgentTypeID = 1u;
+
+		if (node)
+		{
+			if (auto idNode = node["NextAgentTypeID"])
+				info.NextNavAgentTypeID = glm::clamp(idNode.as<uint32_t>(), 1u, AINavigation::InvalidAgentTypeID - 1u);
+			if (auto defaultNode = node["DefaultAgentType"])
+				info.DefaultNavAgentTypeID = defaultNode.as<uint32_t>();
+
+			if (auto typesNode = node["AgentTypes"])
+			{
+				info.NavAgentTypes.reserve(AINavigation::MaxAgentTypes);
+				for (const auto& typeNode : typesNode)
+				{
+					AINavigation::AgentType& type = info.NavAgentTypes.emplace_back();
+
+					type.ID = typeNode["ID"].as<uint32_t>();
+					if (auto n = typeNode["Name"])
+						type.Name = n.as<std::string>();
+					if (auto n = typeNode["DebugColor"])
+						type.DebugColor = n.as<glm::vec3>();
+					if (auto n = typeNode["Radius"])
+						type.Radius = n.as<float>();
+					if (auto n = typeNode["Height"])
+						type.Height = n.as<float>();
+					if (auto n = typeNode["MaxClimb"])
+						type.MaxClimb = n.as<float>();
+					if (auto n = typeNode["MaxSlope"])
+						type.MaxSlope = n.as<float>();
+				}
+			}
+		}
+
+		ValidateNavAgentTypes(info);
+	}
+
+	static void SaveNavigationSettings(YAML::Emitter& out, const ProjectInfo& info)
+	{
+		out << YAML::Key << "Navigation" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "DefaultAgentType" << YAML::Value << info.DefaultNavAgentTypeID;
+		out << YAML::Key << "NextAgentTypeID" << YAML::Value << info.NextNavAgentTypeID;
+		out << YAML::Key << "AgentTypes" << YAML::Value << YAML::BeginSeq;
+		for (const AINavigation::AgentType& type : info.NavAgentTypes)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "ID" << YAML::Value << type.ID;
+			out << YAML::Key << "Name" << YAML::Value << type.Name;
+			out << YAML::Key << "DebugColor" << YAML::Value << type.DebugColor;
+			out << YAML::Key << "Radius" << YAML::Value << type.Radius;
+			out << YAML::Key << "Height" << YAML::Value << type.Height;
+			out << YAML::Key << "MaxClimb" << YAML::Value << type.MaxClimb;
+			out << YAML::Key << "MaxSlope" << YAML::Value << type.MaxSlope;
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
+	}
+
 	static void LoadUIScaleSettings(const YAML::Node& node, ProjectInfo& info)
 	{
 		info.UIScale = {};
@@ -374,6 +508,7 @@ namespace Eagle
 
 				SaveCollisionGroups(out, info.ProjectData);
 				SaveUIScaleSettings(out, info.ProjectData);
+				SaveNavigationSettings(out, info.ProjectData);
 				out << YAML::EndMap;
 
 				const std::string yamlStr = out.c_str();
@@ -601,10 +736,8 @@ namespace Eagle
 	{
 		namespace fs = std::filesystem;
 
-		// TODO: needed?
-		std::error_code error;
 		if (!fs::exists(info.BasePath))
-			fs::create_directory(info.BasePath, error);
+			fs::create_directory(info.BasePath);
 
 		if (!fs::is_directory(info.BasePath))
 		{
@@ -649,7 +782,9 @@ namespace Eagle
 			fout << "Config/imgui.ini\n";
 		}
 
-		Save(info);
+		ProjectInfo validatedInfo = info;
+		ValidateNavAgentTypes(validatedInfo);
+		Save(validatedInfo);
 
 		GenerateSolution(info);
 
@@ -827,6 +962,7 @@ namespace Eagle
 
 		LoadCollisionGroups(baseNode["CollisionGroups"], s_Info);
 		LoadUIScaleSettings(baseNode["UIScale"], s_Info);
+		LoadNavigationSettings(baseNode["Navigation"], s_Info);
 
 		DataBuffer assetPack(assetPackSize);
 		Utils::ReadBinary(data.GetDataBuffer(), assetPackSize, assetPackOffset, &assetPack);
@@ -862,6 +998,7 @@ namespace Eagle
 
 		SaveCollisionGroups(out, info);
 		SaveUIScaleSettings(out, info);
+		SaveNavigationSettings(out, info);
 
 		out << YAML::EndMap;
 
@@ -981,6 +1118,151 @@ namespace Eagle
 		return GetCollisionGroupGUID(s_Info, mask);
 	}
 
+	const AINavigation::AgentType* Project::FindNavAgentType(uint32_t id)
+	{
+		if (id == AINavigation::InvalidAgentTypeID || id == AINavigation::AutoAgentTypeID)
+			return nullptr;
+
+		for (const auto& type : s_Info.NavAgentTypes)
+		{
+			if (type.ID == id)
+				return &type;
+		}
+
+		return nullptr;
+	}
+
+	const AINavigation::AgentType* Project::FindNavAgentTypeByName(std::string_view name)
+	{
+		for (const auto& type : s_Info.NavAgentTypes)
+		{
+			if (type.Name == name)
+				return &type;
+		}
+
+		return nullptr;
+	}
+
+	const AINavigation::AgentType& Project::GetDefaultNavAgentType()
+	{
+		if (const AINavigation::AgentType* type = FindNavAgentType(s_Info.DefaultNavAgentTypeID))
+			return *type;
+
+		static const AINavigation::AgentType s_Fallback{};
+		return s_Fallback;
+	}
+
+	void Project::SetDefaultNavAgentType(uint32_t id)
+	{
+		if (!FindNavAgentType(id))
+		{
+			EG_CORE_ERROR("[Project] Failed to set the default navigation agent type. There's no type with ID {}", id);
+			return;
+		}
+
+		s_Info.DefaultNavAgentTypeID = id;
+	}
+
+	uint32_t Project::AddNavAgentType(const std::string& name)
+	{
+		if (!CanAddNavAgentType())
+		{
+			EG_CORE_ERROR("[Project] Failed to add a navigation agent type. The engine supports at most {} agent types", AINavigation::MaxAgentTypes);
+			return AINavigation::InvalidAgentTypeID;
+		}
+		if (s_Info.NextNavAgentTypeID == AINavigation::InvalidAgentTypeID)
+		{
+			EG_CORE_ERROR("[Project] Failed to add a navigation agent type. There are no IDs left");
+			return AINavigation::InvalidAgentTypeID;
+		}
+
+		const std::string baseName = name.empty() ? "Agent Type" : name;
+		std::string uniqueName = baseName;
+		for (uint32_t suffix = 2u; !IsNavAgentTypeNameAvailable(uniqueName); ++suffix)
+			uniqueName = baseName + " " + std::to_string(suffix);
+
+		AINavigation::AgentType& type = s_Info.NavAgentTypes.emplace_back();
+		type.ID = s_Info.NextNavAgentTypeID++;
+		type.Name = std::move(uniqueName);
+
+		return type.ID;
+	}
+
+	bool Project::RemoveNavAgentType(uint32_t id)
+	{
+		if (!CanRemoveNavAgentType())
+		{
+			EG_CORE_ERROR("[Project] Failed to remove the navigation agent type. At least one agent type must exist");
+			return false;
+		}
+
+		auto& types = s_Info.NavAgentTypes;
+		auto it = std::find_if(types.begin(), types.end(), [id](const AINavigation::AgentType& type) { return type.ID == id; });
+		if (it == types.end())
+		{
+			EG_CORE_ERROR("[Project] Failed to remove the navigation agent type. There's no type with ID {}", id);
+			return false;
+		}
+
+		types.erase(it);
+
+		if (s_Info.DefaultNavAgentTypeID == id)
+			s_Info.DefaultNavAgentTypeID = types.front().ID;
+
+		return true;
+	}
+
+	bool Project::IsNavAgentTypeNameAvailable(std::string_view name, uint32_t exceptID)
+	{
+		if (name.empty())
+			return false;
+
+		for (const auto& type : s_Info.NavAgentTypes)
+		{
+			if (type.ID != exceptID && type.Name == name)
+				return false;
+		}
+
+		return true;
+	}
+
+	bool Project::RenameNavAgentType(uint32_t id, const std::string& name)
+	{
+		if (!IsNavAgentTypeNameAvailable(name, id))
+			return false;
+
+		for (auto& type : s_Info.NavAgentTypes)
+		{
+			if (type.ID == id)
+			{
+				type.Name = name;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void Project::SetNavAgentType(const AINavigation::AgentType& newType)
+	{
+		for (auto& type : s_Info.NavAgentTypes)
+		{
+			if (type.ID == newType.ID)
+			{
+				type.DebugColor = newType.DebugColor;
+				type.Radius = newType.Radius;
+				type.Height = newType.Height;
+				type.MaxClimb = newType.MaxClimb;
+				type.MaxSlope = newType.MaxSlope;
+				type.Clamp();
+
+				return;
+			}
+		}
+
+		EG_CORE_ERROR("[Project] Failed to change the navigation agent type. There's no type with ID {}", newType.ID);
+	}
+
 	bool Project::Load(const Path& filepath, ProjectInfo* outInfo)
 	{
 		*outInfo = {};
@@ -1010,6 +1292,7 @@ namespace Eagle
 		LoadSplashScreenSettings(data["Splash Screen"], (*outInfo).SplashScreen);
 		LoadCollisionGroups(data["CollisionGroups"], *outInfo);
 		LoadUIScaleSettings(data["UIScale"], *outInfo);
+		LoadNavigationSettings(data["Navigation"], *outInfo);
 
 		return true;
 	}

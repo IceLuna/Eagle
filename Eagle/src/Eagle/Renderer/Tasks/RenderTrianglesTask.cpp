@@ -14,7 +14,7 @@ namespace Eagle
 	RenderTrianglesTask::RenderTrianglesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		InitPipeline();
+		InitPipelines();
 
 		BufferSpecifications linesVertexSpecs;
 		linesVertexSpecs.Size = s_BaseLinesVertexBufferSize;
@@ -39,19 +39,35 @@ namespace Eagle
 
 	void RenderTrianglesTask::SetDebugTriangles(const std::vector<RendererTriangle>& triangles)
 	{
+		auto IsOpaque = [](const RendererTriangle& triangle)
+		{
+			return std::all_of(triangle.Vertices.begin(), triangle.Vertices.end(), [](const RendererDebugVertex& vertex) { return vertex.Opacity >= 1.f; });
+		};
+
 		std::vector<RendererDebugVertex> tempData;
 		tempData.reserve(triangles.size() * 3);
 
-		for (auto& triangle : triangles)
+		// Opaque triangles first
+		uint32_t opaqueVerticesCount = 0u;
+		for (const bool bOpaque : { true, false })
 		{
-			for (const auto& vertex : triangle.Vertices)
-				tempData.push_back(vertex);
+			for (auto& triangle : triangles)
+			{
+				if (IsOpaque(triangle) != bOpaque)
+					continue;
+
+				for (const auto& vertex : triangle.Vertices)
+					tempData.push_back(vertex);
+			}
+			if (bOpaque)
+				opaqueVerticesCount = (uint32_t)tempData.size();
 		}
 
-		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](const Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData), opaqueVerticesCount](const Ref<CommandBuffer>& cmd) mutable
 		{
 			auto thisRef = Cast<RenderTrianglesTask>(task);
 			thisRef->m_Vertices = std::move(vertices);
+			thisRef->m_OpaqueVerticesCount = opaqueVerticesCount;
 		});
 	}
 
@@ -60,15 +76,22 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Render Debug triangles");
 		EG_GPU_TIMING_SCOPED(cmd, "Render Debug triangles");
 
-		const uint32_t trianglesCount = (uint32_t)(m_Vertices.size());
-
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
-		cmd->Draw(m_VertexBuffer, trianglesCount, 0);
-		cmd->EndGraphics();
-
 		auto& stats = m_Renderer.GetStats();
-		++stats.DrawCalls;
+		auto Draw = [&](const Ref<PipelineGraphics>& pipeline, uint32_t verticesCount, uint32_t firstVertex)
+		{
+			if (verticesCount == 0u)
+				return;
+
+			cmd->BeginGraphics(pipeline);
+			cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
+			cmd->Draw(m_VertexBuffer, verticesCount, firstVertex);
+			cmd->EndGraphics();
+			++stats.DrawCalls;
+		};
+
+		const uint32_t verticesCount = (uint32_t)m_Vertices.size();
+		Draw(m_Pipeline, m_OpaqueVerticesCount, 0u);
+		Draw(m_TranslucentPipeline, verticesCount - m_OpaqueVerticesCount, m_OpaqueVerticesCount);
 	}
 
 	void RenderTrianglesTask::UploadVertexBuffer(const Ref<CommandBuffer>& cmd)
@@ -89,7 +112,7 @@ namespace Eagle
 		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, vb->GetLayout(), BufferReadAccess::Vertex);
 	}
 
-	void RenderTrianglesTask::InitPipeline()
+	void RenderTrianglesTask::InitPipelines()
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Load;
@@ -119,5 +142,20 @@ namespace Eagle
 			m_Pipeline->SetState(state);
 		else
 			m_Pipeline = PipelineGraphics::Create(state);
+
+		ColorAttachment& translucentColor = state.ColorAttachments[0];
+		translucentColor.bBlendEnabled = true;
+		translucentColor.BlendingState.BlendOp = BlendOperation::Add;
+		translucentColor.BlendingState.BlendSrc = BlendFactor::SrcAlpha;
+		translucentColor.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
+		translucentColor.BlendingState.BlendOpAlpha = BlendOperation::Add;
+		translucentColor.BlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
+		translucentColor.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+		state.DepthStencilAttachment.bWriteDepth = false;
+
+		if (m_TranslucentPipeline)
+			m_TranslucentPipeline->SetState(state);
+		else
+			m_TranslucentPipeline = PipelineGraphics::Create(state);
 	}
 }

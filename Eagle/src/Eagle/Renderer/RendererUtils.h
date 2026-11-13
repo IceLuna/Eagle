@@ -1298,6 +1298,7 @@ namespace Eagle
     {
         glm::vec3 Location = glm::vec3(0);
         glm::vec3 Color = glm::vec3(0, 1, 0);
+        float Opacity = 1.f;
     };
 
     struct RendererLine

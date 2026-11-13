@@ -3,6 +3,7 @@
 
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/AI/NavigationDebugDraw.h"
+#include "Eagle/Core/Project.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 
 namespace Eagle
@@ -837,25 +838,66 @@ namespace Eagle
 			}
 			if (bDrawNavMesh)
 			{
+				// The selected nav mesh and the ones with `bDebugDraw` are drawn. If there are none, all of them are drawn
+				std::vector<const NavigationMeshComponent*> drawn;
+				bool bAnyExplicit = false;
 				auto view = m_Registry.view<NavigationMeshComponent>();
 				for (auto entity : view)
 				{
 					const auto& navigation = view.get<NavigationMeshComponent>(entity);
-					const auto& settings = navigation.GetSettings();
-					const auto& aabb = settings.Bounds;
-					Utils::DrawAABB(m_DebugLinesToDraw, aabb, navigation.GetWorldTransform(), glm::vec3(1, 0, 0));
+					const bool bExplicit = navigation.bDebugDraw || (!NavMeshDebugSelectedEntity.IsNull() && navigation.Parent.GetGUID() == NavMeshDebugSelectedEntity);
+					if (bExplicit && !bAnyExplicit)
+					{
+						drawn.clear();
+						bAnyExplicit = true;
+					}
+					if (bExplicit || !bAnyExplicit)
+						drawn.push_back(&navigation);
+				}
+
+				// Sorted, so that each nav mesh keeps its offset when entities are added or removed
+				std::sort(drawn.begin(), drawn.end(), [](const NavigationMeshComponent* a, const NavigationMeshComponent* b)
+				{
+					if (a->GetAgentTypeID() != b->GetAgentTypeID())
+						return a->GetAgentTypeID() < b->GetAgentTypeID();
+					return a->Parent.GetGUID() < b->Parent.GetGUID();
+				});
+
+				// Overlapping nav meshes are lifted a bit each, so that they don't flicker. Only if more than one is drawn,
+				// and only by a centimeter per nav mesh, so that it isn't mistaken for their real heights
+				constexpr float offsetPerNavMesh = 0.01f;
+				uint32_t drawnMeshes = 0u;
+				for (const NavigationMeshComponent* navigation : drawn)
+					drawnMeshes += navigation->GetNavMesh() ? 1u : 0u;
+
+				uint32_t meshIndex = 0u;
+				for (const NavigationMeshComponent* navigation : drawn)
+				{
+					const AINavigation::AgentType* agentType = Project::FindNavAgentType(navigation->GetAgentTypeID());
+					const glm::vec3 color = agentType ? agentType->DebugColor : glm::vec3(1.f, 0.f, 0.f);
+
+					// Inactive nav meshes (another one uses their agent type) are drawn gray
+					const glm::vec3 boundsColor = navigation->IsActive() ? color : glm::vec3(0.5f);
+					Utils::DrawAABB(m_DebugLinesToDraw, navigation->GetSettings().Bounds, navigation->GetWorldTransform(), boundsColor);
+
+					if (!navigation->GetNavMesh())
+						continue;
 
 					AINavigation::DebugDraw debugDraw(m_DebugLinesToDraw, m_DebugTrianglesToDraw);
-					navigation.GetNavMeshDebugDraw(&debugDraw);
+					debugDraw.AreaColor = color;
+					debugDraw.OffsetY = drawnMeshes > 1u ? float(meshIndex) * offsetPerNavMesh : 0.f;
+					debugDraw.Opacity = NavMeshOpacity;
+					navigation->GetNavMeshDebugDraw(&debugDraw);
+					++meshIndex;
 				}
 			}
 			if (false)
 			{
-				if (m_CurrentNavMesh)
+				if (const auto& navMesh = GetNavMesh(Project::GetDefaultNavAgentTypeID()))
 				{
 					const glm::vec3 start = { 2.1703f, 0.f, -2.2557f };
 					const glm::vec3 end = { -2.1192f, 0.f, 2.3706 };
-					std::vector<glm::vec3> path = m_CurrentNavMesh->FindSmoothPath(start, end);
+					std::vector<glm::vec3> path = navMesh->FindSmoothPath(start, end);
 					if (!path.empty())
 					{
 						const size_t count = path.size();

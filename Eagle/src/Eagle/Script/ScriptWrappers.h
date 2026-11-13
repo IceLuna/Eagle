@@ -611,13 +611,16 @@ namespace Eagle::Script
 	bool Eagle_DecalComponent_IsVisible(GUID entityID);
 
 	// NavigationMeshComponent
-	void Eagle_NavigationMeshComponent_Build(GUID entityID);
+	bool Eagle_NavigationMeshComponent_Build(GUID entityID);
 	void Eagle_NavigationMeshComponent_SetCrowdSettings(GUID entityID, const AINavigation::CrowdSettings* settings);
 	void Eagle_NavigationMeshComponent_GetCrowdSettings(GUID entityID, AINavigation::CrowdSettings* settings);
 	void Eagle_NavigationMeshComponent_SetSettings(GUID entityID, const AINavigation::MeshSettings* settings);
 	void Eagle_NavigationMeshComponent_GetSettings(GUID entityID, AINavigation::MeshSettings* settings);
 	void Eagle_NavigationMeshComponent_SetAutoRebuild(GUID entityID, bool value);
 	bool Eagle_NavigationMeshComponent_GetAutoRebuild(GUID entityID);
+	bool Eagle_NavigationMeshComponent_SetAgentTypeID(GUID entityID, uint32_t agentTypeID);
+	uint32_t Eagle_NavigationMeshComponent_GetAgentTypeID(GUID entityID);
+	bool Eagle_NavigationMeshComponent_IsActive(GUID entityID);
 
 	// NavigationCrowdAgentComponent
 	void Eagle_NavigationCrowdAgentComponent_TeleportAgent(GUID entityID, const glm::vec3* location);
@@ -629,6 +632,9 @@ namespace Eagle::Script
 	bool Eagle_NavigationCrowdAgentComponent_GetLocation(GUID entityID, glm::vec3* location);
 	bool Eagle_NavigationCrowdAgentComponent_GetVelocity(GUID entityID, glm::vec3* velocity);
 	MoveRequestState Eagle_NavigationCrowdAgentComponent_GetTargetState(GUID entityID);
+	bool Eagle_NavigationCrowdAgentComponent_SetAgentTypeID(GUID entityID, uint32_t agentTypeID);
+	uint32_t Eagle_NavigationCrowdAgentComponent_GetAgentTypeID(GUID entityID);
+	uint32_t Eagle_NavigationCrowdAgentComponent_GetNavMeshAgentType(GUID entityID);
 
 	// Renderer
 	uint64_t Eagle_Renderer_GetFrameNumber();
@@ -788,18 +794,31 @@ namespace Eagle::Script
 	GUID Eagle_Scene_SpawnParticleSystem(MonoString* monoName, const Transform* transform, GUID assetID, bool bAutoDestroy);
 
 	// Navigation
-	MonoArray* Eagle_Navigation_FindStraightPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
-	MonoArray* Eagle_Navigation_FindSmoothPath(const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
-	bool Eagle_Navigation_FindDistanceToWall(const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
-	bool Eagle_Navigation_FindRandomPoint(glm::vec3* outRandomPoint);
-	bool Eagle_Navigation_FindRandomPointInCircle(const glm::vec3* pos, float radius, glm::vec3* outRandomPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
-	bool Eagle_Navigation_FindNearestPoint(const glm::vec3* pos, glm::vec3* outNearestPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
-	bool Eagle_Navigation_IsValidPoint(const glm::vec3* pos, glm::vec3* outNavMeshPoint);
-	bool Eagle_Navigation_HasCompletePath(const glm::vec3* from, const glm::vec3* to, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
-	bool Eagle_Navigation_GetSearchHalfExtents(glm::vec3* outSearchExtents);
-	bool Eagle_Navigation_GetSettings(AINavigation::MeshSettings* outSettings);
+	MonoArray* Eagle_Navigation_FindStraightPath(uint32_t agentTypeID, const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	MonoArray* Eagle_Navigation_FindSmoothPath(uint32_t agentTypeID, const glm::vec3* start, const glm::vec3* end, uint32_t maxPolys, uint32_t maxSmooth, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_FindDistanceToWall(uint32_t agentTypeID, const glm::vec3* pos, float maxRadius, glm::vec3* outHitPos, glm::vec3* outHitNormal, float* outHitDistance, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_FindRandomPoint(uint32_t agentTypeID, glm::vec3* outRandomPoint);
+	bool Eagle_Navigation_FindRandomPointInCircle(uint32_t agentTypeID, const glm::vec3* pos, float radius, glm::vec3* outRandomPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_FindNearestPoint(uint32_t agentTypeID, const glm::vec3* pos, glm::vec3* outNearestPoint, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_IsValidPoint(uint32_t agentTypeID, const glm::vec3* pos, glm::vec3* outNavMeshPoint);
+	bool Eagle_Navigation_HasCompletePath(uint32_t agentTypeID, const glm::vec3* from, const glm::vec3* to, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_Navigation_GetSearchHalfExtents(uint32_t agentTypeID, glm::vec3* outSearchExtents);
+	bool Eagle_Navigation_GetSettings(uint32_t agentTypeID, AINavigation::MeshSettings* outSettings);
 
-	// CrowdNavigation
+	// NavAgentType
+	uint32_t Eagle_NavAgentType_GetDefaultID();
+	uint32_t Eagle_NavAgentType_GetIDByName(MonoString* name);
+	bool Eagle_NavAgentType_IsValid(uint32_t agentTypeID);
+	MonoString* Eagle_NavAgentType_GetName(uint32_t agentTypeID);
+	bool Eagle_NavAgentType_GetInfo(uint32_t agentTypeID, uint32_t* outID, glm::vec3* outDebugColor, float* outRadius, float* outHeight, float* outMaxClimb, float* outMaxSlope);
+	uint32_t Eagle_NavAgentType_ResolveAuto(float agentRadius, float agentHeight);
+
+	// NavMesh
+	bool Eagle_NavMesh_HasNavMesh(uint32_t agentTypeID);
+	bool Eagle_NavMesh_SetCrowdMoveTarget(uint32_t agentTypeID, const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	void Eagle_NavMesh_ResetCrowdMoveTarget(uint32_t agentTypeID);
+
+	// CrowdNavigation. The crowds of all nav meshes
 	bool Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
 	void Eagle_CrowdNavigation_ResetMoveTarget();
 

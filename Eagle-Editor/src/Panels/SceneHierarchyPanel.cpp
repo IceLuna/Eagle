@@ -96,9 +96,8 @@ namespace Eagle
 			m_ScrollToSelected = true;
 	}
 
-	void SceneHierarchyPanel::OnViewportEntityClicked(Entity entity)
+	void SceneHierarchyPanel::OnViewportEntityClicked(Entity entity, bool bCtrl)
 	{
-		const bool bCtrl = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
 		if (m_bMultiSelection && bCtrl)
 		{
 			if (entity)

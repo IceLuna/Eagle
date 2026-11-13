@@ -731,6 +731,8 @@ namespace Eagle
 		// Invalidates collision groups of all asset entities
 		static void InvalidateCollisionGroups(uint32_t validMasks);
 
+		static void OnNavAgentTypesChanged();
+
 		// Creates an entity asset from a given entity
 		static Ref<AssetEntity> Create(const Path& saveTo, const std::string& filename, Entity entity);
 

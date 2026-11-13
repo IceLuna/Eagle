@@ -52,9 +52,9 @@ namespace Eagle
 		void ToggleEntitySelected(Entity entity);
 
 		// An entity was clicked in a viewport. Null - nothing was clicked.
-		// With Ctrl held and the multi selection is enabled, it's added to the selection or removed from it, and a click on nothing keeps the selection.
+		// If Ctrl was held during the click (`bCtrl`) and the multi selection is enabled, it's added to the selection or removed from it, and a click on nothing keeps the selection.
 		// Otherwise, only the clicked entity is selected
-		void OnViewportEntityClicked(Entity entity);
+		void OnViewportEntityClicked(Entity entity, bool bCtrl);
 
 		const std::string& GetSceneHierarchyWindowName() const { return m_SceneHierarchyWindowName; }
 		const std::string& GetPropertiesWindowName() const { return m_PropertiesWindowName; }

@@ -696,6 +696,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.NavigationMeshComponent::SetSettings_Native", Eagle::Script::Eagle_NavigationMeshComponent_SetSettings);
 		mono_add_internal_call("Eagle.NavigationMeshComponent::SetAutoRebuild_Native", Eagle::Script::Eagle_NavigationMeshComponent_SetAutoRebuild);
 		mono_add_internal_call("Eagle.NavigationMeshComponent::GetAutoRebuild_Native", Eagle::Script::Eagle_NavigationMeshComponent_GetAutoRebuild);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::SetAgentTypeID_Native", Eagle::Script::Eagle_NavigationMeshComponent_SetAgentTypeID);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::GetAgentTypeID_Native", Eagle::Script::Eagle_NavigationMeshComponent_GetAgentTypeID);
+		mono_add_internal_call("Eagle.NavigationMeshComponent::IsActive_Native", Eagle::Script::Eagle_NavigationMeshComponent_IsActive);
 
 		// NavigationCrowdAgent Component
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::TeleportAgent_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_TeleportAgent);
@@ -707,6 +710,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetLocation_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetLocation);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetVelocity_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetVelocity);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetTargetState_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetTargetState);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::SetAgentTypeID_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_SetAgentTypeID);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetAgentTypeID_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetAgentTypeID);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetNavMeshAgentType_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetNavMeshAgentType);
 
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
@@ -777,6 +783,19 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Navigation::HasCompletePath_Native", Eagle::Script::Eagle_Navigation_HasCompletePath);
 		mono_add_internal_call("Eagle.Navigation::GetSearchHalfExtents_Native", Eagle::Script::Eagle_Navigation_GetSearchHalfExtents);
 		mono_add_internal_call("Eagle.Navigation::GetSettings_Native", Eagle::Script::Eagle_Navigation_GetSettings);
+
+		// NavAgentType
+		mono_add_internal_call("Eagle.NavAgentType::GetDefaultID_Native", Eagle::Script::Eagle_NavAgentType_GetDefaultID);
+		mono_add_internal_call("Eagle.NavAgentType::GetIDByName_Native", Eagle::Script::Eagle_NavAgentType_GetIDByName);
+		mono_add_internal_call("Eagle.NavAgentType::IsValid_Native", Eagle::Script::Eagle_NavAgentType_IsValid);
+		mono_add_internal_call("Eagle.NavAgentType::GetName_Native", Eagle::Script::Eagle_NavAgentType_GetName);
+		mono_add_internal_call("Eagle.NavAgentType::GetInfo_Native", Eagle::Script::Eagle_NavAgentType_GetInfo);
+		mono_add_internal_call("Eagle.NavAgentType::ResolveAuto_Native", Eagle::Script::Eagle_NavAgentType_ResolveAuto);
+
+		// NavMesh
+		mono_add_internal_call("Eagle.NavMesh::HasNavMesh_Native", Eagle::Script::Eagle_NavMesh_HasNavMesh);
+		mono_add_internal_call("Eagle.NavMesh::SetCrowdMoveTarget_Native", Eagle::Script::Eagle_NavMesh_SetCrowdMoveTarget);
+		mono_add_internal_call("Eagle.NavMesh::ResetCrowdMoveTarget_Native", Eagle::Script::Eagle_NavMesh_ResetCrowdMoveTarget);
 
 		// CrowdNavigation
 		mono_add_internal_call("Eagle.CrowdNavigation::SetMoveTarget_Native", Eagle::Script::Eagle_CrowdNavigation_SetMoveTarget);

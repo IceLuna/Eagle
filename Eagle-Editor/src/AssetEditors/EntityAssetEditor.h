@@ -25,10 +25,9 @@ namespace Eagle
 
 	private:
 		void UpdateGuizmo();
-		void OnViewportEnd() override { UpdateGuizmo(); }
+		void OnViewportEnd() override;
 		void SetupViewportToolbar(ViewportToolbar& toolbar) override;
 
-		bool HandleEntitySelection(MouseButtonPressedEvent& e);
 		void OnEntityChanged();
 
 		void BuildDefaultLayout(ImGuiID dockspaceID) override;
@@ -39,6 +38,7 @@ namespace Eagle
 		SceneHierarchyPanel m_SceneHierarchy;
 		SelectionGuizmo m_SelectionGuizmo;
 		SelectionOutline m_SelectionOutline;
+		ViewportClickSelection m_ViewportClickSelection;
 		AssetEditTracker<AssetEntity, NoAssetState> m_AssetSettingsTracker;
 		int m_GuizmoMode = 1; // ImGuizmo::WORLD
 		GuizmoPivot m_GuizmoPivot = GuizmoPivot::ActiveEntity;
