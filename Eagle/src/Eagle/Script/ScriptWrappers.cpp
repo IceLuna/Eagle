@@ -771,6 +771,42 @@ namespace Eagle
 		return scene->GetEntityProcessState(entity).TimeScale;
 	}
 
+	//-------------- EntityPicker --------------
+	Script::EntityPickStatus Script::Eagle_EntityPicker_GetEntityAt(const glm::vec2* coord, uint64_t minFrame, MonoObject** outEntity)
+	{
+		*outEntity = nullptr;
+
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		if (!sceneRenderer->GetOptions().bEnableObjectPicking)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't pick an entity. Object picking is disabled in the project settings");
+			return EntityPickStatus::Failed;
+		}
+
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+		if (coord->x < 0.f || coord->y < 0.f || coord->x >= viewportSize.x || coord->y >= viewportSize.y)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't pick an entity. ({}; {}) is outside of the viewport which is ({}; {})", coord->x, coord->y, viewportSize.x, viewportSize.y);
+			return EntityPickStatus::Failed;
+		}
+
+		int32_t objectID = -1;
+		if (!sceneRenderer->GetObjectIDAtSince(glm::ivec2(*coord), minFrame, objectID))
+			return EntityPickStatus::Pending;
+
+		Entity entity = objectID >= 0 ? Entity{ (entt::entity)objectID, scene.get() } : Entity::Null;
+		if (entity.IsValid())
+			*outEntity = ScriptEngine::GetEntityMonoObject(entity);
+
+		return EntityPickStatus::Ready;
+	}
+
+	void Script::Eagle_EntityPicker_GetMouseCoord(glm::vec2* outCoord)
+	{
+		*outCoord = ImGuiLayer::GetMousePos() - Scene::GetCurrentScene()->ViewportBounds[0];
+	}
+
 	//-------------- Scene Component --------------
 	void Script::Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
 	{

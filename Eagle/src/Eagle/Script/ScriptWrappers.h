@@ -18,6 +18,14 @@ namespace Eagle::AINavigation
 
 namespace Eagle::Script
 {
+	// C# `EntityPicker.PickStatus`
+	enum class EntityPickStatus : int32_t
+	{
+		Pending,
+		Ready,
+		Failed
+	};
+
 	// Entity
 	MonoObject* Eagle_Entity_GetParent(GUID entityID);
 	void Eagle_Entity_SetParent(GUID entityID, GUID parentID);
@@ -74,6 +82,10 @@ namespace Eagle::Script
 	bool Eagle_Entity_GetInheritTimeScale(GUID entityID);
 	bool Eagle_Entity_IsProcessing(GUID entityID);
 	float Eagle_Entity_GetEffectiveTimeScale(GUID entityID);
+
+	// Entity Picker
+	EntityPickStatus Eagle_EntityPicker_GetEntityAt(const glm::vec2* coord, uint64_t minFrame, MonoObject** outEntity);
+	void Eagle_EntityPicker_GetMouseCoord(glm::vec2* outCoord);
 
 	// Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);

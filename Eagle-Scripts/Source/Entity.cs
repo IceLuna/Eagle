@@ -447,9 +447,14 @@ namespace Eagle
             return GetOutline_Native(ID, out settings.Color, out settings.Mode, out settings.Thickness, out settings.HiddenOpacity);
         }
 
+        // It uses readback from the GPU, so the answer is a few frames late.
+        // It's not recommended for entity picking/selection, because, again, it's a few frames late.
+        // And if a mouse hovers a new entity this frame, it won't be detected as hovered, instead the previous entity would be.
+        // Although, that's fine for hover effects.
+        // If you need more precise picking/selection, use `EntityPicker` class
         public bool IsMouseHovered() { return IsMouseHovered_Native(ID); }
 
-        // @ mouseCoord. Mouse coord within a viewport
+        // @mouseCoord. Mouse coord within a viewport. It's a few frames late (see the comment above `IsMouseHovered()`)
         public bool IsMouseHovered(Vector2 mouseCoord) { return IsMouseHoveredByCoord_Native(ID, ref mouseCoord); }
 
         public void AddCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback)

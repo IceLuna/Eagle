@@ -46,6 +46,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::IsProcessing_Native", Eagle::Script::Eagle_Entity_IsProcessing);
 		mono_add_internal_call("Eagle.Entity::GetEffectiveTimeScale_Native", Eagle::Script::Eagle_Entity_GetEffectiveTimeScale);
 
+		// EntityPicker
+		mono_add_internal_call("Eagle.EntityPicker::GetEntityAt_Native", Eagle::Script::Eagle_EntityPicker_GetEntityAt);
+		mono_add_internal_call("Eagle.EntityPicker::GetMouseCoord_Native", Eagle::Script::Eagle_EntityPicker_GetMouseCoord);
+
 		//Input
 		mono_add_internal_call("Eagle.Input::IsMouseButtonPressed_Native", Eagle::Script::Eagle_Input_IsMouseButtonPressed);
 		mono_add_internal_call("Eagle.Input::IsKeyPressed_Native", Eagle::Script::Eagle_Input_IsKeyPressed);
