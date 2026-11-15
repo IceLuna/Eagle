@@ -13,6 +13,17 @@ namespace Eagle
         public Vector3 Force;
     }
 
+    // How the physics of an entity reacts to transform changes
+    public enum PhysicsMove
+    {
+        // A kinematic body reaches the new transform during the next physics update and pushes what's in its way.
+        // A dynamic body is driven by the simulation, so it's teleported, keeping its velocity (to move it, set its velocity).
+        // A ragdoll stays where it is
+        Move,
+        Teleport, // Teleported, keeping the velocity. A ragdoll is teleported along
+        Reset     // Teleported, and the velocity is reset. A ragdoll is teleported along and stops
+    }
+
     internal enum ComponentKind
     {
         Engine,  // Declared in Eagle-Scripts, C++ backed, registered in ScriptEngineRegistry
@@ -160,108 +171,93 @@ namespace Eagle
             get => GetChildren_Native(ID);
         }
 
-        public Transform WorldTransform
+        public Transform GetWorldTransform()
         {
-            get
-            {
-                GetWorldTransform_Native(ID, out Transform result);
-                return result;
-            }
-            set
-            {
-                SetWorldTransform_Native(ID, ref value);
-            }
+            GetWorldTransform_Native(ID, out Transform result);
+            return result;
         }
 
-        public Vector3 WorldLocation
+        public void SetWorldTransform(Transform transform, PhysicsMove physicsMove = PhysicsMove.Teleport)
         {
-            get
-            {
-                GetWorldLocation_Native(ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetWorldLocation_Native(ID, ref value);
-            }
+            SetWorldTransform_Native(ID, ref transform, physicsMove);
         }
 
-        public Rotator WorldRotation
+        public Vector3 GetWorldLocation()
         {
-            get
-            {
-                GetWorldRotation_Native(ID, out Rotator result);
-                return result;
-            }
-            set
-            {
-                SetWorldRotation_Native(ID, ref value);
-            }
+            GetWorldLocation_Native(ID, out Vector3 result);
+            return result;
         }
 
-        public Vector3 WorldScale
+        public void SetWorldLocation(Vector3 location, PhysicsMove physicsMove = PhysicsMove.Teleport)
         {
-            get
-            {
-                GetWorldScale_Native(ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetWorldScale_Native(ID, ref value);
-            }
+            SetWorldLocation_Native(ID, ref location, physicsMove);
         }
 
-        public Transform RelativeTransform
+        public Rotator GetWorldRotation()
         {
-            get
-            {
-                GetRelativeTransform_Native(ID, out Transform result);
-                return result;
-            }
-            set
-            {
-                SetRelativeTransform_Native(ID, ref value);
-            }
+            GetWorldRotation_Native(ID, out Rotator result);
+            return result;
         }
 
-        public Vector3 RelativeLocation
+        public void SetWorldRotation(Rotator rotation, PhysicsMove physicsMove = PhysicsMove.Teleport)
         {
-            get
-            {
-                GetRelativeLocation_Native(ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetRelativeLocation_Native(ID, ref value);
-            }
+            SetWorldRotation_Native(ID, ref rotation, physicsMove);
         }
 
-        public Rotator RelativeRotation
+        public Vector3 GetWorldScale()
         {
-            get
-            {
-                GetRelativeRotation_Native(ID, out Rotator result);
-                return result;
-            }
-            set
-            {
-                SetRelativeRotation_Native(ID, ref value);
-            }
+            GetWorldScale_Native(ID, out Vector3 result);
+            return result;
         }
 
-        public Vector3 RelativeScale
+        public void SetWorldScale(Vector3 scale, PhysicsMove physicsMove = PhysicsMove.Teleport)
         {
-            get
-            {
-                GetRelativeScale_Native(ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetRelativeScale_Native(ID, ref value);
-            }
+            SetWorldScale_Native(ID, ref scale, physicsMove);
+        }
+
+        // Relative to the parent. Without a parent, it's the world transform
+        public Transform GetRelativeTransform()
+        {
+            GetRelativeTransform_Native(ID, out Transform result);
+            return result;
+        }
+
+        public void SetRelativeTransform(Transform transform, PhysicsMove physicsMove = PhysicsMove.Teleport)
+        {
+            SetRelativeTransform_Native(ID, ref transform, physicsMove);
+        }
+
+        public Vector3 GetRelativeLocation()
+        {
+            GetRelativeLocation_Native(ID, out Vector3 result);
+            return result;
+        }
+
+        public void SetRelativeLocation(Vector3 location, PhysicsMove physicsMove = PhysicsMove.Teleport)
+        {
+            SetRelativeLocation_Native(ID, ref location, physicsMove);
+        }
+
+        public Rotator GetRelativeRotation()
+        {
+            GetRelativeRotation_Native(ID, out Rotator result);
+            return result;
+        }
+
+        public void SetRelativeRotation(Rotator rotation, PhysicsMove physicsMove = PhysicsMove.Teleport)
+        {
+            SetRelativeRotation_Native(ID, ref rotation, physicsMove);
+        }
+
+        public Vector3 GetRelativeScale()
+        {
+            GetRelativeScale_Native(ID, out Vector3 result);
+            return result;
+        }
+
+        public void SetRelativeScale(Vector3 scale, PhysicsMove physicsMove = PhysicsMove.Teleport)
+        {
+            SetRelativeScale_Native(ID, ref scale, physicsMove);
         }
 
         public string Tag
@@ -653,50 +649,50 @@ namespace Eagle
         internal static extern void GetWorldTransform_Native(in GUID entityID, out Transform outTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldTransform_Native(in GUID entityID, ref Transform inTransform);
+        internal static extern void SetWorldTransform_Native(in GUID entityID, ref Transform inTransform, PhysicsMove physicsMove);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetWorldLocation_Native(in GUID entityID, out Vector3 outLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldLocation_Native(in GUID entityID, ref Vector3 inLocation);
+        internal static extern void SetWorldLocation_Native(in GUID entityID, ref Vector3 inLocation, PhysicsMove physicsMove);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetWorldRotation_Native(in GUID entityID, out Rotator outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldRotation_Native(in GUID entityID, ref Rotator inRotation);
+        internal static extern void SetWorldRotation_Native(in GUID entityID, ref Rotator inRotation, PhysicsMove physicsMove);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetWorldScale_Native(in GUID entityID, out Vector3 outScale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldScale_Native(in GUID entityID, ref Vector3 inScale);
+        internal static extern void SetWorldScale_Native(in GUID entityID, ref Vector3 inScale, PhysicsMove physicsMove);
 
         //---Relative functions---
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRelativeTransform_Native(in GUID entityID, out Transform outTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeTransform_Native(in GUID entityID, ref Transform inTransform);
+        internal static extern void SetRelativeTransform_Native(in GUID entityID, ref Transform inTransform, PhysicsMove physicsMove);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRelativeLocation_Native(in GUID entityID, out Vector3 outLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeLocation_Native(in GUID entityID, ref Vector3 inLocation);
+        internal static extern void SetRelativeLocation_Native(in GUID entityID, ref Vector3 inLocation, PhysicsMove physicsMove);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRelativeRotation_Native(in GUID entityID, out Rotator outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeRotation_Native(in GUID entityID, ref Rotator inRotation);
+        internal static extern void SetRelativeRotation_Native(in GUID entityID, ref Rotator inRotation, PhysicsMove physicsMove);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRelativeScale_Native(in GUID entityID, out Vector3 outScale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale);
+        internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale, PhysicsMove physicsMove);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetTag_Native(in GUID entityID, string tag);

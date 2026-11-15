@@ -241,7 +241,7 @@ namespace Eagle
         const physx::PxFilterData filterData = PhysXUtils::GetPxFilterData(mesh->GetCollisionGroup(), mesh->GetInteractingCollisionGroup(), mesh->GetCollisionDetectionType());
 
         const glm::mat4 worldTransform = Math::ToTransformMatrix(skeletalComp.GetWorldTransform());
-        m_OriginalTransformInv = glm::inverse(worldTransform);
+        const glm::mat4 worldTransformInv = glm::inverse(worldTransform);
 
         physx::PxVec3 linearVelocity(0.f);
         physx::PxVec3 angularVelocity(0.f);
@@ -256,7 +256,7 @@ namespace Eagle
 
         std::unordered_map<std::string_view, glm::mat4> boneTransforms;
         GatherTransforms(skeletalComp.LastPose, meshInfo.RootBone, worldTransform, boneTransforms);
-		CreateArticulationChain(mesh->GetRagdollRoot(), boneTransforms, meshInfo.GetBoneInfoMap(), m_Scene, m_Root, userData, worldTransform, m_OriginalTransformInv,
+		CreateArticulationChain(mesh->GetRagdollRoot(), boneTransforms, meshInfo.GetBoneInfoMap(), m_Scene, m_Root, userData, worldTransform, worldTransformInv,
             glm::radians(twist), glm::radians(swing), filterData, linearVelocity, angularVelocity, m_BonesMap);
         m_RigidActor = m_Root.Body;
 	}
@@ -275,8 +275,43 @@ namespace Eagle
         auto& lastPose = skeletalComp.LastPose;
         lastPose.Reset();
 
-        UpdatePose(m_Root, lastPose, m_OriginalTransformInv);
+        // Relative to where the mesh is now
+        const glm::mat4 worldTransformInv = glm::inverse(Math::ToTransformMatrix(skeletalComp.GetWorldTransform()));
+        UpdatePose(m_Root, lastPose, worldTransformInv);
         m_bDirtyTransform = false;
+    }
+
+    void PhysicsRagdollActor::Teleport(const Transform& from, const Transform& to, bool bResetVelocity)
+    {
+        using namespace physx;
+
+        if (!m_Root.Body)
+            return;
+
+        const glm::quat deltaRotation = to.Rotation.GetQuat() * glm::inverse(from.Rotation.GetQuat());
+        const PxQuat pxDeltaRotation(deltaRotation.x, deltaRotation.y, deltaRotation.z, deltaRotation.w);
+
+        auto teleportBody = [&](PxRigidDynamic* body)
+        {
+            PxTransform pose = body->getGlobalPose();
+            const glm::vec3 location = to.Location + deltaRotation * (PhysXUtils::FromPhysXVector(pose.p) - from.Location);
+            pose.p = PhysXUtils::ToPhysXVector(location);
+            pose.q = (pxDeltaRotation * pose.q).getNormalized();
+            body->setGlobalPose(pose);
+
+            // Velocities can't be set while the simulation of a body is disabled
+            if (bResetVelocity && !body->getActorFlags().isSet(PxActorFlag::eDISABLE_SIMULATION))
+            {
+                body->setLinearVelocity(PxVec3(0.f));
+                body->setAngularVelocity(PxVec3(0.f));
+            }
+        };
+
+        teleportBody(m_Root.Body);
+        for (auto& [_, body] : m_BonesMap)
+            teleportBody(body);
+
+        MarkTransformDirty();
     }
     
     void PhysicsRagdollActor::SetShowCollision(bool bShowCollision)

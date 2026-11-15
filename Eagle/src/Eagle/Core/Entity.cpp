@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Physics/PhysicsActor.h"
+#include "Eagle/Physics/PhysicsRagdollActor.h"
 
 namespace Eagle
 {
@@ -27,7 +28,7 @@ namespace Eagle
 		}
 		else
 		{
-			transformComponent.RelativeTransform = Transform();
+			transformComponent.RelativeTransform = transformComponent.WorldTransform;
 		}
 	}
 
@@ -45,13 +46,21 @@ namespace Eagle
 		return GetComponent<OwnershipComponent>().EntityParent;
 	}
 
-	void Entity::NotifyAllChildren(Notification notification)
+	void Entity::NotifyAllChildren(Notification notification, PhysicsMove physicsMove)
 	{
 		auto& children = GetComponent<OwnershipComponent>().Children;
 
+		// If the physics moved this entity, children's physics is teleported along
+		const PhysicsMove childPhysicsMove = physicsMove == PhysicsMove::Skip ? PhysicsMove::Teleport : physicsMove;
+
 		// Notify Entity-childs
 		for (auto& child : children)
-			child.OnNotify(notification);
+		{
+			if (notification == Notification::OnParentTransformChanged)
+				child.SetRelativeTransform(child.GetRelativeTransform(), childPhysicsMove);
+			else
+				child.OnNotify(notification);
+		}
 
 		// Notify components
 		ComponentsNotificationSystem::Notify(*this, Notification::OnParentTransformChanged);
@@ -104,9 +113,10 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform;
 	}
 
-	void Entity::SetWorldTransform(const Transform& worldTransform, bool bTeleportPhysics)
+	void Entity::SetWorldTransform(const Transform& worldTransform, PhysicsMove physicsMove)
 	{
 		auto& transformComponent = GetComponent<TransformComponent>();
+		const Transform oldWorldTransform = transformComponent.WorldTransform;
 		if (Entity parent = GetParent())
 		{
 			const auto& parentWorldTransform = parent.GetWorldTransform();
@@ -125,17 +135,11 @@ namespace Eagle
 		else
 		{
 			transformComponent.WorldTransform = worldTransform;
+			transformComponent.RelativeTransform = worldTransform;
 		}
 
-		if (bTeleportPhysics)
-		{
-			if (auto physicsActor = GetPhysicsActor())
-			{
-				physicsActor->SetTransform(transformComponent.WorldTransform);
-			}
-		}
-
-		NotifyAllChildren(Notification::OnParentTransformChanged);
+		UpdatePhysicsTransform(oldWorldTransform, physicsMove);
+		NotifyAllChildren(Notification::OnParentTransformChanged, physicsMove);
 
 #if EG_DEBUG
 		EG_CORE_ASSERT(!glm::any(glm::isnan(transformComponent.WorldTransform.Location)));
@@ -144,11 +148,11 @@ namespace Eagle
 #endif
 	}
 
-	void Entity::SetWorldLocation(const glm::vec3& worldLocation, bool bTeleportPhysics)
+	void Entity::SetWorldLocation(const glm::vec3& worldLocation, PhysicsMove physicsMove)
 	{
 		Transform transform = GetComponent<TransformComponent>().WorldTransform;
 		transform.Location = worldLocation;
-		SetWorldTransform(transform, bTeleportPhysics);
+		SetWorldTransform(transform, physicsMove);
 	}
 
 	const glm::vec3& Entity::GetWorldLocation() const
@@ -156,11 +160,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform.Location;
 	}
 
-	void Entity::SetWorldRotation(const Rotator& worldRotation, bool bTeleportPhysics)
+	void Entity::SetWorldRotation(const Rotator& worldRotation, PhysicsMove physicsMove)
 	{
 		Transform transform = GetComponent<TransformComponent>().WorldTransform;
 		transform.Rotation = worldRotation;
-		SetWorldTransform(transform, bTeleportPhysics);
+		SetWorldTransform(transform, physicsMove);
 	}
 
 	const Rotator& Entity::GetWorldRotation() const
@@ -168,11 +172,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform.Rotation;
 	}
 
-	void Entity::SetWorldScale(const glm::vec3& worldScale, bool bTeleportPhysics)
+	void Entity::SetWorldScale(const glm::vec3& worldScale, PhysicsMove physicsMove)
 	{
 		Transform transform = GetComponent<TransformComponent>().WorldTransform;
 		transform.Scale3D = worldScale;
-		SetWorldTransform(transform, bTeleportPhysics);
+		SetWorldTransform(transform, physicsMove);
 	}
 
 	const glm::vec3& Entity::GetWorldScale() const
@@ -180,11 +184,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform.Scale3D;
 	}
 
-	void Entity::SetRelativeLocation(const glm::vec3& relativeLocation, bool bTeleportPhysics)
+	void Entity::SetRelativeLocation(const glm::vec3& relativeLocation, PhysicsMove physicsMove)
 	{
 		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
 		transform.Location = relativeLocation;
-		SetRelativeTransform(transform, bTeleportPhysics);
+		SetRelativeTransform(transform, physicsMove);
 	}
 
 	const glm::vec3& Entity::GetRelativeLocation() const
@@ -192,11 +196,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().RelativeTransform.Location;
 	}
 
-	void Entity::SetRelativeRotation(const Rotator& relativeRotation, bool bTeleportPhysics)
+	void Entity::SetRelativeRotation(const Rotator& relativeRotation, PhysicsMove physicsMove)
 	{
 		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
 		transform.Rotation = relativeRotation;
-		SetRelativeTransform(transform, bTeleportPhysics);
+		SetRelativeTransform(transform, physicsMove);
 	}
 
 	const Rotator& Entity::GetRelativeRotation() const
@@ -204,11 +208,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().RelativeTransform.Rotation;
 	}
 
-	void Entity::SetRelativeScale(const glm::vec3& relativeScale, bool bTeleportPhysics)
+	void Entity::SetRelativeScale(const glm::vec3& relativeScale, PhysicsMove physicsMove)
 	{
 		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
 		transform.Scale3D = relativeScale;
-		SetRelativeTransform(transform, bTeleportPhysics);
+		SetRelativeTransform(transform, physicsMove);
 	}
 
 	const glm::vec3& Entity::GetRelativeScale() const
@@ -247,7 +251,7 @@ namespace Eagle
 		return glm::vec3(0.f);
 	}
 
-	void Entity::SetRelativeTransform(const Transform& relativeTransform, bool bTeleportPhysics)
+	void Entity::SetRelativeTransform(const Transform& relativeTransform, PhysicsMove physicsMove)
 	{
 		if (Entity parent = GetParent())
 		{
@@ -255,6 +259,7 @@ namespace Eagle
 			auto& transformComponent = GetComponent<TransformComponent>();
 			auto& myRelativeTransform = transformComponent.RelativeTransform;
 			auto& myWorldTransform = transformComponent.WorldTransform;
+			const Transform oldWorldTransform = myWorldTransform;
 
 			myRelativeTransform = relativeTransform;
 
@@ -264,15 +269,32 @@ namespace Eagle
 			glm::vec3 rotated = parentWorldTransform.Rotation.GetQuat() * (myRelativeTransform.Location * parentWorldTransform.Scale3D);
 			myWorldTransform.Location = parentWorldTransform.Location + rotated;
 
-			if (bTeleportPhysics)
-			{
-				if (auto physicsActor = GetPhysicsActor())
-				{
-					physicsActor->SetTransform(myWorldTransform);
-				}
-			}
+			UpdatePhysicsTransform(oldWorldTransform, physicsMove);
+			NotifyAllChildren(Notification::OnParentTransformChanged, physicsMove);
+		}
+		else
+		{
+			SetWorldTransform(relativeTransform, physicsMove);
+		}
+	}
 
-			NotifyAllChildren(Notification::OnParentTransformChanged);
+	void Entity::UpdatePhysicsTransform(const Transform& oldWorldTransform, PhysicsMove physicsMove)
+	{
+		if (physicsMove == PhysicsMove::Skip)
+			return;
+
+		const Transform& worldTransform = GetComponent<TransformComponent>().WorldTransform;
+		if (const auto& physicsActor = GetPhysicsActor())
+			physicsActor->SetTransform(worldTransform, physicsMove);
+
+		// A ragdoll isn't attached to the entity, so it's teleported separately
+		if (physicsMove != PhysicsMove::Move && HasComponent<SkeletalMeshComponent>())
+		{
+			if (const auto& ragdoll = GetComponent<SkeletalMeshComponent>().GetRagdollActor())
+			{
+				const bool bResetVelocity = physicsMove == PhysicsMove::Reset;
+				ragdoll->Teleport(oldWorldTransform, worldTransform, bResetVelocity);
+			}
 		}
 	}
 

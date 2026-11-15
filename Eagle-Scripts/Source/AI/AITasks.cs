@@ -33,13 +33,13 @@ namespace Eagle
             if (m_Owner == null || m_TargetEntity == null)
                 return AINodeStatus.Failed;
 
-            Vector3 location = m_Owner.WorldLocation;
-            Vector3 target = m_TargetEntity.WorldLocation;
+            Vector3 location = m_Owner.GetWorldLocation();
+            Vector3 target = m_TargetEntity.GetWorldLocation();
 
             Vector3 dir = Mathf.Normalize(target - location);
             Rotator targetRot = Mathf.LookAtY(dir);
-            Rotator result = Mathf.Slerp(m_Owner.WorldRotation, targetRot, ts * m_RotationSpeed);
-            m_Owner.WorldRotation = result;
+            Rotator result = Mathf.Slerp(m_Owner.GetWorldRotation(), targetRot, ts * m_RotationSpeed);
+            m_Owner.SetWorldRotation(result, PhysicsMove.Move);
 
             return targetRot.Equals(result, Epsilon) ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
@@ -145,7 +145,7 @@ namespace Eagle
             if (m_Owner == null || m_TargetEntity == null)
                 return AINodeStatus.Failed;
 
-            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.WorldLocation, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState, FallbackAgentType);
+            bool bFinished = Navigation.MoveToTarget(m_Owner, m_TargetEntity.GetWorldLocation(), AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState, FallbackAgentType);
             if (!bFinished)
                 return AINodeStatus.Running;
 
@@ -202,7 +202,7 @@ namespace Eagle
             if (m_Owner != null && m_Blackboard.TryGetValue(Radius, out float radius))
             {
                 NavMesh navMesh = NavMesh.GetNavMeshFor(m_Owner, FallbackAgentType);
-                if (navMesh.IsValid() && navMesh.FindRandomPointInCircle(m_Owner.WorldLocation, radius, out m_Target))
+                if (navMesh.IsValid() && navMesh.FindRandomPointInCircle(m_Owner.GetWorldLocation(), radius, out m_Target))
                     m_bHasTarget = true;
             }
         }

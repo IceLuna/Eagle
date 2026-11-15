@@ -3704,7 +3704,7 @@ namespace Eagle
             return agentTypeID != NavAgentType.InvalidID ? new NavMesh(agentTypeID) : null;
         }
 
-        // Entity.WorldLocation should be the same because agents control entities.
+        // The agent's location on the nav mesh. The entity's location can differ a bit, for example, when physics moves it
         public bool GetLocation(out Vector3 outLocation)
         {
             return GetLocation_Native(Parent.ID, out outLocation);

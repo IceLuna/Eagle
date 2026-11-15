@@ -2708,8 +2708,7 @@ namespace Eagle
 		{
 			CharacterController, // `Move` with the agent's velocity and gravity
 			DynamicRigidBody,    // The agent's velocity, horizontally. Physics does the rest
-			KinematicRigidBody,  // A kinematic target at the agent's location
-			Teleport             // Without physics, the entity is placed at the agent's location
+			Location             // The agent's location with `PhysicsMove::Move`. A kinematic body pushes what's in its way
 		};
 		Movement GetMovement() const;
 

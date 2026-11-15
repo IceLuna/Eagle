@@ -25,6 +25,9 @@ namespace Eagle
 
 		void SynchronizeTransform();
 		bool DoesNeedSync() const { return m_bDirtyTransform; }
+
+		// Moves all bodies the way the entity moved from `from` to `to`, keeping their poses relative to it. The scale is ignored
+		void Teleport(const Transform& from, const Transform& to, bool bResetVelocity);
 		void MarkTransformDirty() { m_bDirtyTransform = true; }
 
 		bool IsCollisionShown() const { return m_bShowCollision; }
@@ -72,7 +75,6 @@ namespace Eagle
 
 	private:
 		physx::PxScene* m_Scene = nullptr;
-		glm::mat4 m_OriginalTransformInv = glm::mat4(1.f);
 		bool m_bDirtyTransform = true;
 		bool m_bShowCollision = false;
 

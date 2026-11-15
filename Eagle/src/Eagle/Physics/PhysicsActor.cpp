@@ -50,6 +50,33 @@ namespace Eagle
 		m_RigidActor->setGlobalPose(PhysXUtils::ToPhysXTranform(transform), bAutowake);
 	}
 	
+	void PhysicsActor::SetTransform(const Transform& transform, PhysicsMove physicsMove)
+	{
+		using namespace physx;
+
+		if (physicsMove == PhysicsMove::Skip)
+			return;
+
+		const PxTransform pose = PhysXUtils::ToPhysXTranform(transform);
+		PxRigidDynamic* dynamic = m_RigidActor->is<PxRigidDynamic>();
+		const bool bKinematic = dynamic && dynamic->getRigidBodyFlags().isSet(PxRigidBodyFlag::eKINEMATIC);
+
+		// Reaches the target during the next physics update, pushing what's in its way
+		if (physicsMove == PhysicsMove::Move && bKinematic)
+		{
+			dynamic->setKinematicTarget(pose);
+			return;
+		}
+
+		// A dynamic body is driven by the simulation, so `Move` teleports it too, keeping its velocity
+		m_RigidActor->setGlobalPose(pose);
+		if (physicsMove == PhysicsMove::Reset && dynamic && !bKinematic)
+		{
+			dynamic->setLinearVelocity(PxVec3(0.f));
+			dynamic->setAngularVelocity(PxVec3(0.f));
+		}
+	}
+
 	void PhysicsActor::WakeUp()
 	{
 		if (IsDynamic())
@@ -656,7 +683,7 @@ namespace Eagle
 	void PhysicsActor::SynchronizeTransform()
 	{
 		Transform transform = PhysXUtils::FromPhysXTransform(m_RigidActor->getGlobalPose());
-		m_Entity.SetWorldLocation(transform.Location, false);
-		m_Entity.SetWorldRotation(transform.Rotation, false);
+		transform.Scale3D = m_Entity.GetWorldScale();
+		m_Entity.SetWorldTransform(transform, PhysicsMove::Skip);
 	}
 }

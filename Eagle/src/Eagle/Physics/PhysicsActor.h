@@ -27,6 +27,7 @@ namespace Eagle
 
 		Transform GetTransform() const { return PhysXUtils::FromPhysXTransform(m_RigidActor->getGlobalPose()); }
 		void SetTransform(const Transform& transform, bool bAutowake = true);
+		void SetTransform(const Transform& transform, PhysicsMove physicsMove);
 
 		void WakeUp();
 		void PutToSleep();

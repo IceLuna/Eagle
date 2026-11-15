@@ -16,6 +16,21 @@
 
 namespace Eagle
 {
+	// `Skip` is internal, scripts can't use it
+	static PhysicsMove ValidatePhysicsMove(PhysicsMove physicsMove)
+	{
+		switch (physicsMove)
+		{
+			case PhysicsMove::Move:
+			case PhysicsMove::Teleport:
+			case PhysicsMove::Reset:
+				return physicsMove;
+			default:
+				EG_CORE_ERROR("[ScriptEngine] Invalid PhysicsMove value: {}. Teleport is used", int(physicsMove));
+				return PhysicsMove::Teleport;
+		}
+	}
+
 	//--------------Entity--------------
 	MonoObject* Script::Eagle_Entity_GetParent(GUID entityID)
 	{
@@ -423,42 +438,42 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world scale. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetWorldTransform(GUID entityID, const Transform* inTransform)
+	void Script::Eagle_Entity_SetWorldTransform(GUID entityID, const Transform* inTransform, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetWorldTransform(*inTransform);
+			entity.SetWorldTransform(*inTransform, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world transform. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetWorldLocation(GUID entityID, const glm::vec3* inLocation)
+	void Script::Eagle_Entity_SetWorldLocation(GUID entityID, const glm::vec3* inLocation, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetWorldLocation(*inLocation);
+			entity.SetWorldLocation(*inLocation, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world location. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetWorldRotation(GUID entityID, const Rotator* inRotation)
+	void Script::Eagle_Entity_SetWorldRotation(GUID entityID, const Rotator* inRotation, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetWorldRotation(*inRotation);
+			entity.SetWorldRotation(*inRotation, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world rotation. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetWorldScale(GUID entityID, const glm::vec3* inScale)
+	void Script::Eagle_Entity_SetWorldScale(GUID entityID, const glm::vec3* inScale, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetWorldScale(*inScale);
+			entity.SetWorldScale(*inScale, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world scale. Entity is null");
 	}
@@ -503,42 +518,42 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative scale. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetRelativeTransform(GUID entityID, const Transform* inTransform)
+	void Script::Eagle_Entity_SetRelativeTransform(GUID entityID, const Transform* inTransform, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetRelativeTransform(*inTransform);
+			entity.SetRelativeTransform(*inTransform, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative transform. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation)
+	void Script::Eagle_Entity_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetRelativeLocation(*inLocation);
+			entity.SetRelativeLocation(*inLocation, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative location. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation)
+	void Script::Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetRelativeRotation(*inRotation);
+			entity.SetRelativeRotation(*inRotation, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative rotation. Entity is null");
 	}
 
-	void Script::Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale)
+	void Script::Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale, PhysicsMove physicsMove)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.SetRelativeScale(*inScale);
+			entity.SetRelativeScale(*inScale, ValidatePhysicsMove(physicsMove));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative scale. Entity is null");
 	}

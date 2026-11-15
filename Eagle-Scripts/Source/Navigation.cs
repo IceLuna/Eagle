@@ -210,7 +210,7 @@ namespace Eagle
                 return true;
             }
 
-            Vector3 location = entity.WorldLocation;
+            Vector3 location = entity.GetWorldLocation();
 
             if (HasArrived(navMesh, location, targetLocation, acceptanceDistance))
             {
@@ -246,20 +246,24 @@ namespace Eagle
             }
             horizontalDir /= horizontalLength;
 
+            Rotator rotation = Mathf.Slerp(entity.GetWorldRotation(), Mathf.LookAtY(horizontalDir), ts * rotationSpeed);
             RigidBodyComponent rigidBody = GetDynamicRigidBody(entity);
             if (rigidBody != null)
             {
                 // Teleporting a dynamic body fights the physics (and can push it into thin colliders). Its vertical velocity is left to physics
                 Vector3 velocity = rigidBody.GetLinearVelocity();
                 rigidBody.SetLinearVelocity(new Vector3(horizontalDir.X * moveSpeed, velocity.Y, horizontalDir.Z * moveSpeed));
+                entity.SetWorldRotation(rotation, PhysicsMove.Move);
             }
             else
             {
-                // No physics to keep it on the ground, so it follows the path's heights
+                // No physics to keep it on the ground, so it follows the path's heights. A kinematic body pushes what's in its way
                 Vector3 dir = Mathf.Normalize(nextPoint - location);
-                entity.WorldLocation = location + dir * (moveSpeed * ts);
+                Transform transform = entity.GetWorldTransform();
+                transform.Location = location + dir * (moveSpeed * ts);
+                transform.Rotation = rotation;
+                entity.SetWorldTransform(transform, PhysicsMove.Move);
             }
-            entity.WorldRotation = Mathf.Slerp(entity.WorldRotation, Mathf.LookAtY(horizontalDir), ts * rotationSpeed);
 
             return false;
         }
@@ -287,7 +291,7 @@ namespace Eagle
         {
             AgentSettings settings = agent.GetSettings();
             if (!agent.GetLocation(out Vector3 location))
-                location = entity.WorldLocation;
+                location = entity.GetWorldLocation();
 
             if (HasArrived(agent.GetNavMesh(), location, targetLocation, acceptanceDistance, settings.AgentHeight))
             {
@@ -339,7 +343,7 @@ namespace Eagle
                 velocity.Y = 0f;
                 float speed = Mathf.Length(velocity);
                 if (speed > 0.01f)
-                    entity.WorldRotation = Mathf.Slerp(entity.WorldRotation, Mathf.LookAtY(velocity / speed), ts * rotationSpeed);
+                    entity.SetWorldRotation(Mathf.Slerp(entity.GetWorldRotation(), Mathf.LookAtY(velocity / speed), ts * rotationSpeed), PhysicsMove.Move);
             }
 
             return false;

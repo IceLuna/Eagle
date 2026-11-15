@@ -328,7 +328,7 @@ namespace Eagle
 		const glm::vec3 location = bUseFootLocation ? m_Controller->GetFootWorldLocation() : m_Controller->GetWorldLocation();
 		if (bMoveWholeEntity)
 		{
-			Parent.SetWorldLocation(location - RelativeTransform.Location);
+			Parent.SetWorldLocation(location - RelativeTransform.Location, PhysicsMove::Move);
 		}
 		else
 		{
@@ -1409,12 +1409,18 @@ namespace Eagle
 	void SkeletalMeshComponent::SetWorldTransform(const Transform& worldTransform)
 	{
 		SceneComponent::SetWorldTransform(worldTransform);
+		if (m_RagdollActor)
+			m_RagdollActor->MarkTransformDirty();
+
 		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
 	}
 
 	void SkeletalMeshComponent::SetRelativeTransform(const Transform& relativeTransform)
 	{
 		SceneComponent::SetRelativeTransform(relativeTransform);
+		if (m_RagdollActor)
+			m_RagdollActor->MarkTransformDirty();
+
 		Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
 	}
 
@@ -1914,7 +1920,7 @@ namespace Eagle
 		const Movement movement = GetMovement();
 		glm::vec3 newLocation;
 		if (bHadLocation && (movement == Movement::CharacterController || movement == Movement::DynamicRigidBody) && GetLocation(&newLocation))
-			Parent.SetWorldLocation(Parent.GetWorldLocation() + (newLocation - oldLocation));
+			Parent.SetWorldLocation(Parent.GetWorldLocation() + (newLocation - oldLocation), PhysicsMove::Teleport);
 	}
 
 	const Ref<AINavigation::Mesh>& NavigationCrowdAgentComponent::GetNavMesh() const
@@ -2049,11 +2055,11 @@ namespace Eagle
 		if (Parent.HasComponent<RigidBodyComponent>())
 		{
 			const auto& rigidBody = Parent.GetComponent<RigidBodyComponent>();
-			if (rigidBody.GetBodyType() == PhysicsBodyType::Dynamic && rigidBody.GetPhysicsActor())
-				return rigidBody.IsKinematic() ? Movement::KinematicRigidBody : Movement::DynamicRigidBody;
+			if (rigidBody.GetBodyType() == PhysicsBodyType::Dynamic && !rigidBody.IsKinematic() && rigidBody.GetPhysicsActor())
+				return Movement::DynamicRigidBody;
 		}
 
-		return Movement::Teleport;
+		return Movement::Location;
 	}
 
 	void NavigationCrowdAgentComponent::MoveEntity(Timestep ts, const glm::vec3& gravity)
@@ -2096,11 +2102,8 @@ namespace Eagle
 				actor->SetLinearVelocity(glm::vec3(velocity.x, bodyVelocity.y, velocity.z));
 				break;
 			}
-			case Movement::KinematicRigidBody:
-				Parent.GetComponent<RigidBodyComponent>().GetPhysicsActor()->SetKinematicTargetLocation(location);
-				break;
-			case Movement::Teleport:
-				Parent.SetWorldLocation(location);
+			case Movement::Location:
+				Parent.SetWorldLocation(location, PhysicsMove::Move);
 				break;
 		}
 	}

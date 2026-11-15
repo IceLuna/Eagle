@@ -13,6 +13,19 @@ namespace Eagle
 
 	using EntityIDType = uint32_t;
 
+	// How the physics of an entity reacts to transform changes
+	enum class PhysicsMove
+	{
+		// A kinematic body reaches the new transform during the next physics update and pushes what's in its way.
+		// A dynamic body is driven by the simulation, so it's teleported, keeping its velocity (to move it, set its velocity).
+		// A ragdoll stays where it is
+		Move,
+		Teleport, // Teleported, keeping the velocity. A ragdoll is teleported along
+		Reset,    // Teleported, and the velocity is reset. A ragdoll is teleported along and stops
+
+		Skip      // Internal. The physics isn't touched (used when the physics moved the entity)
+	};
+
 	class Entity
 	{
 	public:
@@ -41,28 +54,29 @@ namespace Eagle
 		Entity GetParent();
 		const Entity GetParent() const;
 
-		void SetWorldTransform(const Transform& worldTransform, bool bTeleportPhysics = true);
+		void SetWorldTransform(const Transform& worldTransform, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const Transform& GetWorldTransform() const;
 
-		void SetWorldLocation(const glm::vec3& worldLocation, bool bTeleportPhysics = true);
+		void SetWorldLocation(const glm::vec3& worldLocation, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const glm::vec3& GetWorldLocation() const;
 
-		void SetWorldRotation(const Rotator& worldRotation, bool bTeleportPhysics = true);
+		void SetWorldRotation(const Rotator& worldRotation, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const Rotator& GetWorldRotation() const;
 
-		void SetWorldScale(const glm::vec3& worldScale, bool bTeleportPhysics = true);
+		void SetWorldScale(const glm::vec3& worldScale, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const glm::vec3& GetWorldScale() const;
 
-		void SetRelativeLocation(const glm::vec3& relativeLocation, bool bTeleportPhysics = true);
+		// Relative to the parent. Without a parent, it's the world transform
+		void SetRelativeLocation(const glm::vec3& relativeLocation, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const glm::vec3& GetRelativeLocation() const;
 
-		void SetRelativeRotation(const Rotator& relativeRotation, bool bTeleportPhysics = true);
+		void SetRelativeRotation(const Rotator& relativeRotation, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const Rotator& GetRelativeRotation() const;
 
-		void SetRelativeScale(const glm::vec3& relativeScale, bool bTeleportPhysics = true);
+		void SetRelativeScale(const glm::vec3& relativeScale, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const glm::vec3& GetRelativeScale() const;
 		
-		void SetRelativeTransform(const Transform& relativeTransform, bool bTeleportPhysics = true);
+		void SetRelativeTransform(const Transform& relativeTransform, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		const Transform& GetRelativeTransform() const;
 
 		void SetLinearVelocity(const glm::vec3& velocity);
@@ -114,7 +128,8 @@ namespace Eagle
 		void OnNotify(Notification notification);
 
 	private:
-		void NotifyAllChildren(Notification notification);
+		void UpdatePhysicsTransform(const Transform& oldWorldTransform, PhysicsMove physicsMove);
+		void NotifyAllChildren(Notification notification, PhysicsMove physicsMove = PhysicsMove::Teleport);
 		void AddChildren(Entity child);
 		void RemoveChildren(Entity child);
 

@@ -52,19 +52,19 @@ namespace Eagle::Script
 	void Eagle_Entity_GetWorldLocation(GUID entityID, glm::vec3* outLocation);
 	void Eagle_Entity_GetWorldRotation(GUID entityID, Rotator* outRotation);
 	void Eagle_Entity_GetWorldScale(GUID entityID, glm::vec3* outScale);
-	void Eagle_Entity_SetWorldTransform(GUID entityID, const Transform* inTransform);
-	void Eagle_Entity_SetWorldLocation(GUID entityID, const glm::vec3* inLocation);
-	void Eagle_Entity_SetWorldRotation(GUID entityID, const Rotator* inRotation);
-	void Eagle_Entity_SetWorldScale(GUID entityID, const glm::vec3* inScale);
+	void Eagle_Entity_SetWorldTransform(GUID entityID, const Transform* inTransform, PhysicsMove physicsMove);
+	void Eagle_Entity_SetWorldLocation(GUID entityID, const glm::vec3* inLocation, PhysicsMove physicsMove);
+	void Eagle_Entity_SetWorldRotation(GUID entityID, const Rotator* inRotation, PhysicsMove physicsMove);
+	void Eagle_Entity_SetWorldScale(GUID entityID, const glm::vec3* inScale, PhysicsMove physicsMove);
 
 	void Eagle_Entity_GetRelativeTransform(GUID entityID, Transform* outTransform);
 	void Eagle_Entity_GetRelativeLocation(GUID entityID, glm::vec3* outLocation);
 	void Eagle_Entity_GetRelativeRotation(GUID entityID, Rotator* outRotation);
 	void Eagle_Entity_GetRelativeScale(GUID entityID, glm::vec3* outScale);
-	void Eagle_Entity_SetRelativeTransform(GUID entityID, const Transform* inTransform);
-	void Eagle_Entity_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation);
-	void Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation);
-	void Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale);
+	void Eagle_Entity_SetRelativeTransform(GUID entityID, const Transform* inTransform, PhysicsMove physicsMove);
+	void Eagle_Entity_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation, PhysicsMove physicsMove);
+	void Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation, PhysicsMove physicsMove);
+	void Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale, PhysicsMove physicsMove);
 
 	void Eagle_Entity_SetTag(GUID entityID, MonoString* monoTag);
 	MonoString* Eagle_Entity_GetTag(GUID entityID);
