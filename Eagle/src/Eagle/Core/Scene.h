@@ -809,6 +809,7 @@ namespace Eagle
 
 		// Key - mesh ID (entity ID)
 		ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
+		std::vector<uint32_t> m_Ragdolls; // Entity IDs of ragdolls during the animation update
 		// Key - system ID; Value - transforms per emitter
 		ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> m_SkeletalParticlesAnimationTransforms;
 

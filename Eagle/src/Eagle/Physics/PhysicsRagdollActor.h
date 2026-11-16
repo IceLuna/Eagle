@@ -26,6 +26,11 @@ namespace Eagle
 		void SynchronizeTransform();
 		bool DoesNeedSync() const { return m_bDirtyTransform; }
 
+		// The final bone transforms last computed by `AnimationSystem::UpdateRagdolls`.
+		// The animation update copies them, so that the renderer gets valid transforms even if a script removes the ragdoll before rendering
+		std::vector<glm::mat4>& GetBoneTransforms() { return m_BoneTransforms; }
+		const std::vector<glm::mat4>& GetBoneTransforms() const { return m_BoneTransforms; }
+
 		// Moves all bodies the way the entity moved from `from` to `to`, keeping their poses relative to it. The scale is ignored
 		void Teleport(const Transform& from, const Transform& to, bool bResetVelocity);
 		void MarkTransformDirty() { m_bDirtyTransform = true; }
@@ -75,6 +80,7 @@ namespace Eagle
 
 	private:
 		physx::PxScene* m_Scene = nullptr;
+		std::vector<glm::mat4> m_BoneTransforms;
 		bool m_bDirtyTransform = true;
 		bool m_bShowCollision = false;
 

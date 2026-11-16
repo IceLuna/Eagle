@@ -550,8 +550,8 @@ namespace Eagle
 			bHandled = true;
 		}
 
-		//Gizmos
-		if (m_ViewportHovered && !ImGuizmo::IsUsing())
+		// Gizmos
+		if (m_ViewportHovered && !ImGuizmo::IsUsing() && !ImGui::GetIO().WantTextInput)
 		{
 			switch (pressedKey)
 			{

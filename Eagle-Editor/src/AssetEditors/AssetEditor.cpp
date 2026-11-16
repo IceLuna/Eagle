@@ -541,9 +541,9 @@ namespace Eagle
 		if (e.GetRepeatCount() > 0)
 			return false;
 
-		//Gizmos
+		// Gizmos
 		const Key pressedKey = e.GetKey();
-		if (bViewportHovered && !ImGuizmo::IsUsing())
+		if (bViewportHovered && !ImGuizmo::IsUsing() && !ImGui::GetIO().WantTextInput)
 		{
 			switch (pressedKey)
 			{

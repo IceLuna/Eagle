@@ -1148,6 +1148,7 @@ namespace Eagle
 		UpdateNavMesh(ts);
 		UpdateSceneSequences(ts, false);
 		m_PhysicsScene->Simulate(ts, false);
+		AnimationSystem::UpdateRagdolls(*this, m_Ragdolls, m_AnimationTransforms);
 		if (bRender)
 			RenderScene(ts, false);
 
@@ -1179,6 +1180,7 @@ namespace Eagle
 		m_PhysicsScene->Simulate(gameTs, true);
 		SyncCrowdAgentsFromEntities();
 		UpdateScripts(ts);
+		AnimationSystem::UpdateRagdolls(*this, m_Ragdolls, m_AnimationTransforms);
 		UpdateSceneSequences(ts, true);
 		UpdateAudioProcessing();
 
@@ -1552,7 +1554,7 @@ namespace Eagle
 		m_AnimationsToTrigger.clear();
 		if (bUseBasePose)
 		{
-			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
+			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts, &m_Ragdolls);
 		}
 		else
 		{
@@ -1560,7 +1562,7 @@ namespace Eagle
 			for (size_t i = 0; i < m_SkeletalMeshes.size(); ++i)
 				m_SkeletalMeshDeltaTimes[i] = bPerEntityTime ? GetEntityDeltaTime(m_SkeletalMeshes[i]->Parent, ts) : float(ts);
 
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, m_SkeletalMeshDeltaTimes, bApplyRootMotion, &m_AnimationsToTrigger);
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, m_SkeletalMeshDeltaTimes, bApplyRootMotion, &m_AnimationsToTrigger, &m_Ragdolls);
 		}
 
 		m_SystemsToUpdateAnims.clear();

@@ -1443,6 +1443,9 @@ namespace Eagle
 		Transform result;
 		if (IsRagdollEnabled())
 		{
+			if (m_RagdollActor && m_RagdollActor->DoesNeedSync())
+				m_RagdollActor->SynchronizeTransform();
+
 			Utils::GetBoneWorldTransform_Ragdoll(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, worldTr, worldTr, boneName, &result);
 		}
 		else

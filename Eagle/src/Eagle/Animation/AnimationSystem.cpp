@@ -334,20 +334,30 @@ namespace Eagle
             }
         }
 
+        static void ComputeRagdollTransforms(SkeletalMeshComponent* mesh)
+        {
+            auto& ragdoll = mesh->GetRagdollActor();
+            if (ragdoll->DoesNeedSync())
+                ragdoll->SynchronizeTransform(); // Update `LastPose`
+
+            const auto& skeletalInfo = mesh->GetMeshAsset()->GetMesh()->GetSkeletalMeshInfo();
+            AnimationSystem::FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, ragdoll->GetBoneTransforms());
+        }
+
+        static void CopyRagdollTransforms(SkeletalMeshComponent* mesh, std::vector<glm::mat4>& transforms)
+        {
+            if (mesh->GetRagdollActor()->GetBoneTransforms().empty())
+                ComputeRagdollTransforms(mesh);
+
+            transforms = mesh->GetRagdollActor()->GetBoneTransforms();
+        }
+
         static void UpdateSkeletalMeshComponent(SkeletalMeshComponent* mesh, std::vector<glm::mat4>& transforms, float ts)
         {
             const auto& skeletalMesh = mesh->GetMeshAsset()->GetMesh();
-            if (mesh->IsRagdollEnabled())
+            if (mesh->IsRagdollEnabled() && mesh->GetRagdollActor())
             {
-                // When it's in a ragdoll state, we don't update animations,
-                // but rather read `LastPose` which already contains data from ragdoll simulation
-                auto& ragdollActor = mesh->GetRagdollActor();
-                if (ragdollActor->DoesNeedSync())
-                {
-                    ragdollActor->SynchronizeTransform(); // Update `LastPose`
-                }
-                const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-                AnimationSystem::FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                CopyRagdollTransforms(mesh, transforms);
                 return;
             }
 
@@ -399,17 +409,24 @@ namespace Eagle
             float DeltaTime = 0.f;
         };
 
-        static void PrepareSkeletalMeshJobs(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>* deltaTimes, ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& transformsMap, std::vector<Utils::SkeletalMeshJob>* jobs)
+        static void PrepareSkeletalMeshJobs(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>* deltaTimes, ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& transformsMap,
+            std::vector<Utils::SkeletalMeshJob>* jobs, std::vector<uint32_t>* outRagdolls)
         {
             EG_CORE_ASSERT(!deltaTimes || deltaTimes->size() == meshes.size());
 
             jobs->clear();
             jobs->reserve(meshes.size());
+            if (outRagdolls)
+                outRagdolls->clear();
+
             for (size_t i = 0; i < meshes.size(); ++i)
             {
                 SkeletalMeshComponent* mesh = meshes[i];
                 if (!mesh->GetMeshAsset())
                     continue;
+
+                if (outRagdolls && mesh->IsRagdollEnabled() && mesh->GetRagdollActor())
+                    outRagdolls->push_back(mesh->Parent.GetID());
 
                 jobs->push_back({ mesh, nullptr, deltaTimes ? (*deltaTimes)[i] : 0.f });
                 transformsMap.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
@@ -505,7 +522,8 @@ namespace Eagle
         }
     }
     
-    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion, std::vector<AnimationEventData>* outEventsToTrigger)
+    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion,
+        std::vector<AnimationEventData>* outEventsToTrigger, std::vector<uint32_t>* outRagdolls)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
@@ -513,7 +531,7 @@ namespace Eagle
 
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
-        Utils::PrepareSkeletalMeshJobs(meshes, &deltaTimes, s_Transforms, &s_Jobs);
+        Utils::PrepareSkeletalMeshJobs(meshes, &deltaTimes, s_Transforms, &s_Jobs, outRagdolls);
 
         s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [](size_t i)
         {
@@ -543,14 +561,14 @@ namespace Eagle
         return std::exchange(s_Transforms, {});
     }
 
-    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
+    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts, std::vector<uint32_t>* outRagdolls)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
         s_ThreadPool->wait();
         s_Transforms.clear();
         s_Transforms.reserve(meshes.size());
-        Utils::PrepareSkeletalMeshJobs(meshes, nullptr, s_Transforms, &s_Jobs);
+        Utils::PrepareSkeletalMeshJobs(meshes, nullptr, s_Transforms, &s_Jobs, outRagdolls);
 
         s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [](size_t i)
         {
@@ -558,16 +576,9 @@ namespace Eagle
             auto& transforms = *s_Jobs[i].Transforms;
             const auto& skeletalMesh = mesh->GetMeshAsset()->GetMesh();
             const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-            if (mesh->IsRagdollEnabled())
+            if (mesh->IsRagdollEnabled() && mesh->GetRagdollActor())
             {
-                // When it's in a ragdoll state, we don't update animations,
-                // but rather read `LastPose` which already contains data from ragdoll simulation
-                auto& ragdollActor = mesh->GetRagdollActor();
-                if (ragdollActor->DoesNeedSync())
-                {
-                    ragdollActor->SynchronizeTransform(); // Update `LastPose`
-                }
-                FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                Utils::CopyRagdollTransforms(mesh, transforms);
                 return;
             }
 
@@ -581,6 +592,35 @@ namespace Eagle
         return std::exchange(s_Transforms, {});
     }
     
+    void AnimationSystem::UpdateRagdolls(Scene& scene, const std::vector<uint32_t>& ragdolls, ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& transformsMap)
+    {
+        EG_CPU_TIMING_SCOPED("Animation System. Update ragdolls");
+
+        s_ThreadPool->wait();
+        s_Jobs.clear();
+
+        // Note: if a script removed/disabled a ragdoll, it keeps the previous frame's transforms
+        for (const uint32_t entityID : ragdolls)
+        {
+            Entity entity((entt::entity)entityID, &scene);
+            if (!entity || !entity.HasComponent<SkeletalMeshComponent>())
+                continue;
+
+            auto& mesh = entity.GetComponent<SkeletalMeshComponent>();
+            auto it = transformsMap.find(entityID);
+            if (it != transformsMap.end() && mesh.GetMeshAsset() && mesh.IsRagdollEnabled() && mesh.GetRagdollActor())
+                s_Jobs.push_back({ &mesh, &it->second, 0.f });
+        }
+
+        s_ThreadPool->detach_loop(size_t(0), s_Jobs.size(), [](size_t i)
+        {
+            SkeletalMeshComponent* mesh = s_Jobs[i].Mesh;
+            Utils::ComputeRagdollTransforms(mesh);
+            *s_Jobs[i].Transforms = mesh->GetRagdollActor()->GetBoneTransforms();
+        });
+        s_ThreadPool->wait();
+    }
+
     ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> AnimationSystem::Update(const std::vector<ParticleSystemComponent*>& systems, const std::vector<float>& deltaTimes, std::vector<AnimationEventData>* outEventsToTrigger)
     {
         EG_CORE_ASSERT(deltaTimes.size() == systems.size());

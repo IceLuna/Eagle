@@ -8,6 +8,7 @@ namespace Eagle
 	struct SkeletalMeshAnimation;
 	class SkeletalMesh;
 	class SkeletalMeshComponent;
+	class Scene;
 	class ParticleSystemComponent;
 	struct SkeletalPose;
 	struct BoneNode;
@@ -24,9 +25,20 @@ namespace Eagle
 	class AnimationSystem
 	{
 	public:
+		// Ragdolls aren't animated here, but by `UpdateRagdolls` which is run after the scripts update.
+		// Ragdolls are relative to mesh global transform, and if a script moves it, the ragdoll should use the latest position. That's why ragdolls update is postponed to avoid this one-frame desync.
+		// There's no issues for regular skeletal animation because they're stored in relative transforms, so they don't care about the current mesh world transform. Their transforms from the previous frame are used, and they're updated by `UpdateRagdolls`.
 		// @deltaTimes. The time step of each mesh (must be the same size as `meshes`)
-		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
-		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
+		// @outRagdolls. Entity IDs of the ragdolls, for `UpdateRagdolls`
+		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion,
+			std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr, std::vector<uint32_t>* outRagdolls = nullptr);
+		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts, std::vector<uint32_t>* outRagdolls = nullptr);
+
+		// Computes the transforms of ragdolls after the physics and scripts, so that they're drawn where their bodies are in this frame. Called right before rendering.
+		// Ragdolls that scripts removed or disabled since `Update` keep their transforms from the previous frame.
+		// @ragdolls. Entity IDs from `Update`
+		static void UpdateRagdolls(Scene& scene, const std::vector<uint32_t>& ragdolls, ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>>& transformsMap);
+
 		// @deltaTimes. The time step of each system (must be the same size as `systems`)
 		static ankerl::unordered_dense::map<GUID, ankerl::unordered_dense::map<GUID, std::vector<glm::mat4>>> Update(const std::vector<ParticleSystemComponent*>& systems, const std::vector<float>& deltaTimes, std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr);
 
