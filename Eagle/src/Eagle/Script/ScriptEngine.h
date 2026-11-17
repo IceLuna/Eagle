@@ -117,6 +117,8 @@ namespace Eagle
 		static size_t GetMonoArrayLength(MonoObject* instance, MonoClassField* field);
 		static size_t GetMonoArrayLength(MonoObject* instance, MonoProperty* property);
 
+		static void HandleException(MonoObject* exception);
+
 	private:
 		static bool LoadCoreAssembly(const Path& assemblyPath);
 		static MonoAssembly* LoadAssembly(const Path& assemblyPath);
@@ -130,8 +132,6 @@ namespace Eagle
 		static bool CopyFieldsToRuntime_Internal(Entity entity, const EntityInstance* entityInstance);
 		static bool InitEntityScript(Entity entity);
 		static MonoObject* InstantiateEntityUnmanaged(GUID entityID); // Can be GarbageCollected. ScriptEngine just creates it and forgets aboit it
-
-		static void HandleException(MonoObject* exception);
 
 		static void LoadListOfAppAssemblyClasses();
 		static void LoadListOfCoreAIClasses();

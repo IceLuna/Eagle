@@ -1820,23 +1820,45 @@ namespace Eagle
 		return InstantiateEntityUnmanaged(entityID);
 	}
 	
-	void EntityScriptClass::InitClassMethods()
+	// If an entity class overrides a virtual function, a wrapper (such as `Invoke_OnUpdate`) is used instead.
+	// The wrappers catch exceptions that stops the debugger before the stack is unwound, as a result the whole stack trace is visible in the debugger.
+	static UnmanagedMethod GetEntityCallback(const ScriptClass& classData, const std::string& methodDesc)
 	{
 		constexpr bool bCheckParentClasses = true;
+		UnmanagedMethod result = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, classData, methodDesc, bCheckParentClasses);
+		if (!result)
+			return result;
 
+		const uint32_t flags = mono_method_get_flags(result.Method, nullptr);
+		const bool bOverride = (flags & MONO_METHOD_ATTR_VIRTUAL) && (flags & MONO_METHOD_ATTR_VTABLE_LAYOUT_MASK) == MONO_METHOD_ATTR_REUSE_SLOT;
+		if (!bOverride)
+			return result;
+
+		EG_CORE_ASSERT(!methodDesc.empty() && methodDesc[0] == ':');
+		const std::string wrapperDesc = "Eagle.Entity:Invoke_" + methodDesc.substr(1);
+		if (MonoMethod* wrapper = ScriptEngine::GetMethod(s_CoreAssemblyImage, wrapperDesc))
+			result.Thunk = mono_method_get_unmanaged_thunk(wrapper);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't find '{}'. Exceptions thrown from it will be reported without the call stack", wrapperDesc);
+
+		return result;
+	}
+
+	void EntityScriptClass::InitClassMethods()
+	{
 		Methods.Constructor				= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(GUID)");
-		Methods.OnCreateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnCreate()", bCheckParentClasses);
-		Methods.OnDestroyMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnDestroy()", bCheckParentClasses);
-		Methods.OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnUpdate(single)", bCheckParentClasses);
-		Methods.OnEventMethod           = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnEvent(Event)", bCheckParentClasses);
-		Methods.OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnPhysicsUpdate(single)", bCheckParentClasses);
-		Methods.OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnAnimationEvent(string,single)", bCheckParentClasses);
-		Methods.OnSequenceEventMethod   = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnSequenceEvent(string,single)", bCheckParentClasses);
-		Methods.OnMouseEnterMethod      = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseEnter()", bCheckParentClasses);
-		Methods.OnMouseExitMethod       = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseExit()", bCheckParentClasses);
-		Methods.OnMouseDownMethod       = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseDown(MouseButton)", bCheckParentClasses);
-		Methods.OnMouseUpMethod         = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseUp(MouseButton)", bCheckParentClasses);
-		Methods.OnMouseClickMethod      = ScriptEngine::GetMethodUnmanaged(s_AppAssemblyImage, ClassData, ":OnMouseClick(MouseButton)", bCheckParentClasses);
+		Methods.OnCreateMethod			= GetEntityCallback(ClassData, ":OnCreate()");
+		Methods.OnDestroyMethod			= GetEntityCallback(ClassData, ":OnDestroy()");
+		Methods.OnUpdateMethod			= GetEntityCallback(ClassData, ":OnUpdate(single)");
+		Methods.OnEventMethod           = GetEntityCallback(ClassData, ":OnEvent(Event)");
+		Methods.OnPhysicsUpdateMethod	= GetEntityCallback(ClassData, ":OnPhysicsUpdate(single)");
+		Methods.OnAnimationEventMethod  = GetEntityCallback(ClassData, ":OnAnimationEvent(string,single)");
+		Methods.OnSequenceEventMethod   = GetEntityCallback(ClassData, ":OnSequenceEvent(string,single)");
+		Methods.OnMouseEnterMethod      = GetEntityCallback(ClassData, ":OnMouseEnter()");
+		Methods.OnMouseExitMethod       = GetEntityCallback(ClassData, ":OnMouseExit()");
+		Methods.OnMouseDownMethod       = GetEntityCallback(ClassData, ":OnMouseDown(MouseButton)");
+		Methods.OnMouseUpMethod         = GetEntityCallback(ClassData, ":OnMouseUp(MouseButton)");
+		Methods.OnMouseClickMethod      = GetEntityCallback(ClassData, ":OnMouseClick(MouseButton)");
 
 		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(Entity,Vector3,Vector3,Vector3,Vector3)");
 		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(Entity,Vector3,Vector3,Vector3,Vector3)");

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -151,6 +152,20 @@ namespace Eagle
         public virtual void OnMouseDown(MouseButton button) { }
         public virtual void OnMouseUp(MouseButton button) { } // Note: `Up` is called for the entity that got `Down`, even if the mouse has left it
         public virtual void OnMouseClick(MouseButton button) { } // Pressed and released over this entity
+
+        // C++ calls the callbacks above through these, so that the debugger stops on exceptions that scripts don't handle and shows the whole call stack
+        [DebuggerHidden] internal void Invoke_OnCreate() { try { OnCreate(); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnDestroy() { try { OnDestroy(); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnUpdate(float ts) { try { OnUpdate(ts); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnPhysicsUpdate(float ts) { try { OnPhysicsUpdate(ts); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnEvent(Event e) { try { OnEvent(e); } catch (Exception ex) when (RuntimeException.BreakOnUnhandled(ex)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnAnimationEvent(string eventName, float time) { try { OnAnimationEvent(eventName, time); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnSequenceEvent(string eventName, float time) { try { OnSequenceEvent(eventName, time); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnMouseEnter() { try { OnMouseEnter(); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnMouseExit() { try { OnMouseExit(); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnMouseDown(MouseButton button) { try { OnMouseDown(button); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnMouseUp(MouseButton button) { try { OnMouseUp(button); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
+        [DebuggerHidden] internal void Invoke_OnMouseClick(MouseButton button) { try { OnMouseClick(button); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
 
         // Returns actual damage that was taken
         public virtual float TakeDamage(Entity source, float damage)
@@ -512,7 +527,8 @@ namespace Eagle
                 collisionInfo.Normal = normal;
                 collisionInfo.Impulse = impulse;
                 collisionInfo.Force = force;
-                m_CollisionBeginCallbacks.Invoke(this, otherEntity, collisionInfo);
+                try { m_CollisionBeginCallbacks.Invoke(this, otherEntity, collisionInfo); }
+                catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; }
             }
         }
 
@@ -525,20 +541,27 @@ namespace Eagle
                 collisionInfo.Normal = normal;
                 collisionInfo.Impulse = impulse;
                 collisionInfo.Force = force;
-                m_CollisionEndCallbacks.Invoke(this, otherEntity, collisionInfo);
+                try { m_CollisionEndCallbacks.Invoke(this, otherEntity, collisionInfo); }
+                catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; }
             }
         }
 
         private void OnTriggerBegin(Entity otherEntity)
         {
             if (m_TriggerBeginCallbacks != null)
-                m_TriggerBeginCallbacks.Invoke(this, otherEntity);
+            {
+                try { m_TriggerBeginCallbacks.Invoke(this, otherEntity); }
+                catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; }
+            }
         }
 
         private void OnTriggerEnd(Entity otherEntity)
         {
             if (m_TriggerEndCallbacks != null)
-                m_TriggerEndCallbacks.Invoke(this, otherEntity);
+            {
+                try { m_TriggerEndCallbacks.Invoke(this, otherEntity); }
+                catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; }
+            }
         }
 
         public string GetName()

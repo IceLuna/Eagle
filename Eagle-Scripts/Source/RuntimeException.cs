@@ -5,6 +5,20 @@ namespace Eagle
 {
     class RuntimeException
     {
+        [ThreadStatic]
+        private static object s_AlreadyReported;
+
+        [DebuggerHidden]
+        internal static bool BreakOnUnhandled(Exception exception)
+        {
+            if (Debugger.IsAttached)
+            {
+                s_AlreadyReported = exception;
+                Debugger.Break();
+            }
+            return false;
+        }
+
         public static void OnException(object exception)
         {
             Log.Error("RuntimeException.OnException");
@@ -23,7 +37,10 @@ namespace Eagle
                 Log.Error("Unknown exception!");
             }
 
-            if (Debugger.IsAttached)
+            bool bAlreadyReported = exception != null && ReferenceEquals(exception, s_AlreadyReported);
+            s_AlreadyReported = null;
+
+            if (!bAlreadyReported && Debugger.IsAttached)
                 Debugger.Break();
         }
     }
