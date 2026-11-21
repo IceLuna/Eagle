@@ -20,7 +20,10 @@ namespace Eagle
 			ProjectSettingsTab::Section Value;
 			const char* Name;
 			const char* Description;
+			const char* Group = nullptr;
 		};
+
+		constexpr const char* s_NavigationGroup = "Navigation";
 
 		// In the order of the list
 		constexpr SectionInfo s_Sections[] =
@@ -29,10 +32,16 @@ namespace Eagle
 			{ ProjectSettingsTab::Section::CollisionGroups, "Collision Groups",
 				"Groups of physics objects. Colliders, character controllers and ragdolls belong to groups, and choose which groups they interact with.\n"
 				"Deleting a group removes it from everything that uses it" },
-			{ ProjectSettingsTab::Section::Navigation, "Navigation",
+			{ ProjectSettingsTab::Section::NavAgents, "Agents",
 				"Agent types for AI navigation. A scene has a nav mesh per agent type, built for the agent's size. Crowd agents use the nav mesh that fits them, "
 				"unless they pick a type. Other queries use the default type, unless a script picks another one.\n"
-				"Deleting a type makes nav meshes that used it fall back to other types, and crowd agents and script fields fall back to `Auto`" },
+				"Deleting a type makes nav meshes that used it fall back to other types, and crowd agents and script fields fall back to `Auto`",
+				s_NavigationGroup },
+			{ ProjectSettingsTab::Section::NavAreas, "Areas",
+				"Kinds of walkable surface (mud, road, etc...) that are more or less expensive to walk on, or blocked. The path search counts a meter in an area as its `Cost` meters, "
+				"so agents go around expensive areas unless the detour is longer. Surfaces are marked by Nav Area Volume components and by the Nav Area of colliders.\n"
+				"Where areas overlap, the one higher in the list wins. Agent types can override the costs (see Navigation > Agents)",
+				s_NavigationGroup },
 			{ ProjectSettingsTab::Section::UIScale, "UI Scale", "How the 2D UI (for example, Text2D and Image2D components) is scaled to the resolution of the viewport" },
 			{ ProjectSettingsTab::Section::SplashScreen, "Game Splash Screen",
 				"Shown while the game is starting, until its first frames are rendered. It doesn't affect the editor, it has its own splash screen" },
@@ -91,6 +100,79 @@ namespace Eagle
 				ImGui::PopColumnsBackground();
 			}
 			s_bFirstSettingsRow = false;
+		}
+
+		// A row's checkbox overrides the area's cost and whether it's blocked.
+		// @bFinished is set when an edit is finished, so that it's saved once
+		bool DrawAreaOverrides(const char* id, std::vector<AINavigation::AreaOverride>& overrides, bool* bFinished)
+		{
+			bool bChanged = false;
+			BeginSettingsGrid(id);
+			for (const AINavigation::Area& area : Project::GetNavAreas())
+			{
+				ImGui::PushID(int(area.ID));
+				SettingsRow();
+
+				auto it = std::find_if(overrides.begin(), overrides.end(), [&area](const AINavigation::AreaOverride& areaOverride) { return areaOverride.AreaID == area.ID; });
+				bool bOverride = it != overrides.end();
+				float cost = bOverride ? it->Cost : area.Cost;
+				bool bBlocked = bOverride ? it->bBlocked : area.bBlocked;
+
+				const bool bWasOverridden = bOverride;
+				if (!bWasOverridden)
+					ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+				ImGui::TextUnformatted(area.Name.c_str());
+				ImGui::SameLine();
+				UI::HelpMarker("Check to override. If not overridden, it's the area's setting.\n If blocked, agents can't walk on it");
+				ImGui::SameLine();
+				const bool bToggled = ImGui::Checkbox("##Override", &bOverride);
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("Override");
+				ImGui::NextColumn();
+
+				const ImGuiStyle& style = ImGui::GetStyle();
+				const char* blockedLabel = "Blocked";
+				const float blockedWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x + ImGui::CalcTextSize(blockedLabel).x;
+				ImGui::SetNextItemWidth(glm::max(ImGui::GetContentRegionAvail().x - blockedWidth - style.ItemSpacing.x, 50.f));
+				const bool bCostEdited = ImGui::DragFloat("##Cost", &cost, 0.05f, AINavigation::MinAreaCost, 1000.f, "%.2f");
+				if (ImGui::IsItemDeactivatedAfterEdit())
+					*bFinished = true;
+				ImGui::SameLine();
+				const bool bBlockedEdited = ImGui::Checkbox(blockedLabel, &bBlocked);
+				if (bBlockedEdited)
+					*bFinished = true;
+				ImGui::NextColumn();
+
+				if (!bWasOverridden)
+					ImGui::PopStyleColor();
+
+				const bool bEdited = bCostEdited || bBlockedEdited;
+				cost = glm::max(cost, AINavigation::MinAreaCost);
+				if (bToggled && !bOverride)
+				{
+					overrides.erase(it);
+					bChanged = true;
+					*bFinished = true;
+				}
+				else if (bWasOverridden && bEdited)
+				{
+					it->Cost = cost;
+					it->bBlocked = bBlocked;
+					bChanged = true;
+				}
+				else if (!bWasOverridden && (bToggled || bEdited))
+				{
+					overrides.push_back({ area.ID, cost, bBlocked });
+					bChanged = true;
+					*bFinished |= bToggled;
+				}
+
+				ImGui::PopID();
+			}
+			EndSettingsGrid();
+			return bChanged;
 		}
 
 		const SectionInfo& GetSectionInfo(ProjectSettingsTab::Section section)
@@ -248,11 +330,27 @@ namespace Eagle
 			UI::PopFont();
 			ImGui::Spacing();
 
+			// Groups only expand and collapse. Their sections follow them in `s_Sections`
+			const char* group = nullptr;
+			bool bGroupOpen = true;
 			for (const SectionInfo& info : s_Sections)
 			{
+				if (info.Group != group)
+				{
+					if (group && bGroupOpen)
+						ImGui::TreePop();
+
+					group = info.Group;
+					bGroupOpen = !group || ImGui::TreeNodeEx(group, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth);
+				}
+				if (!bGroupOpen)
+					continue;
+
 				if (ImGui::Selectable(info.Name, m_SelectedSection == info.Value))
 					m_SelectedSection = info.Value;
 			}
+			if (group && bGroupOpen)
+				ImGui::TreePop();
 		}
 		ImGui::EndChild();
 	}
@@ -264,7 +362,10 @@ namespace Eagle
 			const SectionInfo& info = GetSectionInfo(m_SelectedSection);
 
 			UI::PushFontHeader2();
-			ImGui::TextUnformatted(info.Name);
+			if (info.Group)
+				ImGui::Text("%s > %s", info.Group, info.Name);
+			else
+				ImGui::TextUnformatted(info.Name);
 			UI::PopFont();
 			ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + glm::min(ImGui::GetContentRegionAvail().x, ImGui::GetFontSize() * s_MaxDescriptionWidth));
 			ImGui::TextDisabled("%s", info.Description);
@@ -282,7 +383,8 @@ namespace Eagle
 			{
 				case Section::General:         bChanged = DrawGeneralSection();         break;
 				case Section::CollisionGroups: bChanged = DrawCollisionGroupsSection(); break;
-				case Section::Navigation:      bChanged = DrawNavigationSection();      break;
+				case Section::NavAgents:       bChanged = DrawNavAgentsSection();       break;
+				case Section::NavAreas:        bChanged = DrawNavAreasSection();        break;
 				case Section::UIScale:         bChanged = DrawUIScaleSection();         break;
 				case Section::SplashScreen:    bChanged = DrawSplashScreenSection();    break;
 			}
@@ -377,7 +479,7 @@ namespace Eagle
 		return bChanged;
 	}
 
-	bool ProjectSettingsTab::DrawNavigationSection()
+	bool ProjectSettingsTab::DrawNavAgentsSection()
 	{
 		bool bChanged = false;
 		bool bScenesAffected = false;
@@ -451,10 +553,22 @@ namespace Eagle
 				SizeProperty("Height", edited.Height, 0.01f, 0.f, "Minimum floor to 'ceiling' height that will still allow the floor area to be considered walkable");
 				SizeProperty("Max Climb", edited.MaxClimb, 0.01f, 0.f, "Maximum ledge height that is considered to still be traversable");
 				SizeProperty("Max Slope", edited.MaxSlope, 1.f, 90.f, "Degrees. The maximum slope that is considered walkable");
+				EndSettingsGrid();
+
+				bool bCostsChanged = false;
+				if (UI::PushTreeNode("Area Costs", false, true, "Overrides the costs of nav areas for this agent type, and whether they're blocked (see Navigation > Areas). Changes apply right away, nav meshes aren't rebuilt"))
+				{
+					bool bFinished = false;
+					bCostsChanged = DrawAreaOverrides("ProjectSettingsAgentTypeCosts", edited.AreaOverrides, &bFinished);
+					bEdited |= bCostsChanged;
+					bChanged |= bFinished;
+					UI::PopTreeNode();
+				}
+
 				if (bEdited)
 					Project::SetNavAgentType(edited);
-
-				EndSettingsGrid();
+				if (bCostsChanged)
+					EditorLayer::Get()->OnNavAreasChanged();
 
 				if (!bCanRemove)
 					UI::PushItemDisabled();
@@ -497,6 +611,152 @@ namespace Eagle
 
 		if (bScenesAffected)
 			EditorLayer::Get()->OnNavAgentTypesChanged();
+
+		return bChanged;
+	}
+
+	bool ProjectSettingsTab::DrawNavAreasSection()
+	{
+		bool bChanged = false;
+		bool bScenesAffected = false;
+
+		ImGui::TextDisabled("From the highest priority to the lowest. Default is every surface that isn't marked otherwise, and it's always the last one");
+
+		uint32_t areaToRemove = AINavigation::InvalidAreaID;
+		std::optional<std::pair<uint32_t, uint32_t>> areaToMove; // ID, new index
+
+		// Copied, since changing them changes the project's vector
+		const std::vector<AINavigation::Area> areas = Project::GetNavAreas();
+		for (uint32_t index = 0; index < (uint32_t)areas.size(); ++index)
+		{
+			const AINavigation::Area& area = areas[index];
+			const bool bDefault = area.ID == AINavigation::DefaultAreaID;
+
+			ImGui::PushID(int(area.ID));
+			if (UI::PushTreeNode(area.Name, false, true, "", area.ID))
+			{
+				BeginSettingsGrid("ProjectSettingsArea");
+
+				SettingsRow();
+				UI::Text("ID", std::to_string(area.ID), "It never changes, and it's never reused by another area. Components and scripts store it");
+
+				SettingsRow();
+				if (bDefault)
+				{
+					UI::Text("Name", area.Name, "Default can't be renamed");
+				}
+				else
+				{
+					auto pendingIt = m_PendingAreaNames.find(area.ID);
+					std::string name = pendingIt != m_PendingAreaNames.end() ? pendingIt->second : area.Name;
+					if (UI::PropertyText("Name", name, "Must be unique and not empty. Scripts can look areas up by name"))
+					{
+						if (Project::RenameNavArea(area.ID, name))
+						{
+							m_PendingAreaNames.erase(area.ID);
+							bChanged = true;
+						}
+						else
+							m_PendingAreaNames[area.ID] = name;
+					}
+					if (m_PendingAreaNames.contains(area.ID))
+						UI::Text("", "The name is empty or used by another area. It isn't applied");
+				}
+
+				AINavigation::Area edited = area;
+				bool bEdited = false;
+				SettingsRow();
+				if (UI::PropertyDrag("Cost", edited.Cost, 0.05f, AINavigation::MinAreaCost, 1000.f,
+					"How many meters a meter in this area counts as for the path search. At least 1. Agent types can override it"))
+				{
+					bEdited = true;
+					bScenesAffected = true;
+				}
+				if (ImGui::IsItemDeactivatedAfterEdit())
+					bChanged = true;
+
+				SettingsRow();
+				if (UI::Property("Blocked", edited.bBlocked,
+					"Agents can't walk on it. The nav mesh is still there, so scripts can unblock it (`NavMesh.SetAreaBlocked`). Agent types can override it"))
+				{
+					bEdited = true;
+					bChanged = true;
+					bScenesAffected = true;
+				}
+
+				if (!bDefault)
+				{
+					SettingsRow();
+					if (UI::PropertyColor("Debug Color", edited.DebugColor, false, "The color of its polygons when nav meshes are drawn by area"))
+					{
+						bEdited = true;
+						bChanged = true;
+					}
+				}
+				if (bEdited)
+					Project::SetNavArea(edited);
+
+				EndSettingsGrid();
+
+				if (!bDefault)
+				{
+					const bool bCanMoveUp = index > 0u;
+					const bool bCanMoveDown = index + 2u < (uint32_t)areas.size(); // Default stays the last one
+
+					if (!bCanMoveUp)
+						UI::PushItemDisabled();
+					if (ImGui::Button("Move Up"))
+						areaToMove = { area.ID, index - 1u };
+					if (!bCanMoveUp)
+						UI::PopItemDisabled();
+
+					ImGui::SameLine();
+					if (!bCanMoveDown)
+						UI::PushItemDisabled();
+					if (ImGui::Button("Move Down"))
+						areaToMove = { area.ID, index + 1u };
+					if (!bCanMoveDown)
+						UI::PopItemDisabled();
+
+					ImGui::SameLine();
+					if (ImGui::Button("Delete"))
+						areaToRemove = area.ID;
+				}
+
+				UI::PopTreeNode();
+			}
+			ImGui::PopID();
+		}
+
+		if (areaToMove && Project::MoveNavArea(areaToMove->first, areaToMove->second))
+		{
+			bChanged = true;
+			bScenesAffected = true;
+		}
+		if (areaToRemove != AINavigation::InvalidAreaID && Project::RemoveNavArea(areaToRemove))
+		{
+			m_PendingAreaNames.erase(areaToRemove);
+			bChanged = true;
+			bScenesAffected = true;
+		}
+
+		const bool bCanAddArea = Project::CanAddNavArea();
+		if (!bCanAddArea)
+			UI::PushItemDisabled();
+		const std::string addAreaLabel = "Add Area (" + std::to_string(areas.size()) + " / " + std::to_string(AINavigation::MaxAreas) + ")";
+		if (ImGui::Button(addAreaLabel.c_str()))
+		{
+			if (Project::AddNavArea("New Area") != AINavigation::InvalidAreaID)
+			{
+				bChanged = true;
+				bScenesAffected = true;
+			}
+		}
+		if (!bCanAddArea)
+			UI::PopItemDisabled();
+
+		if (bScenesAffected)
+			EditorLayer::Get()->OnNavAreasChanged();
 
 		return bChanged;
 	}

@@ -58,12 +58,16 @@ namespace Eagle::AINavigation
 		bool SetSettings(const CrowdSettings& settings);
 		const CrowdSettings& GetSettings() const { return m_Settings; }
 
+		// If the costs change, agents plan their paths again
+		void SetFilter(const dtQueryFilter& filter, bool bWalkablePolysChanged = false);
+
 		// Returns an index of an agent
 		int AddAgent(const glm::vec3& pos, const AgentSettings& settings);
 		void RemoveAgent(int agentIndex);
 		int GetAgentCount() const;
 
 		bool GetAgentLocation(int agentIndex, glm::vec3* outLocation) const;
+		dtPolyRef GetAgentPoly(int agentIndex) const; // The polygon the agent is on. 0 if it isn't on the nav mesh
 		bool GetAgentVelocity(int agentIndex, glm::vec3* outVelocity) const;
 
 		// Moves the agent keeping its path.
@@ -90,6 +94,8 @@ namespace Eagle::AINavigation
 	private:
 		// Returns 0 if there's no polygon within `searchHalfExtents` of `pos`
 		dtPolyRef FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outTargetPos) const;
+
+		void ReplanPath(int agentIndex);
 
 	private:
 		dtCrowd* m_Crowd = nullptr;

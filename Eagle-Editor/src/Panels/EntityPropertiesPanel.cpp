@@ -39,6 +39,10 @@ namespace Eagle
 		"Points farther from the nav mesh are treated as being off it.\n"
 		"Scripts can override it per query. Changing it doesn't rebuild the nav mesh";
 	static const char* s_OverrideSearchExtentsHelpMsg = "If not set, Search Half Extents are calculated based on the radius and height of the agent type";
+	static const char* s_ColliderNavAreaHelpMsg = "The nav area of the walkable surface built from this collider, for example, Mud for a mud mesh. "
+		"Only if it affects the nav mesh build. Where areas overlap, the one with the higher priority wins (see Project Settings > Navigation > Areas)";
+	static const char* s_AreaVolumeAreaHelpMsg = "The walkable surface inside the box gets this area. Where areas overlap, the one with the higher priority wins (see Project Settings > Navigation > Areas).\n"
+		"With a blocked area, agents can't walk there";
 	static const char* s_AffectsNavMeshHelpMsg = "If set to false, it won't affect NavMesh builds. It still can be used as an obstacle though.\n"
 		"Only static colliders/triggers affect NavMesh builds";
 	static const char* s_FilterLowHangingObstaclesHelpMsg = "Marks non-walkable spans as walkable if their maximum is within the Max Climb of the agent type of the span below them.\n"
@@ -145,6 +149,7 @@ namespace Eagle
 		case SelectedComponent::ParticleSystemComponent: return &m_Entity.GetComponent<ParticleSystemComponent>();
 		case SelectedComponent::DecalComponent: return &m_Entity.GetComponent<DecalComponent>();
 		case SelectedComponent::NavigationMeshComponent: return &m_Entity.GetComponent<NavigationMeshComponent>();
+		case SelectedComponent::NavigationAreaVolumeComponent: return &m_Entity.GetComponent<NavigationAreaVolumeComponent>();
 		case SelectedComponent::SceneSequenceComponent: return &m_Entity.GetComponent<SceneSequenceComponent>();
 		}
 		return nullptr;
@@ -182,6 +187,7 @@ namespace Eagle
 			case SelectedComponent::DecalComponent: return m_Entity.HasComponent<DecalComponent>();
 			case SelectedComponent::NavigationMeshComponent: return m_Entity.HasComponent<NavigationMeshComponent>();
 			case SelectedComponent::NavigationCrowdAgentComponent: return m_Entity.HasComponent<NavigationCrowdAgentComponent>();
+			case SelectedComponent::NavigationAreaVolumeComponent: return m_Entity.HasComponent<NavigationAreaVolumeComponent>();
 			case SelectedComponent::SceneSequenceComponent: return m_Entity.HasComponent<SceneSequenceComponent>();
 			case SelectedComponent::EntityAssetComponent: return m_Entity.HasComponent<EntityAssetComponent>();
 		}
@@ -251,6 +257,7 @@ namespace Eagle
 			UI::TextWithSeparator("AI Navigation");
 			EG_ADD_COMPONENT_MENU_ITEM(NavigationMeshComponent, "Navigation Mesh");
 			EG_ADD_COMPONENT_MENU_ITEM(NavigationCrowdAgentComponent, "Navigation Crowd Agent");
+			EG_ADD_COMPONENT_MENU_ITEM(NavigationAreaVolumeComponent, "Navigation Area Volume");
 
 			UI::TextWithSeparator("Lights");
 			EG_ADD_COMPONENT_MENU_ITEM(PointLightComponent, "Point Light");
@@ -309,6 +316,7 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Decal", DecalComponent, SelectedComponent::DecalComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Mesh", NavigationMeshComponent, SelectedComponent::NavigationMeshComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Crowd Agent", NavigationCrowdAgentComponent, SelectedComponent::NavigationCrowdAgentComponent);
+				EG_DRAW_COMPONENT_LINE("Navigation Area Volume", NavigationAreaVolumeComponent, SelectedComponent::NavigationAreaVolumeComponent);
 #undef EG_DRAW_COMPONENT_LINE
 #undef EG_DRAW_COMPONENT_LINE_EX
 				ImGui::TreePop();
@@ -1783,6 +1791,19 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
+					{
+						uint32_t navAreaID = collider.GetNavAreaID();
+						if (!bAffectsNavMesh)
+							UI::PushItemDisabled();
+						if (UI::NavAreaCombo("Nav Area", navAreaID, s_ColliderNavAreaHelpMsg))
+						{
+							collider.SetNavAreaID(navAreaID);
+							bEntityChanged = true;
+						}
+						if (!bAffectsNavMesh)
+							UI::PopItemDisabled();
+					}
+
 					if (UI::Property("Is Collision Visible", bShowCollision))
 					{
 						collider.SetShowCollision(bShowCollision);
@@ -1873,6 +1894,19 @@ namespace Eagle
 					{
 						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
 						bEntityChanged = true;
+					}
+
+					{
+						uint32_t navAreaID = collider.GetNavAreaID();
+						if (!bAffectsNavMesh)
+							UI::PushItemDisabled();
+						if (UI::NavAreaCombo("Nav Area", navAreaID, s_ColliderNavAreaHelpMsg))
+						{
+							collider.SetNavAreaID(navAreaID);
+							bEntityChanged = true;
+						}
+						if (!bAffectsNavMesh)
+							UI::PopItemDisabled();
 					}
 
 					if (UI::Property("Is Collision Visible", bShowCollision))
@@ -1974,6 +2008,19 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
+					{
+						uint32_t navAreaID = collider.GetNavAreaID();
+						if (!bAffectsNavMesh)
+							UI::PushItemDisabled();
+						if (UI::NavAreaCombo("Nav Area", navAreaID, s_ColliderNavAreaHelpMsg))
+						{
+							collider.SetNavAreaID(navAreaID);
+							bEntityChanged = true;
+						}
+						if (!bAffectsNavMesh)
+							UI::PopItemDisabled();
+					}
+
 					if (UI::Property("Is Collision Visible", bShowCollision))
 					{
 						collider.SetShowCollision(bShowCollision);
@@ -2071,6 +2118,19 @@ namespace Eagle
 					{
 						collider.SetAffectsNavMeshBuild(bAffectsNavMesh);
 						bEntityChanged = true;
+					}
+
+					{
+						uint32_t navAreaID = collider.GetNavAreaID();
+						if (!bAffectsNavMesh)
+							UI::PushItemDisabled();
+						if (UI::NavAreaCombo("Nav Area", navAreaID, s_ColliderNavAreaHelpMsg))
+						{
+							collider.SetNavAreaID(navAreaID);
+							bEntityChanged = true;
+						}
+						if (!bAffectsNavMesh)
+							UI::PopItemDisabled();
 					}
 
 					if (UI::Property("Is Collision Visible", bShowCollision))
@@ -2585,6 +2645,81 @@ namespace Eagle
 					}
 				});
 				
+				break;
+			}
+
+			case SelectedComponent::NavigationAreaVolumeComponent:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<NavigationAreaVolumeComponent>());
+				DrawComponent<NavigationAreaVolumeComponent>("Navigation Area Volume", entity, [this](NavigationAreaVolumeComponent& component)
+				{
+					UI::BeginPropertyGrid("NavigationAreaVolumeComponent");
+
+					uint32_t areaID = component.GetAreaID();
+					auto DefaultAreaWarning = [areaID]()
+					{
+						if (areaID != AINavigation::DefaultAreaID)
+							return;
+
+						ImGui::TextColored(ImVec4(1.f, 0.8f, 0.2f, 1.f), "(!)");
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Does nothing. Default has the lowest priority, so it doesn't replace any area. Pick another one (see Project Settings > Navigation > Areas)");
+					};
+					if (UI::NavAreaCombo("Area", areaID, s_AreaVolumeAreaHelpMsg, DefaultAreaWarning))
+					{
+						component.SetAreaID(areaID);
+						bEntityChanged = true;
+					}
+
+					const bool bDisable = areaID == AINavigation::DefaultAreaID;
+					if (bDisable)
+						UI::PushItemDisabled();
+
+					glm::vec3 halfExtents = component.GetHalfExtents();
+					if (UI::PropertyDrag("Half Extents", halfExtents, 0.05f))
+					{
+						component.SetHalfExtents(halfExtents);
+						bEntityChanged = true;
+					}
+
+					bool bAllAgentTypes = component.AffectsAllAgentTypes();
+					if (UI::Property("All Agent Types", bAllAgentTypes, "If unchecked, only the nav meshes of the checked agent types are affected"))
+					{
+						component.SetAffectsAllAgentTypes(bAllAgentTypes);
+						bEntityChanged = true;
+					}
+
+					if (!bAllAgentTypes)
+					{
+						std::vector<uint32_t> agentTypeIDs = component.GetAgentTypeIDs();
+						bool bTypesChanged = false;
+						for (const AINavigation::AgentType& type : Project::GetNavAgentTypes())
+						{
+							ImGui::PushID(int(type.ID));
+							bool bAffected = std::ranges::contains(agentTypeIDs, type.ID);
+							if (UI::Property(type.Name, bAffected))
+							{
+								if (bAffected)
+									agentTypeIDs.push_back(type.ID);
+								else
+									std::erase(agentTypeIDs, type.ID);
+								bTypesChanged = true;
+							}
+							ImGui::PopID();
+						}
+
+						if (bTypesChanged)
+						{
+							component.SetAgentTypeIDs(agentTypeIDs);
+							bEntityChanged = true;
+						}
+					}
+
+					if (bDisable)
+						UI::PopItemDisabled();
+
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 

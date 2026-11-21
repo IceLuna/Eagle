@@ -3101,6 +3101,19 @@ namespace Eagle
             return DoesAffectNavMeshBuild_Native(Parent.ID, m_Type);
         }
 
+        // The nav area of the walkable surface built from this collider, for example `NavArea.FromName("Mud")` for a mud mesh.
+        // Only if it affects the nav mesh build. Nav meshes with `Auto Rebuild` are rebuilt when it changes.
+        // An area that the project doesn't have is treated as Default
+        public void SetNavArea(NavArea area)
+        {
+            SetNavAreaID_Native(Parent.ID, m_Type, area.ID);
+        }
+
+        public NavArea GetNavArea()
+        {
+            return new NavArea(GetNavAreaID_Native(Parent.ID, m_Type));
+        }
+
         // Makes the collider block AI navigation paths at runtime without rebuilding the nav mesh.
         // It works for triggers and colliders with disabled collision too (for example, a trigger can mark a zone that AI should avoid).
         // Mesh colliders can't be obstacles
@@ -3149,6 +3162,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesAffectNavMeshBuild_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetNavAreaID_Native(in GUID entityID, Type type, uint areaID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetNavAreaID_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsObstacle_Native(in GUID entityID, Type type, bool bObstacle);
@@ -3704,6 +3723,21 @@ namespace Eagle
             return agentTypeID != NavAgentType.InvalidID ? new NavMesh(agentTypeID) : null;
         }
 
+        // The area of the nav mesh polygon the agent is on.
+        // Returns false if the agent isn't valid or isn't on the nav mesh
+        public bool GetCurrentArea(out NavArea area)
+        {
+            bool bFound = GetCurrentArea_Native(Parent.ID, out uint areaID);
+            area = new NavArea(areaID);
+            return bFound;
+        }
+
+        // Whether this agent can't walk on an area
+        public bool IsAreaBlocked(NavArea area)
+        {
+            return NavMesh.GetNavMeshFor(Parent).IsAreaBlocked(area);
+        }
+
         // The agent's location on the nav mesh. The entity's location can differ a bit, for example, when physics moves it
         public bool GetLocation(out Vector3 outLocation)
         {
@@ -3766,5 +3800,90 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetNavMeshAgentType_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetCurrentArea_Native(in GUID entityID, out uint areaID);
+    }
+
+    // Marks the walkable surface inside its box with a nav area.
+    // Where areas overlap, the one with the higher priority wins (see Project settings).
+    // Nav meshes with `Auto Rebuild` that it touches are rebuilt at the start of the next frame when it changes or moves
+    public class NavigationAreaVolumeComponent : SceneComponent
+    {
+        // An area that the project doesn't have is kept, but the volume doesn't mark anything
+        public void SetArea(NavArea area)
+        {
+            SetAreaID_Native(Parent.ID, area.ID);
+        }
+
+        public NavArea GetArea()
+        {
+            return new NavArea(GetAreaID_Native(Parent.ID));
+        }
+
+        public void SetHalfExtents(Vector3 halfExtents)
+        {
+            SetHalfExtents_Native(Parent.ID, ref halfExtents);
+        }
+
+        public Vector3 GetHalfExtents()
+        {
+            GetHalfExtents_Native(Parent.ID, out Vector3 halfExtents);
+            return halfExtents;
+        }
+
+        // If false, only the nav meshes of `GetAgentTypes()` are affected
+        public void SetAffectsAllAgentTypes(bool bAll)
+        {
+            SetAffectsAllAgentTypes_Native(Parent.ID, bAll);
+        }
+
+        public bool AffectsAllAgentTypes()
+        {
+            return AffectsAllAgentTypes_Native(Parent.ID);
+        }
+
+        public void SetAgentTypes(NavAgentType[] agentTypes)
+        {
+            uint[] ids = new uint[agentTypes != null ? agentTypes.Length : 0];
+            for (int i = 0; i < ids.Length; ++i)
+                ids[i] = agentTypes[i].ID;
+
+            SetAgentTypeIDs_Native(Parent.ID, ids);
+        }
+
+        public NavAgentType[] GetAgentTypes()
+        {
+            uint[] ids = GetAgentTypeIDs_Native(Parent.ID);
+            NavAgentType[] result = new NavAgentType[ids.Length];
+            for (int i = 0; i < ids.Length; ++i)
+                result[i] = new NavAgentType(ids[i]);
+
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAreaID_Native(in GUID entityID, uint areaID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetAreaID_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetHalfExtents_Native(in GUID entityID, ref Vector3 halfExtents);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetHalfExtents_Native(in GUID entityID, out Vector3 halfExtents);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAffectsAllAgentTypes_Native(in GUID entityID, bool bAll);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool AffectsAllAgentTypes_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAgentTypeIDs_Native(in GUID entityID, uint[] agentTypeIDs);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint[] GetAgentTypeIDs_Native(in GUID entityID);
     }
 }

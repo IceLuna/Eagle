@@ -28,10 +28,11 @@ namespace Eagle::AINavigation
 
 	unsigned int DebugDraw::areaToCol(unsigned int area)
 	{
-		if (!AreaColor)
+		const std::optional<glm::vec3>& areaColor = area < ColorsPerArea.size() && ColorsPerArea[area] ? ColorsPerArea[area] : AreaColor;
+		if (!areaColor)
 			return duDebugDraw::areaToCol(area);
 
-		const glm::vec3 color = glm::clamp(*AreaColor, glm::vec3(0.f), glm::vec3(1.f)) * 255.f;
+		const glm::vec3 color = glm::clamp(*areaColor, glm::vec3(0.f), glm::vec3(1.f)) * 255.f;
 		return duRGBA(int(color.r + 0.5f), int(color.g + 0.5f), int(color.b + 0.5f), 255);
 	}
 

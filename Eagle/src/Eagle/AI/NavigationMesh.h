@@ -19,12 +19,6 @@ namespace Eagle
 
 namespace Eagle::AINavigation
 {
-	inline constexpr uint32_t MaxAgentTypes = 8u;
-	inline constexpr uint32_t InvalidAgentTypeID = 0xFFFFFFFFu;
-
-	// Where an agent type can be picked automatically (crowd agents, `NavAgentType` script fields), this ID means Auto. No agent type has it
-	inline constexpr uint32_t AutoAgentTypeID = 0u;
-
 	// The agent type a nav mesh is built for
 	struct AgentType
 	{
@@ -35,6 +29,7 @@ namespace Eagle::AINavigation
 		float Height = 2.f;
 		float MaxClimb = 0.25f;
 		float MaxSlope = 45.f;
+		std::vector<AreaOverride> AreaOverrides;
 
 		void Clamp()
 		{
@@ -42,6 +37,9 @@ namespace Eagle::AINavigation
 			Height   = glm::max(Height, 0.001f);
 			MaxClimb = glm::max(MaxClimb, 0.f);
 			MaxSlope = glm::clamp(MaxSlope, 0.f, 90.f);
+
+			for (AreaOverride& areaOverride : AreaOverrides)
+				areaOverride.Clamp();
 		}
 
 		bool HasSameDimensions(const AgentType& other) const
@@ -124,7 +122,10 @@ namespace Eagle::AINavigation
 	class Mesh
 	{
 	public:
-		Mesh(const OverlapGeometryData& tiles, const MeshSettings& meshSettings, const AgentType& agentType, const CrowdSettings& crowdSettings);
+		// @triangleAreas. The area ID of each triangle of `geometry`. If it's empty, all of them are Default.
+		// @volumes. Volumes of areas that aren't in `costs.Areas` are ignored, and triangles of these areas are Default
+		Mesh(const OverlapGeometryData& geometry, std::span<const uint32_t> triangleAreas, const AreaCostSources& areas, std::span<const AreaVolume> volumes,
+			const MeshSettings& meshSettings, const AgentType& agentType, const CrowdSettings& crowdSettings);
 		~Mesh();
 
 		// Updates the tile cache by rebuilding tiles touched by unfinished obstacle requests (up to `MaxTileRebuildsPerUpdate`).
@@ -156,6 +157,31 @@ namespace Eagle::AINavigation
 		// Very long paths might be reported as unreachable if the search runs out of `MaxQueryNodes`
 		bool HasCompletePath(const glm::vec3& from, const glm::vec3& to, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
 
+		// The area of the nav mesh at the nearest point within `searchHalfExtents` of `pos`, blocked areas included. Returns false if there's no nav mesh there
+		bool GetAreaAt(const glm::vec3& pos, uint32_t* outAreaID, const std::optional<glm::vec3>& searchHalfExtents = {}) const;
+		uint32_t GetPolyArea(dtPolyRef poly) const; // `InvalidAreaID` if the polygon is invalid
+
+		// Note: the priority stays the one it was built with
+		// Updates all areas. Areas that aren't in `costs.Areas` cost as much as Default
+		// Crowd agents plan their paths again if that changes them
+		void SetAreaCosts(const AreaCostSources& costs);
+
+		bool IsRecastAreaBlocked(uint8_t area) const { return m_BlockedAreas[area % DT_MAX_AREAS]; }
+
+		// Area IDs by priority starting from the highest that it was built with. Default is the last one
+		const std::vector<uint32_t>& GetAreaIDsByPriority() const { return m_AreaIDsByPriority; }
+
+		// False if everything is Default
+		bool HasAreas() const { return m_bHasAreas; }
+
+		// The area ID of a Recast area (a polygon's area). `InvalidAreaID` if it's unused.
+		// Recast areas are numbered by priority: `DefaultRecastArea` (1) is the last area (Default), and the first area has the highest number
+		uint32_t GetAreaIDOfRecastArea(uint8_t area) const
+		{
+			const size_t count = m_AreaIDsByPriority.size();
+			return area >= DefaultRecastArea && area <= count ? m_AreaIDsByPriority[count - area] : InvalidAreaID;
+		}
+
 		glm::vec3 GetSearchHalfExtents() const { return m_Settings.GetSearchHalfExtents(m_AgentType); }
 
 		void SetSearchHalfExtents(const std::optional<glm::vec3>& searchHalfExtents);
@@ -169,8 +195,10 @@ namespace Eagle::AINavigation
 		Crowd& GetCrowd() { return m_Crowd; }
 		const Crowd& GetCrowd() const { return m_Crowd; }
 
+		// See the constructor.
 		// Returns null if the build failed
-		static Ref<Mesh> Create(const OverlapGeometryData& tiles, const MeshSettings& settings, const AgentType& agentType, const CrowdSettings& crowdSettings);
+		static Ref<Mesh> Create(const OverlapGeometryData& geometry, std::span<const uint32_t> triangleAreas, const AreaCostSources& costs, std::span<const AreaVolume> volumes,
+			const MeshSettings& settings, const AgentType& agentType, const CrowdSettings& crowdSettings);
 
 		// Per-frame budget for `Update()`.
 		// Detour's tile cache rebuilds one tile per `dtTileCache::update` call.
@@ -193,7 +221,16 @@ namespace Eagle::AINavigation
 		bool AttachNavigationTileToMesh(NavigationTileData& tileData);
 
 		// Returns 0 if there's no polygon within `searchHalfExtents` of `pos`
-		dtPolyRef FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outNearestPoint = nullptr) const;
+		dtPolyRef FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outNearestPoint = nullptr, const dtQueryFilter* filter = nullptr) const;
+
+		void ApplyAreaFlags(); // Sets the flags of every polygon from `m_BlockedAreas`
+		void MarkAreaVolumes(); // On the current tile's compact heightfield
+
+		uint8_t GetRecastArea(uint32_t areaID) const
+		{
+			auto it = std::ranges::find(m_AreaIDsByPriority, areaID);
+			return it != m_AreaIDsByPriority.end() ? (uint8_t)(m_AreaIDsByPriority.end() - it) : RC_NULL_AREA;
+		}
 
 	private:
 		dtTileCacheAlloc m_Allocator;
@@ -228,11 +265,15 @@ namespace Eagle::AINavigation
 		rcConfig m_Config{};
 		dtTileCacheParams m_TileCacheConfig{};
 		dtQueryFilter m_Filter{};
+		dtQueryFilter m_AnyFilter{};
+		std::array<bool, DT_MAX_AREAS> m_BlockedAreas{}; // By Recast area
+		std::vector<uint32_t> m_AreaIDsByPriority; // Also gives the Recast area of each area (see `GetAreaIDOfRecastArea`)
 		Crowd m_Crowd;
 		int m_TilesX = 0; // Tile grid size
 		int m_TilesZ = 0;
 		bool m_bValid = false;
 		bool m_bWarnedLargeObstacle = false;
+		bool m_bHasAreas = false;
 		// Distinct tiles touched by obstacle requests queued since the tile cache was last up to date.
 		// Detour's next batch is part of these, so keeping this within `GetMaxTilesPerBatch()` keeps the batch within it too
 		std::vector<dtCompressedTileRef> m_BatchTiles;
@@ -244,6 +285,8 @@ namespace Eagle::AINavigation
 		rcChunkyTriMesh m_ChunkyMesh{};
 		std::vector<int> m_CIDs;
 		std::vector<uint8_t> m_TrianglesAreas;
+		std::vector<uint8_t> m_SourceTriangleAreas; // Recast areas of the source triangles
+		std::vector<AreaVolume> m_AreaVolumes; // `AreaID` is a Recast area here
 		std::vector<NavigationTileData> m_Tiles;
 		const float* m_Vertices = nullptr;
 		int m_VertexCount = 0;

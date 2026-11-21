@@ -4,6 +4,7 @@
 #include "ScriptUserComponents.h"
 
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Core/Project.h"
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Physics/PhysicsActor.h"
 
@@ -2374,6 +2375,43 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesAffectNavMeshBuild'. Entity is null");
 		return false;
+	}
+
+	void Script::Eagle_BaseColliderComponent_SetNavAreaID(GUID entityID, void* type, uint32_t areaID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			if (!Project::FindNavArea(areaID))
+				EG_CORE_ERROR("[ScriptEngine] `SetNavArea`: the project doesn't have a nav area with ID {}. It's treated as Default", areaID);
+
+			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+			if (BaseColliderComponent* comp = ScriptEngineRegistry::GetColliderComponent(entity, monoType))
+				comp->SetNavAreaID(areaID);
+
+			return;
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetNavArea'. Entity is null");
+	}
+
+	uint32_t Script::Eagle_BaseColliderComponent_GetNavAreaID(GUID entityID, void* type)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+			if (BaseColliderComponent* comp = ScriptEngineRegistry::GetColliderComponent(entity, monoType))
+				return comp->GetNavAreaID();
+
+			EG_CORE_ERROR("[ScriptEngine] `GetNavArea`: failed to find a collider");
+			return AINavigation::InvalidAreaID;
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetNavArea'. Entity is null");
+		return AINavigation::InvalidAreaID;
 	}
 
 	void Script::Eagle_BaseColliderComponent_SetIsObstacle(GUID entityID, void* type, bool bObstacle)

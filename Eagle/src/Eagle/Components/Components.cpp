@@ -591,6 +591,16 @@ namespace Eagle
 		return Transform(RelativeTransform.Location * Parent.GetWorldTransform().Scale3D, RelativeTransform.Rotation);
 	}
 
+	void BaseColliderComponent::SetNavAreaID(uint32_t areaID)
+	{
+		if (m_NavAreaID == areaID)
+			return;
+
+		m_NavAreaID = areaID;
+		if (bAffectsNavMeshBuild)
+			Parent.GetScene()->RequestNavMeshRebuild();
+	}
+
 	void BaseColliderComponent::SetIsObstacle(bool bValue)
 	{
 		if (bObstacle == bValue)
@@ -613,6 +623,7 @@ namespace Eagle
 		SetIsTrigger(other.bTrigger);
 		SetShowCollision(other.bShowCollision);
 		SetAffectsNavMeshBuild(other.bAffectsNavMeshBuild);
+		m_NavAreaID = other.m_NavAreaID;
 		SetIsObstacle(other.IsObstacle());
 		SetCollisionGroup(other.m_CollisionGroup);
 		SetInteractingCollisionGroup(other.m_InteractingCollisionGroup);
@@ -1890,7 +1901,142 @@ namespace Eagle
 		}
 
 		auto geometry = physicsScene->AppendColliderGeometry(settings.Bounds, filteredOverlaps);
-		m_NavMesh = AINavigation::Mesh::Create(geometry, settings, *agentType, m_CrowdSettings);
+
+		// The collider areas per triangle
+		std::vector<uint32_t> triangleAreas;
+		triangleAreas.reserve(geometry.Indices.size() / 3u);
+		for (size_t hit = 0; hit < filteredOverlaps.size(); ++hit)
+		{
+			const auto& overlap = filteredOverlaps[hit];
+			uint32_t areaID = AINavigation::DefaultAreaID;
+			switch (overlap.Shape->GetType())
+			{
+				case ColliderType::Box:          areaID = overlap.HitEntity.GetComponent<BoxColliderComponent>().GetNavAreaID(); break;
+				case ColliderType::Sphere:       areaID = overlap.HitEntity.GetComponent<SphereColliderComponent>().GetNavAreaID(); break;
+				case ColliderType::Capsule:      areaID = overlap.HitEntity.GetComponent<CapsuleColliderComponent>().GetNavAreaID(); break;
+				case ColliderType::ConvexMesh:
+				case ColliderType::TriangleMesh: areaID = overlap.HitEntity.GetComponent<MeshColliderComponent>().GetNavAreaID(); break;
+			}
+
+			const uint32_t triangles = hit < geometry.HitTriangleCounts.size() ? geometry.HitTriangleCounts[hit] : 0u;
+			triangleAreas.insert(triangleAreas.end(), triangles, areaID);
+		}
+
+		auto volumeComponents = Parent.GetScene()->GetAllEntitiesWith<NavigationAreaVolumeComponent>();
+		std::vector<AINavigation::AreaVolume> volumes;
+		volumes.reserve(volumeComponents.size());
+
+		for (auto e : volumeComponents)
+		{
+			const auto& volume = volumeComponents.get<NavigationAreaVolumeComponent>(e);
+			if (!volume.AffectsAgentType(m_AgentTypeID) || !Project::FindNavArea(volume.GetAreaID()))
+				continue;
+
+			const AABB bounds = volume.GetWorldBounds();
+			if (glm::all(glm::lessThanEqual(bounds.Min, settings.Bounds.Max)) && glm::all(glm::lessThanEqual(settings.Bounds.Min, bounds.Max)))
+				volumes.push_back(volume.GetAreaVolume());
+		}
+
+		m_NavMesh = AINavigation::Mesh::Create(geometry, triangleAreas, Parent.GetScene()->GetNavAreaCostSources(agentType->ID), volumes, settings, *agentType, m_CrowdSettings);
+	}
+
+	NavigationAreaVolumeComponent::NavigationAreaVolumeComponent(const Entity& entity)
+		: SceneComponent(entity)
+	{
+		const auto& areas = Project::GetNavAreas();
+		if (!areas.empty())
+			m_AreaID = areas.front().ID;
+
+		OnChanged();
+	}
+
+	NavigationAreaVolumeComponent& NavigationAreaVolumeComponent::operator=(const NavigationAreaVolumeComponent& other)
+	{
+		if (this == &other)
+			return *this;
+
+		SceneComponent::operator=(other);
+		m_AgentTypeIDs = other.m_AgentTypeIDs;
+		m_HalfExtents = other.m_HalfExtents;
+		m_AreaID = other.m_AreaID;
+		m_bAllAgentTypes = other.m_bAllAgentTypes;
+		OnChanged();
+
+		return *this;
+	}
+
+	void NavigationAreaVolumeComponent::SetAreaID(uint32_t areaID)
+	{
+		if (m_AreaID == areaID)
+			return;
+
+		m_AreaID = areaID;
+		OnChanged();
+	}
+
+	void NavigationAreaVolumeComponent::SetHalfExtents(const glm::vec3& halfExtents)
+	{
+		const glm::vec3 clamped = glm::max(halfExtents, glm::vec3(0.f));
+		if (m_HalfExtents == clamped)
+			return;
+
+		m_HalfExtents = clamped;
+		OnChanged();
+	}
+
+	void NavigationAreaVolumeComponent::SetAffectsAllAgentTypes(bool bAll)
+	{
+		if (m_bAllAgentTypes == bAll)
+			return;
+
+		m_bAllAgentTypes = bAll;
+		OnChanged();
+	}
+
+	void NavigationAreaVolumeComponent::SetAgentTypeIDs(const std::vector<uint32_t>& agentTypeIDs)
+	{
+		if (m_AgentTypeIDs == agentTypeIDs)
+			return;
+
+		m_AgentTypeIDs = agentTypeIDs;
+		OnChanged();
+	}
+
+	bool NavigationAreaVolumeComponent::AffectsAgentType(uint32_t agentTypeID) const
+	{
+		return m_bAllAgentTypes || std::ranges::contains(m_AgentTypeIDs, agentTypeID);
+	}
+
+	AABB NavigationAreaVolumeComponent::GetWorldBounds() const
+	{
+		return AABB::Transformed(AABB(-m_HalfExtents, m_HalfExtents), GetWorldTransform());
+	}
+
+	AINavigation::AreaVolume NavigationAreaVolumeComponent::GetAreaVolume() const
+	{
+		AINavigation::AreaVolume volume;
+		volume.InverseTransform = glm::inverse(Math::ToTransformMatrix(GetWorldTransform()));
+		volume.HalfExtents = m_HalfExtents;
+		volume.Bounds = GetWorldBounds();
+		volume.AreaID = m_AreaID;
+		return volume;
+	}
+
+	void NavigationAreaVolumeComponent::OnChanged()
+	{
+		Scene* scene = Parent.GetScene();
+		if (!scene)
+			return;
+
+		const AABB bounds = GetWorldBounds();
+		if (m_LastBounds)
+		{
+			// Request the rebuild of old region to update nav meshes where this area used to be
+			scene->RequestNavMeshRebuild(*m_LastBounds);
+		}
+
+		scene->RequestNavMeshRebuild(bounds);
+		m_LastBounds = bounds;
 	}
 	
 	NavigationCrowdAgentComponent& NavigationCrowdAgentComponent::operator=(const NavigationCrowdAgentComponent& other)
@@ -1996,6 +2142,20 @@ namespace Eagle
 
 		if (const auto& navMesh = GetNavMesh())
 			navMesh->GetCrowd().UpdateAgentSettings(m_AgentIndex, m_Settings);
+	}
+
+	bool NavigationCrowdAgentComponent::GetCurrentArea(uint32_t* outAreaID) const
+	{
+		const auto& navMesh = GetNavMesh();
+		if (!navMesh)
+			return false;
+
+		const dtPolyRef poly = navMesh->GetCrowd().GetAgentPoly(m_AgentIndex);
+		if (poly == 0u)
+			return false;
+
+		*outAreaID = navMesh->GetPolyArea(poly);
+		return *outAreaID != AINavigation::InvalidAreaID;
 	}
 
 	bool NavigationCrowdAgentComponent::SetAgentTypeID(uint32_t agentTypeID)

@@ -90,6 +90,7 @@ namespace Eagle
 
 		std::vector<glm::vec3> Vertices;
 		std::vector<uint32_t> Indices;
+		std::vector<uint32_t> HitTriangleCounts; // How many triangles each overlap hit added
 
 		bool IsEmpty() const
 		{

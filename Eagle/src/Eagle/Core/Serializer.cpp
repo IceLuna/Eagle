@@ -608,6 +608,7 @@ namespace Eagle
 				SerializeField<int32_t>(out, field);
 				break;
 			case FieldType::NavAgentType:
+			case FieldType::NavArea:
 				SerializeField<uint32_t>(out, field);
 				break;
 			case FieldType::Entity:
@@ -715,6 +716,7 @@ namespace Eagle
 							SetStoredValue<int32_t>(node, field, i);
 							break;
 						case FieldType::NavAgentType:
+						case FieldType::NavArea:
 							SetStoredValue<uint32_t>(node, field, i);
 							break;
 						case FieldType::Entity:
@@ -759,6 +761,7 @@ namespace Eagle
 			case FieldType::Color4:
 			case FieldType::Enum:
 			case FieldType::NavAgentType:
+			case FieldType::NavArea:
 			case FieldType::Entity:
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:

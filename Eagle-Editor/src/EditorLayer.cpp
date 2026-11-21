@@ -291,6 +291,7 @@ namespace Eagle
 
 		m_CurrentScene->bDrawMiscellaneous = m_bDrawEditorMisc;
 		m_CurrentScene->bDrawNavMesh = bDrawNavMesh;
+		m_CurrentScene->bColorNavMeshByArea = bColorNavMeshByArea;
 		m_CurrentScene->NavMeshOpacity = NavMeshOpacity;
 		m_CurrentScene->bDrawMeshAABBs = bDrawMeshAABBs;
 		{
@@ -2329,6 +2330,12 @@ namespace Eagle
 			m_OpenedSceneAsset->SetDirty(true);
 	}
 
+	void EditorLayer::OnNavAreasChanged()
+	{
+		AssetEntity::OnNavAreasChanged();
+		m_EditorScene->OnNavAreasChanged();
+	}
+
 	void EditorLayer::PreviewSplashScreen()
 	{
 		// The same description the game build makes, so that the preview matches it
@@ -2534,6 +2541,7 @@ namespace Eagle
 			UI::Property("Draw Nav Mesh", bDrawNavMesh);
 			if (UI::PropertySlider("Nav Mesh Opacity", NavMeshOpacity, 0.f, 4.f, "Multiplies the opacity of the drawn nav meshes. At 1, polygons are 25% opaque. At 4, they're opaque"))
 				NavMeshOpacity = glm::clamp(NavMeshOpacity, 0.f, 4.f);
+			UI::Property("Color Nav Mesh by Area", bColorNavMeshByArea, "Polygons of nav areas other than Default are drawn in their area's color (see Project Settings > Navigation > Areas)");
 			UI::Property("Draw AABBs of Meshes", bDrawMeshAABBs);
 			UI::Property("Draw All Text & UI Bounds", bDrawAllTextUIBounds, "Outlines the boxes of all 2D/3D texts and 2D images");
 			if (UI::Property("Debug lines depth test", bEnableDebugLinesDepthTest, "If disabled, debug lines will be drawn over everything"))

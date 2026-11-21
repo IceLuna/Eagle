@@ -885,10 +885,40 @@ namespace Eagle
 
 					AINavigation::DebugDraw debugDraw(m_DebugLinesToDraw, m_DebugTrianglesToDraw);
 					debugDraw.AreaColor = color;
+					const auto& mesh = navigation->GetNavMesh();
+					for (uint32_t area = 0; area < (uint32_t)debugDraw.ColorsPerArea.size(); ++area)
+					{
+						const uint32_t areaID = mesh->GetAreaIDOfRecastArea((uint8_t)area);
+						if (areaID == AINavigation::InvalidAreaID)
+							continue;
+
+						glm::vec3 areaColor = color;
+						if (bColorNavMeshByArea && areaID != AINavigation::DefaultAreaID)
+						{
+							if (const AINavigation::Area* navArea = Project::FindNavArea(areaID))
+								areaColor = navArea->DebugColor;
+						}
+
+						// Blocked areas are dark
+						if (mesh->IsRecastAreaBlocked((uint8_t)area))
+							debugDraw.ColorsPerArea[area] = areaColor * 0.2f;
+						else if (areaColor != color)
+							debugDraw.ColorsPerArea[area] = areaColor;
+					}
 					debugDraw.OffsetY = drawnMeshes > 1u ? float(meshIndex) * offsetPerNavMesh : 0.f;
 					debugDraw.Opacity = NavMeshOpacity;
 					navigation->GetNavMeshDebugDraw(&debugDraw);
 					++meshIndex;
+				}
+
+				// Area volumes
+				auto volumes = m_Registry.view<NavigationAreaVolumeComponent>();
+				for (auto entity : volumes)
+				{
+					const auto& volume = volumes.get<NavigationAreaVolumeComponent>(entity);
+					const AINavigation::Area* area = Project::FindNavArea(volume.GetAreaID());
+					const glm::vec3 color = area ? area->DebugColor : glm::vec3(1.f, 0.f, 0.f);
+					Utils::DrawBox(m_DebugLinesToDraw, AABB(-volume.GetHalfExtents(), volume.GetHalfExtents()), volume.GetWorldTransform(), color);
 				}
 			}
 			if (false)

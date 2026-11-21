@@ -411,6 +411,8 @@ namespace Eagle::Script
 	void Eagle_BaseColliderComponent_SetPhysicsMaterial(GUID entityID, void* type, GUID assetID);
 	void Eagle_BaseColliderComponent_SetAffectsNavMeshBuild(GUID entityID, void* type, bool bAffects);
 	bool Eagle_BaseColliderComponent_DoesAffectNavMeshBuild(GUID entityID, void* type);
+	void Eagle_BaseColliderComponent_SetNavAreaID(GUID entityID, void* type, uint32_t areaID);
+	uint32_t Eagle_BaseColliderComponent_GetNavAreaID(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetIsObstacle(GUID entityID, void* type, bool bObstacle);
 	bool Eagle_BaseColliderComponent_IsObstacle(GUID entityID, void* type);
 
@@ -647,6 +649,17 @@ namespace Eagle::Script
 	bool Eagle_NavigationCrowdAgentComponent_SetAgentTypeID(GUID entityID, uint32_t agentTypeID);
 	uint32_t Eagle_NavigationCrowdAgentComponent_GetAgentTypeID(GUID entityID);
 	uint32_t Eagle_NavigationCrowdAgentComponent_GetNavMeshAgentType(GUID entityID);
+	bool Eagle_NavigationCrowdAgentComponent_GetCurrentArea(GUID entityID, uint32_t* outAreaID);
+
+	// NavigationAreaVolumeComponent
+	void Eagle_NavigationAreaVolumeComponent_SetAreaID(GUID entityID, uint32_t areaID);
+	uint32_t Eagle_NavigationAreaVolumeComponent_GetAreaID(GUID entityID);
+	void Eagle_NavigationAreaVolumeComponent_SetHalfExtents(GUID entityID, const glm::vec3* halfExtents);
+	void Eagle_NavigationAreaVolumeComponent_GetHalfExtents(GUID entityID, glm::vec3* outHalfExtents);
+	void Eagle_NavigationAreaVolumeComponent_SetAffectsAllAgentTypes(GUID entityID, bool bAll);
+	bool Eagle_NavigationAreaVolumeComponent_AffectsAllAgentTypes(GUID entityID);
+	void Eagle_NavigationAreaVolumeComponent_SetAgentTypeIDs(GUID entityID, MonoArray* agentTypeIDs);
+	MonoArray* Eagle_NavigationAreaVolumeComponent_GetAgentTypeIDs(GUID entityID);
 
 	// Renderer
 	uint64_t Eagle_Renderer_GetFrameNumber();
@@ -824,11 +837,24 @@ namespace Eagle::Script
 	MonoString* Eagle_NavAgentType_GetName(uint32_t agentTypeID);
 	bool Eagle_NavAgentType_GetInfo(uint32_t agentTypeID, uint32_t* outID, glm::vec3* outDebugColor, float* outRadius, float* outHeight, float* outMaxClimb, float* outMaxSlope);
 	uint32_t Eagle_NavAgentType_ResolveAuto(float agentRadius, float agentHeight);
+	float Eagle_NavAgentType_GetAreaCost(uint32_t agentTypeID, uint32_t areaID);
+	bool Eagle_NavAgentType_IsAreaBlocked(uint32_t agentTypeID, uint32_t areaID);
+
+	// NavArea
+	uint32_t Eagle_NavArea_GetIDByName(MonoString* name);
+	bool Eagle_NavArea_IsValid(uint32_t areaID);
+	MonoString* Eagle_NavArea_GetName(uint32_t areaID);
+	bool Eagle_NavArea_GetInfo(uint32_t areaID, uint32_t* outID, float* outCost, glm::vec3* outDebugColor, bool* outBlocked);
 
 	// NavMesh
 	bool Eagle_NavMesh_HasNavMesh(uint32_t agentTypeID);
 	bool Eagle_NavMesh_SetCrowdMoveTarget(uint32_t agentTypeID, const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
 	void Eagle_NavMesh_ResetCrowdMoveTarget(uint32_t agentTypeID);
+	bool Eagle_NavMesh_GetAreaAt(uint32_t agentTypeID, const glm::vec3* point, uint32_t* outAreaID, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);
+	bool Eagle_NavMesh_IsAreaBlocked(uint32_t agentTypeID, uint32_t areaID);
+	void Eagle_NavMesh_SetAreaBlocked(uint32_t agentTypeID, uint32_t areaID, bool bBlocked);
+	void Eagle_NavMesh_ResetAreaBlocked(uint32_t agentTypeID, uint32_t areaID);
+	void Eagle_NavMesh_ResetAreasBlocked(uint32_t agentTypeID);
 
 	// CrowdNavigation. The crowds of all nav meshes
 	bool Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents);

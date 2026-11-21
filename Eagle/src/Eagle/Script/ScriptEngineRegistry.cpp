@@ -70,6 +70,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(DecalComponent);
 		REGISTER_COMPONENT_TYPE(NavigationMeshComponent);
 		REGISTER_COMPONENT_TYPE(NavigationCrowdAgentComponent);
+		REGISTER_COMPONENT_TYPE(NavigationAreaVolumeComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()

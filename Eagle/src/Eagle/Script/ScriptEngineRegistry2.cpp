@@ -506,6 +506,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.BaseColliderComponent::GetPhysicsMaterial_Native", Eagle::Script::Eagle_BaseColliderComponent_GetPhysicsMaterial);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetAffectsNavMeshBuild_Native", Eagle::Script::Eagle_BaseColliderComponent_SetAffectsNavMeshBuild);
 		mono_add_internal_call("Eagle.BaseColliderComponent::DoesAffectNavMeshBuild_Native", Eagle::Script::Eagle_BaseColliderComponent_DoesAffectNavMeshBuild);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetNavAreaID_Native", Eagle::Script::Eagle_BaseColliderComponent_SetNavAreaID);
+		mono_add_internal_call("Eagle.BaseColliderComponent::GetNavAreaID_Native", Eagle::Script::Eagle_BaseColliderComponent_GetNavAreaID);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetIsObstacle_Native", Eagle::Script::Eagle_BaseColliderComponent_SetIsObstacle);
 		mono_add_internal_call("Eagle.BaseColliderComponent::IsObstacle_Native", Eagle::Script::Eagle_BaseColliderComponent_IsObstacle);
 
@@ -717,6 +719,17 @@ namespace Eagle
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::SetAgentTypeID_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_SetAgentTypeID);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetAgentTypeID_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetAgentTypeID);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetNavMeshAgentType_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetNavMeshAgentType);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetCurrentArea_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetCurrentArea);
+
+		// NavigationAreaVolumeComponent
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::SetAreaID_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_SetAreaID);
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::GetAreaID_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_GetAreaID);
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::SetHalfExtents_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_SetHalfExtents);
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::GetHalfExtents_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_GetHalfExtents);
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::SetAffectsAllAgentTypes_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_SetAffectsAllAgentTypes);
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::AffectsAllAgentTypes_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_AffectsAllAgentTypes);
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::SetAgentTypeIDs_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_SetAgentTypeIDs);
+		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::GetAgentTypeIDs_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_GetAgentTypeIDs);
 
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
@@ -795,11 +808,24 @@ namespace Eagle
 		mono_add_internal_call("Eagle.NavAgentType::GetName_Native", Eagle::Script::Eagle_NavAgentType_GetName);
 		mono_add_internal_call("Eagle.NavAgentType::GetInfo_Native", Eagle::Script::Eagle_NavAgentType_GetInfo);
 		mono_add_internal_call("Eagle.NavAgentType::ResolveAuto_Native", Eagle::Script::Eagle_NavAgentType_ResolveAuto);
+		mono_add_internal_call("Eagle.NavAgentType::GetAreaCost_Native", Eagle::Script::Eagle_NavAgentType_GetAreaCost);
+		mono_add_internal_call("Eagle.NavAgentType::IsAreaBlocked_Native", Eagle::Script::Eagle_NavAgentType_IsAreaBlocked);
+
+		// NavArea
+		mono_add_internal_call("Eagle.NavArea::GetIDByName_Native", Eagle::Script::Eagle_NavArea_GetIDByName);
+		mono_add_internal_call("Eagle.NavArea::IsValid_Native", Eagle::Script::Eagle_NavArea_IsValid);
+		mono_add_internal_call("Eagle.NavArea::GetName_Native", Eagle::Script::Eagle_NavArea_GetName);
+		mono_add_internal_call("Eagle.NavArea::GetInfo_Native", Eagle::Script::Eagle_NavArea_GetInfo);
 
 		// NavMesh
 		mono_add_internal_call("Eagle.NavMesh::HasNavMesh_Native", Eagle::Script::Eagle_NavMesh_HasNavMesh);
 		mono_add_internal_call("Eagle.NavMesh::SetCrowdMoveTarget_Native", Eagle::Script::Eagle_NavMesh_SetCrowdMoveTarget);
 		mono_add_internal_call("Eagle.NavMesh::ResetCrowdMoveTarget_Native", Eagle::Script::Eagle_NavMesh_ResetCrowdMoveTarget);
+		mono_add_internal_call("Eagle.NavMesh::GetAreaAt_Native", Eagle::Script::Eagle_NavMesh_GetAreaAt);
+		mono_add_internal_call("Eagle.NavMesh::IsAreaBlocked_Native", Eagle::Script::Eagle_NavMesh_IsAreaBlocked);
+		mono_add_internal_call("Eagle.NavMesh::SetAreaBlocked_Native", Eagle::Script::Eagle_NavMesh_SetAreaBlocked);
+		mono_add_internal_call("Eagle.NavMesh::ResetAreaBlocked_Native", Eagle::Script::Eagle_NavMesh_ResetAreaBlocked);
+		mono_add_internal_call("Eagle.NavMesh::ResetAreasBlocked_Native", Eagle::Script::Eagle_NavMesh_ResetAreasBlocked);
 
 		// CrowdNavigation
 		mono_add_internal_call("Eagle.CrowdNavigation::SetMoveTarget_Native", Eagle::Script::Eagle_CrowdNavigation_SetMoveTarget);

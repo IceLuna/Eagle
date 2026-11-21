@@ -137,6 +137,8 @@ namespace Eagle::UI
 	bool NavAgentTypeCombo(const std::string_view label, uint32_t& agentTypeID, bool bAllowAuto, const std::string_view helpMessage = "",
 		const std::function<std::string(uint32_t)>& getDisabledReason = {}, const std::function<void()>& customLabelCallback = {});
 
+	bool NavAreaCombo(const std::string_view label, uint32_t& areaID, const std::string_view helpMessage = "", const std::function<void()>& customLabelCallback = {});
+
 	// How an enum value is shown: its name split into words, e.g. "MatchWidthOrHeight" -> "Match Width Or Height"
 	std::string GetEnumDisplayName(std::string_view name);
 

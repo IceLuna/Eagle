@@ -72,6 +72,7 @@ namespace Eagle
 		void OpenProjectSettings();
 		void OnCollisionGroupsChanged();
 		void OnNavAgentTypesChanged();
+		void OnNavAreasChanged();
 		void PreviewSplashScreen();
 
 		// Oh boy... I guess it's better than passing around `EditorLayer`
@@ -198,6 +199,7 @@ namespace Eagle
 		bool bRenderOnlyWhenFocused = true;
 		bool bUpdateAnimationsInEditor = true;
 		bool bDrawNavMesh = true;
+		bool bColorNavMeshByArea = true;
 		float NavMeshOpacity = 1.f;
 		bool bDrawMeshAABBs = false;
 		bool bDrawAxisGuizmo = true;

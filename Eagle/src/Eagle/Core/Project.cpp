@@ -91,7 +91,97 @@ namespace Eagle
 		return index < info.CollisionGroupGUIDs.size() ? info.CollisionGroupGUIDs[index] : GUID64(0);
 	}
 
-	// Makes the agent types usable: at least one, at most `MaxAgentTypes`, valid unique IDs and names, and a valid default type
+	// Names must be unique and not empty, since scripts can look things up by name
+	template<typename T>
+	static void MakeNavNamesUnique(std::vector<T>& items, const std::string& defaultName, std::string_view kind)
+	{
+		for (size_t i = 0; i < items.size(); ++i)
+		{
+			T& item = items[i];
+			auto IsTaken = [&items, i](const std::string& name)
+			{
+				for (size_t j = 0; j < i; ++j)
+				{
+					if (items[j].Name == name)
+						return true;
+				}
+				return false;
+			};
+
+			const std::string baseName = item.Name.empty() ? defaultName : item.Name;
+			std::string name = baseName;
+			for (uint32_t suffix = 2u; IsTaken(name); ++suffix)
+				name = baseName + " " + std::to_string(suffix);
+
+			if (name != item.Name)
+			{
+				EG_CORE_WARN("[Project] The {} `{}` (ID: {}) was renamed to `{}`. Names must be unique and not empty", kind, item.Name, item.ID, name);
+				item.Name = std::move(name);
+			}
+		}
+	}
+
+	void ValidateAreaOverrides(std::vector<AINavigation::AreaOverride>& overrides)
+	{
+		std::vector<AINavigation::AreaOverride> valid;
+		valid.reserve(overrides.size());
+		for (AINavigation::AreaOverride areaOverride : overrides)
+		{
+			const bool bUnknownArea = Project::FindNavArea(areaOverride.AreaID) == nullptr;
+			if (bUnknownArea || AINavigation::FindAreaOverride(valid, areaOverride.AreaID))
+				continue;
+
+			areaOverride.Clamp();
+			valid.push_back(areaOverride);
+		}
+		overrides = std::move(valid);
+	}
+
+	static void ValidateNavAreas(ProjectInfo& info)
+	{
+		AINavigation::Area defaultArea;
+		defaultArea.ID = AINavigation::DefaultAreaID;
+		defaultArea.Name = "Default";
+
+		std::vector<AINavigation::Area> validAreas;
+		validAreas.reserve(info.NavAreas.size() + 1u);
+		for (AINavigation::Area& area : info.NavAreas)
+		{
+			if (area.ID == AINavigation::DefaultAreaID)
+			{
+				defaultArea.Cost = area.Cost;
+				defaultArea.bBlocked = area.bBlocked;
+				continue;
+			}
+
+			const bool bDuplicateID = std::ranges::any_of(validAreas, [&area](const AINavigation::Area& other) { return other.ID == area.ID; });
+			if (area.ID == AINavigation::InvalidAreaID || bDuplicateID)
+			{
+				EG_CORE_ERROR("[Project] Skipping the navigation area `{}`. Its ID ({}) is invalid or already used", area.Name, area.ID);
+				continue;
+			}
+
+			if (validAreas.size() + 1u == AINavigation::MaxAreas)
+			{
+				EG_CORE_ERROR("[Project] Skipping the navigation area `{}`. The engine supports at most {} areas", area.Name, AINavigation::MaxAreas);
+				continue;
+			}
+
+			area.Clamp();
+			validAreas.push_back(std::move(area));
+		}
+		defaultArea.Clamp();
+		validAreas.push_back(std::move(defaultArea));
+		info.NavAreas = std::move(validAreas);
+
+		for (const AINavigation::Area& area : info.NavAreas)
+			info.NextNavAreaID = glm::max(info.NextNavAreaID, area.ID + 1u);
+
+		MakeNavNamesUnique(info.NavAreas, "Area", "navigation area");
+	}
+
+	// Makes the agent types usable: at least one, at most `MaxAgentTypes`, valid unique IDs and names, and a valid default type.
+	// Areas must be validated first
 	static void ValidateNavAgentTypes(ProjectInfo& info)
 	{
 		std::vector<AINavigation::AgentType> validTypes;
@@ -118,6 +208,7 @@ namespace Eagle
 			}
 
 			type.Clamp();
+			ValidateAreaOverrides(type.AreaOverrides);
 			validTypes.push_back(std::move(type));
 		}
 		info.NavAgentTypes = std::move(validTypes);
@@ -132,35 +223,49 @@ namespace Eagle
 			type.Name = "Default";
 		}
 
-		// Names must be unique and not empty, since scripts can look types up by name
-		for (size_t i = 0; i < info.NavAgentTypes.size(); ++i)
-		{
-			AINavigation::AgentType& type = info.NavAgentTypes[i];
-			auto IsTaken = [&info, i](const std::string& name)
-			{
-				for (size_t j = 0; j < i; ++j)
-				{
-					if (info.NavAgentTypes[j].Name == name)
-						return true;
-				}
-				return false;
-			};
-
-			const std::string baseName = type.Name.empty() ? "Agent Type" : type.Name;
-			std::string name = baseName;
-			for (uint32_t suffix = 2u; IsTaken(name); ++suffix)
-				name = baseName + " " + std::to_string(suffix);
-
-			if (name != type.Name)
-			{
-				EG_CORE_WARN("[Project] The navigation agent type `{}` (ID: {}) was renamed to `{}`. Names must be unique and not empty", type.Name, type.ID, name);
-				type.Name = std::move(name);
-			}
-		}
+		MakeNavNamesUnique(info.NavAgentTypes, "Agent Type", "navigation agent type");
 
 		const bool bValidDefault = std::any_of(info.NavAgentTypes.begin(), info.NavAgentTypes.end(), [&info](const AINavigation::AgentType& type) { return type.ID == info.DefaultNavAgentTypeID; });
 		if (!bValidDefault)
 			info.DefaultNavAgentTypeID = info.NavAgentTypes.front().ID;
+	}
+
+	static void ValidateNavigation(ProjectInfo& info)
+	{
+		ValidateNavAreas(info); // First, since agent types refer to areas
+		ValidateNavAgentTypes(info);
+	}
+
+	static void LoadAreaOverrides(const YAML::Node& node, std::vector<AINavigation::AreaOverride>& outOverrides)
+	{
+		outOverrides.clear();
+		if (!node)
+			return;
+
+		for (const auto& overrideNode : node)
+		{
+			AINavigation::AreaOverride& areaOverride = outOverrides.emplace_back();
+			areaOverride.AreaID = overrideNode["Area"].as<uint32_t>();
+			if (auto n = overrideNode["Cost"])
+				areaOverride.Cost = n.as<float>();
+			if (auto n = overrideNode["Blocked"])
+				areaOverride.bBlocked = n.as<bool>();
+		}
+	}
+
+	static void SaveAreaOverrides(YAML::Emitter& out, const std::vector<AINavigation::AreaOverride>& overrides)
+	{
+		out << YAML::Key << "AreaOverrides" << YAML::Value << YAML::BeginSeq;
+		for (const AINavigation::AreaOverride& areaOverride : overrides)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "Area" << YAML::Value << areaOverride.AreaID;
+			out << YAML::Key << "Cost" << YAML::Value << areaOverride.Cost;
+			if (areaOverride.bBlocked)
+				out << YAML::Key << "Blocked" << YAML::Value << true;
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
 	}
 
 	static void LoadNavigationSettings(const YAML::Node& node, ProjectInfo& info)
@@ -168,9 +273,28 @@ namespace Eagle
 		info.NavAgentTypes.clear();
 		info.DefaultNavAgentTypeID = AINavigation::InvalidAgentTypeID;
 		info.NextNavAgentTypeID = 1u;
+		info.NavAreas.clear();
+		info.NextNavAreaID = AINavigation::DefaultAreaID + 1u;
 
 		if (node)
 		{
+			if (auto idNode = node["NextAreaID"])
+				info.NextNavAreaID = glm::clamp(idNode.as<uint32_t>(), AINavigation::DefaultAreaID + 1u, AINavigation::InvalidAreaID - 1u);
+
+			if (auto areasNode = node["Areas"])
+			{
+				for (const auto& areaNode : areasNode)
+				{
+					AINavigation::Area& area = info.NavAreas.emplace_back();
+					area.ID = areaNode["ID"].as<uint32_t>();
+					area.Name = areaNode["Name"].as<std::string>();
+					area.DebugColor = areaNode["DebugColor"].as<glm::vec3>();
+					area.Cost = areaNode["Cost"].as<float>();
+					if (auto n = areaNode["Blocked"])
+						area.bBlocked = n.as<bool>();
+				}
+			}
+
 			if (auto idNode = node["NextAgentTypeID"])
 				info.NextNavAgentTypeID = glm::clamp(idNode.as<uint32_t>(), 1u, AINavigation::InvalidAgentTypeID - 1u);
 			if (auto defaultNode = node["DefaultAgentType"])
@@ -196,11 +320,13 @@ namespace Eagle
 						type.MaxClimb = n.as<float>();
 					if (auto n = typeNode["MaxSlope"])
 						type.MaxSlope = n.as<float>();
+
+					LoadAreaOverrides(typeNode["AreaOverrides"], type.AreaOverrides);
 				}
 			}
 		}
 
-		ValidateNavAgentTypes(info);
+		ValidateNavigation(info);
 	}
 
 	static void SaveNavigationSettings(YAML::Emitter& out, const ProjectInfo& info)
@@ -219,9 +345,26 @@ namespace Eagle
 			out << YAML::Key << "Height" << YAML::Value << type.Height;
 			out << YAML::Key << "MaxClimb" << YAML::Value << type.MaxClimb;
 			out << YAML::Key << "MaxSlope" << YAML::Value << type.MaxSlope;
+			SaveAreaOverrides(out, type.AreaOverrides);
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
+
+		out << YAML::Key << "NextAreaID" << YAML::Value << info.NextNavAreaID;
+		out << YAML::Key << "Areas" << YAML::Value << YAML::BeginSeq;
+		for (const AINavigation::Area& area : info.NavAreas)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "ID" << YAML::Value << area.ID;
+			out << YAML::Key << "Name" << YAML::Value << area.Name;
+			out << YAML::Key << "DebugColor" << YAML::Value << area.DebugColor;
+			out << YAML::Key << "Cost" << YAML::Value << area.Cost;
+			if (area.bBlocked)
+				out << YAML::Key << "Blocked" << YAML::Value << true;
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+
 		out << YAML::EndMap;
 	}
 
@@ -783,7 +926,7 @@ namespace Eagle
 		}
 
 		ProjectInfo validatedInfo = info;
-		ValidateNavAgentTypes(validatedInfo);
+		ValidateNavigation(validatedInfo);
 		Save(validatedInfo);
 
 		GenerateSolution(info);
@@ -1254,13 +1397,179 @@ namespace Eagle
 				type.Height = newType.Height;
 				type.MaxClimb = newType.MaxClimb;
 				type.MaxSlope = newType.MaxSlope;
+				type.AreaOverrides = newType.AreaOverrides;
 				type.Clamp();
+				ValidateAreaOverrides(type.AreaOverrides);
 
 				return;
 			}
 		}
 
 		EG_CORE_ERROR("[Project] Failed to change the navigation agent type. There's no type with ID {}", newType.ID);
+	}
+
+	// ---------- Nav areas ----------
+	const AINavigation::Area* Project::FindNavArea(uint32_t id)
+	{
+		for (const auto& area : s_Info.NavAreas)
+		{
+			if (area.ID == id)
+				return &area;
+		}
+
+		return nullptr;
+	}
+
+	const AINavigation::Area* Project::FindNavAreaByName(std::string_view name)
+	{
+		for (const auto& area : s_Info.NavAreas)
+		{
+			if (area.Name == name)
+				return &area;
+		}
+
+		return nullptr;
+	}
+
+	bool Project::IsNavAreaNameAvailable(std::string_view name, uint32_t exceptID)
+	{
+		if (name.empty())
+			return false;
+
+		for (const auto& area : s_Info.NavAreas)
+		{
+			if (area.ID != exceptID && area.Name == name)
+				return false;
+		}
+
+		return true;
+	}
+
+	uint32_t Project::AddNavArea(const std::string& name)
+	{
+		if (!CanAddNavArea())
+		{
+			EG_CORE_ERROR("[Project] Failed to add a navigation area. The engine supports at most {} areas", AINavigation::MaxAreas);
+			return AINavigation::InvalidAreaID;
+		}
+
+		if (s_Info.NextNavAreaID == AINavigation::InvalidAreaID)
+		{
+			EG_CORE_ERROR("[Project] Failed to add a navigation area. There are no IDs left");
+			return AINavigation::InvalidAreaID;
+		}
+
+		const std::string baseName = name.empty() ? "Area" : name;
+		std::string uniqueName = baseName;
+		for (uint32_t suffix = 2u; !IsNavAreaNameAvailable(uniqueName); ++suffix)
+			uniqueName = baseName + " " + std::to_string(suffix);
+
+		// Right above Default, which is always the last one
+		AINavigation::Area area;
+		area.ID = s_Info.NextNavAreaID++;
+		area.Name = std::move(uniqueName);
+		s_Info.NavAreas.insert(s_Info.NavAreas.end() - 1, area);
+
+		return area.ID;
+	}
+
+	bool Project::RemoveNavArea(uint32_t id)
+	{
+		if (id == AINavigation::DefaultAreaID)
+		{
+			EG_CORE_ERROR("[Project] Failed to remove the navigation area. Default can't be removed");
+			return false;
+		}
+
+		auto& areas = s_Info.NavAreas;
+		auto it = std::find_if(areas.begin(), areas.end(), [id](const AINavigation::Area& area) { return area.ID == id; });
+		if (it == areas.end())
+		{
+			EG_CORE_ERROR("[Project] Failed to remove the navigation area. There's no area with ID {}", id);
+			return false;
+		}
+
+		areas.erase(it);
+
+		for (auto& type : s_Info.NavAgentTypes)
+		{
+			std::erase_if(type.AreaOverrides, [id](const AINavigation::AreaOverride& areaOverride) { return areaOverride.AreaID == id; });
+		}
+
+		return true;
+	}
+
+	bool Project::RenameNavArea(uint32_t id, const std::string& name)
+	{
+		if (id == AINavigation::DefaultAreaID || !IsNavAreaNameAvailable(name, id))
+			return false;
+
+		for (auto& area : s_Info.NavAreas)
+		{
+			if (area.ID == id)
+			{
+				area.Name = name;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void Project::SetNavArea(const AINavigation::Area& newArea)
+	{
+		for (auto& area : s_Info.NavAreas)
+		{
+			if (area.ID == newArea.ID)
+			{
+				area.DebugColor = newArea.DebugColor;
+				area.Cost = newArea.Cost;
+				area.bBlocked = newArea.bBlocked;
+				area.Clamp();
+				return;
+			}
+		}
+
+		EG_CORE_ERROR("[Project] Failed to change the navigation area. There's no area with ID {}", newArea.ID);
+	}
+
+	bool Project::MoveNavArea(uint32_t id, uint32_t newIndex)
+	{
+		auto& areas = s_Info.NavAreas;
+		auto it = std::find_if(areas.begin(), areas.end(), [id](const AINavigation::Area& area) { return area.ID == id; });
+		if (it == areas.end() || id == AINavigation::DefaultAreaID)
+			return false;
+
+		// Default stays the last one
+		newIndex = glm::min(newIndex, (uint32_t)areas.size() - 2u);
+		const uint32_t oldIndex = (uint32_t)std::distance(areas.begin(), it);
+		if (oldIndex == newIndex)
+			return false;
+
+		AINavigation::Area area = std::move(*it);
+		areas.erase(it);
+		areas.insert(areas.begin() + newIndex, std::move(area));
+		return true;
+	}
+
+	float Project::GetNavAreaCost(uint32_t areaID, uint32_t agentTypeID)
+	{
+		std::span<const AINavigation::AreaOverride> overrides;
+		if (const AINavigation::AgentType* type = FindNavAgentType(agentTypeID))
+			overrides = type->AreaOverrides;
+
+		const AINavigation::Area* area = AINavigation::FindAreaOrDefault(s_Info.NavAreas, areaID);
+		return area ? AINavigation::ResolveAreaCost(*area, overrides) : 1.f;
+	}
+
+	bool Project::IsNavAreaBlocked(uint32_t areaID, uint32_t agentTypeID)
+	{
+		std::span<const AINavigation::AreaOverride> overrides;
+		if (const AINavigation::AgentType* type = FindNavAgentType(agentTypeID))
+			overrides = type->AreaOverrides;
+
+		const AINavigation::Area* area = AINavigation::FindAreaOrDefault(s_Info.NavAreas, areaID);
+		return area && AINavigation::ResolveAreaBlocked(*area, overrides);
 	}
 
 	bool Project::Load(const Path& filepath, ProjectInfo* outInfo)

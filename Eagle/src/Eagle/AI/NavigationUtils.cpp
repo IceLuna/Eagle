@@ -107,7 +107,7 @@ namespace Eagle::AINavigation
 
 		static void Subdivide(BoundsItem* items, int nitems, int imin, int imax, int trisPerChunk,
 			int& curNode, rcChunkyTriMeshNode* nodes, const int maxNodes,
-			int& curTri, int* outTris, const int* inTris)
+			int& curTri, int* outTris, int* outTriIndices, const int* inTris)
 		{
 			int inum = imax - imin;
 			int icur = curNode;
@@ -130,6 +130,7 @@ namespace Eagle::AINavigation
 				{
 					const int* src = &inTris[items[i].i * 3];
 					int* dst = &outTris[curTri * 3];
+					outTriIndices[curTri] = items[i].i;
 					curTri++;
 					dst[0] = src[0];
 					dst[1] = src[1];
@@ -158,9 +159,9 @@ namespace Eagle::AINavigation
 				int isplit = imin + inum / 2;
 
 				// Left
-				Subdivide(items, nitems, imin, isplit, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, inTris);
+				Subdivide(items, nitems, imin, isplit, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, outTriIndices, inTris);
 				// Right
-				Subdivide(items, nitems, isplit, imax, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, inTris);
+				Subdivide(items, nitems, isplit, imax, trisPerChunk, curNode, nodes, maxNodes, curTri, outTris, outTriIndices, inTris);
 
 				int iescape = curNode - icur;
 				// Negative index means escape.
@@ -198,6 +199,8 @@ namespace Eagle::AINavigation
 		if (!cm->tris)
 			return false;
 
+		cm->triIndices = new int[ntris];
+
 		cm->ntris = ntris;
 
 		// Build tree
@@ -226,7 +229,7 @@ namespace Eagle::AINavigation
 
 		int curTri = 0;
 		int curNode = 0;
-		Utils::Subdivide(items, ntris, 0, ntris, trisPerChunk, curNode, cm->nodes, nchunks * 4, curTri, cm->tris, tris);
+		Utils::Subdivide(items, ntris, 0, ntris, trisPerChunk, curNode, cm->nodes, nchunks * 4, curTri, cm->tris, cm->triIndices, tris);
 
 		delete[] items;
 

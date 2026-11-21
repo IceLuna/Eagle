@@ -166,7 +166,8 @@ namespace Eagle::AINavigation
 		Application::Get().GetImGuiLayer()->AddMessage(std::move(message));
 	}
 
-	Mesh::Mesh(const OverlapGeometryData& geometry, const MeshSettings& meshSettings, const AgentType& agentType, const CrowdSettings& crowdSettings)
+	Mesh::Mesh(const OverlapGeometryData& geometry, std::span<const uint32_t> triangleAreas, const AreaCostSources& areas, std::span<const AreaVolume> volumes,
+		const MeshSettings& meshSettings, const AgentType& agentType, const CrowdSettings& crowdSettings)
 		: m_Settings(meshSettings)
 		, m_AgentType(agentType)
 	{
@@ -174,14 +175,62 @@ namespace Eagle::AINavigation
 		m_AgentType.Clamp();
 
 		m_Filter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL ^ SAMPLE_POLYFLAGS_DISABLED);
-		m_Filter.setExcludeFlags(0);
-		m_Filter.setAreaCost(SAMPLE_POLYAREA_GROUND, 1.0f);
-		m_Filter.setAreaCost(SAMPLE_POLYAREA_WATER, 10.0f);
-		m_Filter.setAreaCost(SAMPLE_POLYAREA_DOOR, 1.0f);
-		m_Filter.setAreaCost(SAMPLE_POLYAREA_JUMP, 1.5f);
+		m_Filter.setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
+		m_AnyFilter.setIncludeFlags(SAMPLE_POLYFLAGS_ALL);
+		m_AnyFilter.setExcludeFlags(0);
+
+		// Recast areas by priority. Where spans and volumes overlap, the higher Recast area wins.
+		// The lowest one (1) is Default, and 0 isn't walkable.
+		// Only the areas that volumes or triangles use get one, the rest wouldn't be on any polygon
+		{
+			std::vector<uint32_t> usedAreaIDs(triangleAreas.begin(), triangleAreas.end());
+			for (const AreaVolume& volume : volumes)
+				usedAreaIDs.push_back(volume.AreaID);
+
+			std::ranges::sort(usedAreaIDs);
+			const auto [eraseBegin, eraseEnd] = std::ranges::unique(usedAreaIDs);
+			usedAreaIDs.erase(eraseBegin, eraseEnd);
+
+			for (const Area& area : areas.Areas)
+			{
+				if (area.ID == DefaultAreaID || area.ID == InvalidAreaID || std::ranges::contains(m_AreaIDsByPriority, area.ID))
+					continue;
+
+				const bool bUsed = std::ranges::binary_search(usedAreaIDs, area.ID);
+				if (bUsed && m_AreaIDsByPriority.size() < MaxAreas - 1u)
+					m_AreaIDsByPriority.push_back(area.ID);
+			}
+			m_AreaIDsByPriority.push_back(DefaultAreaID);
+		}
+
+		m_SourceTriangleAreas.assign(geometry.Indices.size() / 3u, DefaultRecastArea);
+		if (!triangleAreas.empty())
+		{
+			EG_CORE_ASSERT(triangleAreas.size() == m_SourceTriangleAreas.size());
+
+			const size_t count = glm::min(triangleAreas.size(), m_SourceTriangleAreas.size());
+			for (size_t i = 0; i < count; ++i)
+			{
+				const uint8_t area = GetRecastArea(triangleAreas[i]);
+				m_SourceTriangleAreas[i] = area != RC_NULL_AREA ? area : DefaultRecastArea;
+			}
+		}
+
+		for (const AreaVolume& volume : volumes)
+		{
+			const uint8_t area = GetRecastArea(volume.AreaID);
+			if (area == DefaultRecastArea || area == RC_NULL_AREA)
+				continue; // It's the lowest priority, so it wouldn't change anything
+
+			AreaVolume& added = m_AreaVolumes.emplace_back(volume);
+			added.AreaID = area;
+		}
+
+		m_bHasAreas = !m_AreaVolumes.empty() || std::ranges::any_of(m_SourceTriangleAreas, [](uint8_t area) { return area != DefaultRecastArea; });
 
 		m_Compressor = MakeScope<TileCacheCompressor>();
 		m_MeshProcess = MakeScope<TileCacheMeshProcess>();
+		m_MeshProcess->BlockedAreas = &m_BlockedAreas;
 
 		if (!InitConfig())
 			return;
@@ -262,6 +311,7 @@ namespace Eagle::AINavigation
 
 		m_Crowd.SetSearchHalfExtents(GetSearchHalfExtents());
 		m_Crowd.Init(crowdSettings, m_NavMesh, m_NavQuery, m_Filter);
+		SetAreaCosts(areas);
 
 		// The source geometry belongs to the caller and isn't needed after the build
 		m_Vertices = nullptr;
@@ -273,6 +323,8 @@ namespace Eagle::AINavigation
 		m_ChunkyMesh.ntris = 0;
 		m_CIDs = {};
 		m_TrianglesAreas = {};
+		m_SourceTriangleAreas = {};
+		m_AreaVolumes = {};
 		m_Tiles = {};
 
 		m_bValid = true;
@@ -472,7 +524,7 @@ namespace Eagle::AINavigation
 		m_Crowd.SetSearchHalfExtents(GetSearchHalfExtents());
 	}
 
-	dtPolyRef Mesh::FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outNearestPoint) const
+	dtPolyRef Mesh::FindNearestPoly(const glm::vec3& pos, const std::optional<glm::vec3>& searchHalfExtents, glm::vec3* outNearestPoint, const dtQueryFilter* filter) const
 	{
 		const glm::vec3 extents = searchHalfExtents ? *searchHalfExtents : GetSearchHalfExtents();
 		if (extents.x <= 0.f || extents.y <= 0.f || extents.z <= 0.f)
@@ -480,7 +532,7 @@ namespace Eagle::AINavigation
 
 		dtPolyRef poly = 0;
 		glm::vec3 nearest = pos;
-		if (dtStatusFailed(m_NavQuery->findNearestPoly(&pos[0], &extents[0], &m_Filter, &poly, &nearest[0])))
+		if (dtStatusFailed(m_NavQuery->findNearestPoly(&pos[0], &extents[0], filter ? filter : &m_Filter, &poly, &nearest[0])))
 			return 0;
 
 		if (outNearestPoint && poly != 0)
@@ -778,6 +830,71 @@ namespace Eagle::AINavigation
 		return dtStatusSucceed(status) && !dtStatusDetail(status, DT_PARTIAL_RESULT);
 	}
 
+	bool Mesh::GetAreaAt(const glm::vec3& pos, uint32_t* outAreaID, const std::optional<glm::vec3>& searchHalfExtents) const
+	{
+		if (!m_bValid)
+			return false;
+
+		const dtPolyRef poly = FindNearestPoly(pos, searchHalfExtents, nullptr, &m_AnyFilter);
+		if (poly == 0)
+			return false;
+
+		*outAreaID = GetPolyArea(poly);
+		return *outAreaID != InvalidAreaID;
+	}
+
+	uint32_t Mesh::GetPolyArea(dtPolyRef poly) const
+	{
+		uint8_t area = 0u;
+		if (!m_bValid || dtStatusFailed(m_NavMesh->getPolyArea(poly, &area)))
+			return InvalidAreaID;
+
+		const uint32_t areaID = GetAreaIDOfRecastArea(area);
+		return areaID != InvalidAreaID ? areaID : DefaultAreaID;
+	}
+
+	void Mesh::SetAreaCosts(const AreaCostSources& costs)
+	{
+		std::array<bool, DT_MAX_AREAS> blockedAreas{};
+		for (uint8_t area = 0; area < uint8_t(DT_MAX_AREAS); ++area)
+		{
+			uint32_t areaID = GetAreaIDOfRecastArea(area);
+			if (areaID == InvalidAreaID)
+				areaID = DefaultAreaID;
+
+			const Area* navArea = FindAreaOrDefault(costs.Areas, areaID);
+			m_Filter.setAreaCost(int(area), navArea ? ResolveAreaCost(*navArea, costs.AgentTypeOverrides) : 1.f);
+			blockedAreas[area] = navArea && ResolveAreaBlocked(*navArea, costs);
+		}
+
+		const bool bBlockedChanged = blockedAreas != m_BlockedAreas;
+		if (bBlockedChanged)
+		{
+			m_BlockedAreas = blockedAreas;
+			ApplyAreaFlags();
+		}
+
+		m_Crowd.SetFilter(m_Filter, bBlockedChanged);
+	}
+
+	void Mesh::ApplyAreaFlags()
+	{
+		if (!m_NavMesh)
+			return;
+
+		const dtNavMesh* navMesh = m_NavMesh;
+		for (int i = 0; i < navMesh->getMaxTiles(); ++i)
+		{
+			const dtMeshTile* tile = navMesh->getTile(i);
+			if (!tile || !tile->header)
+				continue;
+
+			const dtPolyRef base = m_NavMesh->getPolyRefBase(tile);
+			for (int j = 0; j < tile->header->polyCount; ++j)
+				m_NavMesh->setPolyFlags(base | (dtPolyRef)j, GetAreaPolyFlags(m_BlockedAreas[tile->polys[j].getArea()]));
+		}
+	}
+
 	void Mesh::GetDebugDraw(duDebugDraw* debugDraw) const
 	{
 		if (!m_bValid)
@@ -791,9 +908,10 @@ namespace Eagle::AINavigation
 		duDebugDrawNavMeshWithClosedList(debugDraw, *m_NavMesh, *m_NavQuery, drawFlags);
 	}
 
-	Ref<Mesh> Mesh::Create(const OverlapGeometryData& geometry, const MeshSettings& settings, const AgentType& agentType, const CrowdSettings& crowdSettings)
+	Ref<Mesh> Mesh::Create(const OverlapGeometryData& geometry, std::span<const uint32_t> triangleAreas, const AreaCostSources& costs, std::span<const AreaVolume> volumes,
+		const MeshSettings& settings, const AgentType& agentType, const CrowdSettings& crowdSettings)
 	{
-		Ref<Mesh> mesh = MakeRef<Mesh>(geometry, settings, agentType, crowdSettings);
+		Ref<Mesh> mesh = MakeRef<Mesh>(geometry, triangleAreas, costs, volumes, settings, agentType, crowdSettings);
 		if (!mesh->m_bValid)
 		{
 			EG_CORE_ERROR("[AINavigation] Failed to build the navigation mesh");
@@ -1024,6 +1142,14 @@ namespace Eagle::AINavigation
 			rcMarkWalkableTriangles(&m_Context, tcfg.walkableSlopeAngle,
 				m_Vertices, m_VertexCount, tris, ntris, m_TrianglesAreas.data());
 
+			// Walkable triangles get their collider areas
+			const int* triIndices = &m_ChunkyMesh.triIndices[node.i];
+			for (int j = 0; j < ntris; ++j)
+			{
+				if (m_TrianglesAreas[j] != RC_NULL_AREA)
+					m_TrianglesAreas[j] = m_SourceTriangleAreas[triIndices[j]];
+			}
+
 			if (!rcRasterizeTriangles(&m_Context, m_Vertices, m_VertexCount, tris, m_TrianglesAreas.data(), ntris, *m_Solid, tcfg.walkableClimb))
 			{
 				ReportError(std::format("[AINavigation] Failed to rasterize triangles at tile {}x{}, ID: {}", x, y, i));
@@ -1031,6 +1157,47 @@ namespace Eagle::AINavigation
 		}
 
 		return true;
+	}
+
+	void Mesh::MarkAreaVolumes()
+	{
+		if (m_AreaVolumes.empty() || !m_CompactHeightfield)
+			return;
+
+		const rcCompactHeightfield& chf = *m_CompactHeightfield;
+		const float cs = chf.cs;
+		const float ch = chf.ch;
+		for (const AreaVolume& volume : m_AreaVolumes)
+		{
+			// Cells under the volume's bounds
+			const int minX = glm::max(0, (int)std::floor((volume.Bounds.Min.x - chf.bmin[0]) / cs));
+			const int minZ = glm::max(0, (int)std::floor((volume.Bounds.Min.z - chf.bmin[2]) / cs));
+			const int maxX = glm::min(chf.width - 1, (int)std::floor((volume.Bounds.Max.x - chf.bmin[0]) / cs));
+			const int maxZ = glm::min(chf.height - 1, (int)std::floor((volume.Bounds.Max.z - chf.bmin[2]) / cs));
+			if (minX > maxX || minZ > maxZ)
+				continue;
+
+			const uint8_t area = (uint8_t)volume.AreaID;
+			for (int z = minZ; z <= maxZ; ++z)
+			{
+				for (int cx = minX; cx <= maxX; ++cx)
+				{
+					const rcCompactCell& cell = chf.cells[cx + z * chf.width];
+					for (int i = (int)cell.index, end = (int)(cell.index + cell.count); i < end; ++i)
+					{
+						// Only replaces lower priority areas
+						if (chf.areas[i] == RC_NULL_AREA || chf.areas[i] >= area)
+							continue;
+
+						// The top of the span, which is the surface an agent stands on
+						const glm::vec3 point = glm::vec3(chf.bmin[0] + (float(cx) + 0.5f) * cs, chf.bmin[1] + float(chf.spans[i].y) * ch, chf.bmin[2] + (float(z) + 0.5f) * cs);
+						const glm::vec3 local = glm::vec3(volume.InverseTransform * glm::vec4(point, 1.f));
+						if (glm::all(glm::lessThanEqual(glm::abs(local), volume.HalfExtents)))
+							chf.areas[i] = area;
+					}
+				}
+			}
+		}
 	}
 
 	bool Mesh::PartitionWalkableSurfaceToSimpleRegions(int x, int y)
@@ -1060,6 +1227,9 @@ namespace Eagle::AINavigation
 			ReportError("[AINavigation] Failed to erode Walkable Area");
 			return false;
 		}
+
+		// After the erosion, since area borders aren't eroded (only walls and ledges are)
+		MarkAreaVolumes();
 
 		rcFreeHeightfieldLayerSet(m_HeightfieldLayerSet);
 		m_HeightfieldLayerSet = rcAllocHeightfieldLayerSet();

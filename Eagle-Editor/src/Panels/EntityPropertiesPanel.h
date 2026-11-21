@@ -34,6 +34,7 @@ namespace Eagle
 		DecalComponent,
 		NavigationMeshComponent,
 		NavigationCrowdAgentComponent,
+		NavigationAreaVolumeComponent,
 		SceneSequenceComponent,
 		EntityAssetComponent,
 	};

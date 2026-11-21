@@ -161,6 +161,23 @@ namespace Eagle
             return FindSmoothPath_Native(agentTypeID, ref start, ref end, maxPolys, maxSmooth, bCustomExtents, ref extents);
         }
 
+        // The area `entity` stands on, on the nav mesh it navigates on (see `NavMesh.GetNavMeshFor`).
+        // For a crowd agent, the polygon its agent is on. Returns false if it isn't on the nav mesh
+        public static bool GetCurrentArea(Entity entity, out NavArea area, NavAgentType fallbackAgentType = default)
+        {
+            NavigationCrowdAgentComponent agent = GetCrowdAgent(entity);
+            if (agent != null)
+                return agent.GetCurrentArea(out area);
+
+            return NavMesh.GetNavMeshFor(entity, fallbackAgentType).GetAreaAt(entity.GetWorldLocation(), out area);
+        }
+
+        // Whether `entity` can't walk on an area on the nav mesh it navigates on (see `NavMesh.IsAreaBlocked`)
+        public static bool IsAreaBlocked(Entity entity, NavArea area, NavAgentType fallbackAgentType = default)
+        {
+            return NavMesh.GetNavMeshFor(entity, fallbackAgentType).IsAreaBlocked(area);
+        }
+
         internal static bool ToNativeSearchExtents(Vector3? searchHalfExtents, out Vector3 extents)
         {
             if (!searchHalfExtents.HasValue)

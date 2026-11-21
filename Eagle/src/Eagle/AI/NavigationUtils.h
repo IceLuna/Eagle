@@ -11,15 +11,19 @@
 
 namespace Eagle::AINavigation
 {
-	// These are just sample areas to use consistent values across the samples.
-	// The use should specify these base on his needs.
-	enum SamplePolyAreas
-	{
-		SAMPLE_POLYAREA_GROUND,
-		SAMPLE_POLYAREA_WATER,
-		SAMPLE_POLYAREA_DOOR,
-		SAMPLE_POLYAREA_JUMP
-	};
+	inline constexpr uint32_t MaxAgentTypes = 8u;
+	inline constexpr uint32_t InvalidAgentTypeID = 0xFFFFFFFFu;
+	inline constexpr uint32_t AutoAgentTypeID = 0u;
+
+	// Polygon areas are the project's areas, assigned by priority when a nav mesh is built (see `Mesh`). 1 is Default
+	inline constexpr uint8_t DefaultRecastArea = 1u;
+
+	// Recast stores a polygon's area in 6 bits. 0 isn't walkable, and 63 is Recast's walkable area before it's replaced by ours
+	inline constexpr uint32_t MaxAreas = 62u;
+	inline constexpr uint32_t DefaultAreaID = 0u; // Every walkable surface that isn't marked otherwise. Always exists
+	inline constexpr uint32_t InvalidAreaID = 0xFFFFFFFFu;
+	inline constexpr float MinAreaCost = 1.f; // Lower costs break the path search's distance estimate
+
 	enum SamplePolyFlags
 	{
 		SAMPLE_POLYFLAGS_WALK = 0x01,		// Ability to walk (ground, grass, road)
@@ -28,6 +32,53 @@ namespace Eagle::AINavigation
 		SAMPLE_POLYFLAGS_JUMP = 0x08,		// Ability to jump.
 		SAMPLE_POLYFLAGS_DISABLED = 0x10,	// Disabled polygon
 		SAMPLE_POLYFLAGS_ALL = 0xffff	    // All abilities.
+	};
+
+	// A kind of surface (mud, road, etc...) that's more or less expensive to walk on.
+	// The path search counts a meter in an area as `Cost` meters
+	struct Area
+	{
+		std::string Name;
+		uint32_t ID = InvalidAreaID;
+		glm::vec3 DebugColor = glm::vec3(0.6f, 0.4f, 0.2f);
+		float Cost = 1.f;
+		bool bBlocked = false; // Agents can't walk on it
+
+		void Clamp() { Cost = glm::max(Cost, MinAreaCost); }
+	};
+
+	struct AreaVolume
+	{
+		glm::mat4 InverseTransform = glm::mat4(1.f); // From world space to the box's space
+		glm::vec3 HalfExtents = glm::vec3(0.5f);
+		AABB Bounds; // World space
+		uint32_t AreaID = DefaultAreaID;
+	};
+
+	// Overrides an area's settings. Used by agents
+	struct AreaOverride
+	{
+		uint32_t AreaID = InvalidAreaID;
+		float Cost = 1.f;
+		bool bBlocked = false;
+
+		bool operator==(const AreaOverride&) const = default;
+
+		void Clamp() { Cost = glm::max(Cost, MinAreaCost); }
+	};
+
+	// Used to block/unblock an area at runtime regardless of project settings
+	struct AreaBlock
+	{
+		uint32_t AreaID = InvalidAreaID;
+		bool bBlocked = false;
+	};
+
+	struct AreaCostSources
+	{
+		std::span<const Area> Areas; // Nav Areas by priority starting from the highest
+		std::span<const AreaOverride> AgentTypeOverrides;
+		std::span<const AreaBlock> BlockedAreas;
 	};
 
 	// Navigation data in binary Recast form.
@@ -59,29 +110,25 @@ namespace Eagle::AINavigation
 			unsigned char* buffer, const int maxBufferSize, int* bufferSize) override;
 	};
 
+	// Polygon flags of a Recast area
+	inline uint16_t GetAreaPolyFlags(bool bBlocked) { return uint16_t(bBlocked ? (SAMPLE_POLYFLAGS_WALK | SAMPLE_POLYFLAGS_DISABLED) : SAMPLE_POLYFLAGS_WALK); }
+
 	struct TileCacheMeshProcess : public dtTileCacheMeshProcess
 	{
+		// Blocked Recast areas. Owned by the nav mesh. Tiles are built again when obstacles change, so their flags come from the current state
+		const std::array<bool, DT_MAX_AREAS>* BlockedAreas = nullptr;
+
 		virtual void process(struct dtNavMeshCreateParams* params,
 			unsigned char* polyAreas, unsigned short* polyFlags)
 		{
-			// Update poly flags from areas.
+			// Costs come from the query filters
 			for (int i = 0; i < params->polyCount; ++i)
 			{
 				if (polyAreas[i] == DT_TILECACHE_WALKABLE_AREA)
-					polyAreas[i] = SAMPLE_POLYAREA_GROUND;
-		
-				if (polyAreas[i] == SAMPLE_POLYAREA_GROUND)
-				{
-					polyFlags[i] = SAMPLE_POLYFLAGS_WALK;
-				}
-				else if (polyAreas[i] == SAMPLE_POLYAREA_WATER)
-				{
-					polyFlags[i] = SAMPLE_POLYFLAGS_SWIM;
-				}
-				else if (polyAreas[i] == SAMPLE_POLYAREA_DOOR)
-				{
-					polyFlags[i] = SAMPLE_POLYFLAGS_WALK | SAMPLE_POLYFLAGS_DOOR;
-				}
+					polyAreas[i] = DefaultRecastArea;
+
+				const bool bBlocked = BlockedAreas && (*BlockedAreas)[polyAreas[i] % DT_MAX_AREAS];
+				polyFlags[i] = GetAreaPolyFlags(bBlocked);
 			}
 		}
 	};
@@ -96,19 +143,21 @@ namespace Eagle::AINavigation
 
 	struct rcChunkyTriMesh
 	{
-		inline rcChunkyTriMesh() : nodes(0), nnodes(0), tris(0), ntris(0), maxTrisPerChunk(0) {}
+		inline rcChunkyTriMesh() : nodes(0), nnodes(0), tris(0), triIndices(0), ntris(0), maxTrisPerChunk(0) {}
 		inline ~rcChunkyTriMesh() { Reset(); }
 
 		void Reset()
 		{
-			delete[] nodes; delete[] tris;
+			delete[] nodes; delete[] tris; delete[] triIndices;
 			nodes = nullptr;
 			tris = nullptr;
+			triIndices = nullptr;
 		}
 
 		rcChunkyTriMeshNode* nodes;
 		int nnodes;
 		int* tris;
+		int* triIndices;
 		int ntris;
 		int maxTrisPerChunk;
 
@@ -160,4 +209,39 @@ namespace Eagle::AINavigation
 	//  |:::|   | <-- the step can end up in here, resulting U-turn path.
 	//  +---+---+
 	int FixupShortcuts(dtPolyRef* path, int npath, dtNavMeshQuery* navQuery);
+
+	inline const Area* FindAreaOrDefault(std::span<const Area> areas, uint32_t areaID)
+	{
+		auto it = std::ranges::find_if(areas, [areaID](const Area& area) { return area.ID == areaID; });
+		if (it == areas.end() && areaID != DefaultAreaID)
+			it = std::ranges::find_if(areas, [](const Area& area) { return area.ID == DefaultAreaID; });
+
+		return it != areas.end() ? &*it : nullptr;
+	}
+
+	inline const AreaOverride* FindAreaOverride(std::span<const AreaOverride> overrides, uint32_t areaID)
+	{
+		auto it = std::ranges::find_if(overrides, [areaID](const AreaOverride& areaOverride) { return areaOverride.AreaID == areaID; });
+		return it != overrides.end() ? &*it : nullptr;
+	}
+
+	inline float ResolveAreaCost(const Area& area, std::span<const AreaOverride> overrides)
+	{
+		const AreaOverride* areaOverride = FindAreaOverride(overrides, area.ID);
+		return glm::max(areaOverride ? areaOverride->Cost : area.Cost, MinAreaCost);
+	}
+
+	// The agent type's override decides it together with the cost. Without one, it's the area's own setting
+	inline bool ResolveAreaBlocked(const Area& area, std::span<const AreaOverride> overrides)
+	{
+		const AreaOverride* areaOverride = FindAreaOverride(overrides, area.ID);
+		return areaOverride ? areaOverride->bBlocked : area.bBlocked;
+	}
+
+	// Runtime blocking wins over the project settings
+	inline bool ResolveAreaBlocked(const Area& area, const AreaCostSources& sources)
+	{
+		auto it = std::ranges::find_if(sources.BlockedAreas, [&area](const AreaBlock& block) { return block.AreaID == area.ID; });
+		return it != sources.BlockedAreas.end() ? it->bBlocked : ResolveAreaBlocked(area, sources.AgentTypeOverrides);
+	}
 }

@@ -351,6 +351,16 @@ namespace Eagle::UI
 					}
 					break;
 				}
+				case FieldType::NavArea:
+				{
+					uint32_t value = bRuntime ? field.GetRuntimeValue<uint32_t>(instance, fieldIndex) : field.GetStoredValue<uint32_t>(fieldIndex);
+					if (UI::NavAreaCombo(label.data(), value, field.Tooltip, customLabelCallback))
+					{
+						bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);
+						bChanged = true;
+					}
+					break;
+				}
 				case FieldType::Entity:
 				{
 					if (entity)
@@ -2080,6 +2090,68 @@ namespace Eagle::UI
 			for (const AINavigation::AgentType& type : Project::GetNavAgentTypes())
 				Option(type.Name.c_str(), type.ID, currentType == &type);
 
+			ImGui::EndCombo();
+		}
+
+		PopPropertyValueWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
+	bool NavAreaCombo(const std::string_view label, uint32_t& areaID, const std::string_view helpMessage, const std::function<void()>& customLabelCallback)
+	{
+		const auto& areas = Project::GetNavAreas();
+
+		auto current = std::find_if(areas.begin(), areas.end(), [areaID](const auto& area) { return area.ID == areaID; });
+		const bool bUnknown = current == areas.end();
+		const std::string currentName = bUnknown ? std::format("Unknown (ID {})", areaID) : current->Name;
+
+		bool bModified = false;
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		if (customLabelCallback)
+		{
+			ImGui::SameLine();
+			customLabelCallback();
+		}
+		ImGui::NextColumn();
+		PushPropertyValueWidth();
+
+		constexpr ImVec4 unknownColor = ImVec4(1.f, 0.8f, 0.2f, 1.f);
+		if (bUnknown)
+			ImGui::PushStyleColor(ImGuiCol_Text, unknownColor);
+
+		const bool bOpened = ImGui::BeginCombo(s_IDBuffer, currentName.c_str());
+		if (bUnknown)
+		{
+			ImGui::PopStyleColor();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("The project doesn't have a nav area with ID %u", areaID);
+		}
+
+		if (bOpened)
+		{
+			for (const auto& area : areas)
+			{
+				ImGui::PushID(int(area.ID));
+				const bool bSelected = area.ID == areaID;
+				if (ImGui::Selectable(area.Name.c_str(), bSelected))
+				{
+					bModified = area.ID != areaID;
+					areaID = area.ID;
+				}
+
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				ImGui::PopID();
+			}
 			ImGui::EndCombo();
 		}
 

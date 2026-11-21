@@ -550,6 +550,12 @@ namespace Eagle
 			s_EntityAssetsScene->OnNavAgentTypesChanged();
 	}
 
+	void AssetEntity::OnNavAreasChanged()
+	{
+		if (s_EntityAssetsScene)
+			s_EntityAssetsScene->OnNavAreasChanged();
+	}
+
 	Ref<AssetEntity> AssetEntity::Create(const Path& saveTo, const std::string& filename, Entity entity)
 	{
 		class LocalAssetEntity : public AssetEntity

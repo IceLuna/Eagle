@@ -5,6 +5,7 @@
 #include "ScriptUserComponents.h"
 
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Core/Project.h"
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Classes/PSAutoDestroyScript.h"
 #include "Eagle/Renderer/SceneRenderer.h"
@@ -2528,5 +2529,103 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetNavMesh` of Navigation Crowd Agent Component. Entity is null");
 			return AINavigation::InvalidAgentTypeID;
 		}
+	}
+
+	bool Script::Eagle_NavigationCrowdAgentComponent_GetCurrentArea(GUID entityID, uint32_t* outAreaID)
+	{
+		*outAreaID = AINavigation::InvalidAreaID;
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<NavigationCrowdAgentComponent>().GetCurrentArea(outAreaID);
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetCurrentArea` of Navigation Crowd Agent Component. Entity is null");
+		return false;
+	}
+
+	//-------------- NavigationAreaVolume Component --------------
+	static NavigationAreaVolumeComponent* GetAreaVolume(GUID entityID, std::string_view function)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `{}` of Navigation Area Volume Component. Entity is null", function);
+			return nullptr;
+		}
+
+		return &entity.GetComponent<NavigationAreaVolumeComponent>();
+	}
+
+	void Script::Eagle_NavigationAreaVolumeComponent_SetAreaID(GUID entityID, uint32_t areaID)
+	{
+		if (auto* volume = GetAreaVolume(entityID, "SetArea"))
+		{
+			if (!Project::FindNavArea(areaID))
+				EG_CORE_ERROR("[ScriptEngine] `SetArea`: the project doesn't have a nav area with ID {}. The volume won't mark anything", areaID);
+
+			volume->SetAreaID(areaID);
+		}
+	}
+
+	uint32_t Script::Eagle_NavigationAreaVolumeComponent_GetAreaID(GUID entityID)
+	{
+		auto* volume = GetAreaVolume(entityID, "GetArea");
+		return volume ? volume->GetAreaID() : AINavigation::InvalidAreaID;
+	}
+
+	void Script::Eagle_NavigationAreaVolumeComponent_SetHalfExtents(GUID entityID, const glm::vec3* halfExtents)
+	{
+		if (auto* volume = GetAreaVolume(entityID, "SetHalfExtents"))
+			volume->SetHalfExtents(*halfExtents);
+	}
+
+	void Script::Eagle_NavigationAreaVolumeComponent_GetHalfExtents(GUID entityID, glm::vec3* outHalfExtents)
+	{
+		auto* volume = GetAreaVolume(entityID, "GetHalfExtents");
+		*outHalfExtents = volume ? volume->GetHalfExtents() : glm::vec3(0.f);
+	}
+
+	void Script::Eagle_NavigationAreaVolumeComponent_SetAffectsAllAgentTypes(GUID entityID, bool bAll)
+	{
+		if (auto* volume = GetAreaVolume(entityID, "SetAffectsAllAgentTypes"))
+			volume->SetAffectsAllAgentTypes(bAll);
+	}
+
+	bool Script::Eagle_NavigationAreaVolumeComponent_AffectsAllAgentTypes(GUID entityID)
+	{
+		auto* volume = GetAreaVolume(entityID, "AffectsAllAgentTypes");
+		return volume ? volume->AffectsAllAgentTypes() : false;
+	}
+
+	void Script::Eagle_NavigationAreaVolumeComponent_SetAgentTypeIDs(GUID entityID, MonoArray* agentTypeIDs)
+	{
+		auto* volume = GetAreaVolume(entityID, "SetAgentTypes");
+		if (!volume)
+			return;
+
+		std::vector<uint32_t> ids;
+		if (agentTypeIDs)
+		{
+			const size_t count = mono_array_length(agentTypeIDs);
+			ids.reserve(count);
+			for (size_t i = 0; i < count; ++i)
+			{
+				const uint32_t id = mono_array_get(agentTypeIDs, uint32_t, i);
+				if (!std::ranges::contains(ids, id))
+					ids.push_back(id);
+			}
+		}
+		volume->SetAgentTypeIDs(ids);
+	}
+
+	MonoArray* Script::Eagle_NavigationAreaVolumeComponent_GetAgentTypeIDs(GUID entityID)
+	{
+		auto* volume = GetAreaVolume(entityID, "GetAgentTypes");
+		const std::vector<uint32_t> ids = volume ? volume->GetAgentTypeIDs() : std::vector<uint32_t>{};
+
+		MonoArray* result = mono_array_new(mono_domain_get(), mono_get_uint32_class(), ids.size());
+		for (size_t i = 0; i < ids.size(); ++i)
+			mono_array_set(result, uint32_t, i, ids[i]);
+
+		return result;
 	}
 }

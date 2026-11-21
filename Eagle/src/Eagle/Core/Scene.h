@@ -343,6 +343,19 @@ namespace Eagle
 		bool BuildNavMesh(NavigationMeshComponent& navMesh); // Returns false on failure
 		void DestroyNavMesh(NavigationMeshComponent& navMesh);
 		void RebuildNavMeshes(); // Rebuilds the built nav meshes that have `Auto Rebuild` enabled
+
+		// Built nav meshes with `Auto Rebuild` that touch `region`.
+		// If `region` is not set, all the active ones are rebuilt.
+		// They're rebuilt at the start of the next frame so that many changes in a frame cause one rebuild
+		void RequestNavMeshRebuild(const std::optional<AABB>& region = {});
+
+		AINavigation::AreaCostSources GetNavAreaCostSources(uint32_t agentTypeID) const;
+
+		void SetNavAreaBlocked(uint32_t agentTypeID, uint32_t areaID, bool bBlocked);
+		void ResetNavAreaBlocked(uint32_t agentTypeID, uint32_t areaID); // Back to the project settings
+		void ResetNavAreasBlocked(uint32_t agentTypeID);
+		bool IsNavAreaBlocked(uint32_t agentTypeID, uint32_t areaID) const;
+
 		void RebuildCrowd(NavigationMeshComponent& navMesh); // Recreates the crowd of a built nav mesh with the component's crowd settings
 
 		// Returns null if the scene doesn't have a built nav mesh of the agent type
@@ -369,6 +382,7 @@ namespace Eagle
 		bool OnNavAgentTypesChanged();
 
 		void OnNavMeshAgentTypeChanged(NavigationMeshComponent& navMesh, uint32_t oldAgentTypeID);
+		void OnNavAreasChanged();
 
 		// The active nav mesh component of each agent type that's used, sorted by agent type ID
 		std::vector<NavigationMeshComponent*> GetActiveNavMeshComponents() const;
@@ -516,6 +530,8 @@ namespace Eagle
 		const NavigationMeshComponent* FindNavMeshComponentToActivate(uint32_t agentTypeID, const NavigationMeshComponent* exclude) const;
 		void ValidateActiveNavMeshes();
 		void OnNavMeshComponentChanged(NavigationMeshComponent& navMesh);
+		void ProcessNavMeshRebuildRequests();
+		void UpdateNavMeshAreaCosts();
 		uint32_t FindNavMeshSlot(const Ref<AINavigation::Mesh>& navMesh) const;
 		void RefreshCrowdAgents();
 		std::vector<BaseColliderComponent*> GatherObstacleColliders();
@@ -555,6 +571,7 @@ namespace Eagle
 		void OnCapsuleColliderRemoved(entt::registry& r, entt::entity e);
 		void OnCrowdAgentAdded(entt::registry& r, entt::entity e);
 		void OnCrowdAgentRemoved(entt::registry& r, entt::entity e);
+		void OnNavAreaVolumeRemoved(entt::registry& r, entt::entity e);
 		void OnCameraRemoved(entt::registry& r, entt::entity e);
 		void OnReverbRemoved(entt::registry& r, entt::entity e);
 		void OnDirectionalLightAdded(entt::registry& r, entt::entity e);
@@ -780,6 +797,7 @@ namespace Eagle
 		bool bCanUpdateEditorCamera = false;
 		bool bDrawMiscellaneous = true;
 		bool bDrawNavMesh = false;
+		bool bColorNavMeshByArea = true;
 		float NavMeshOpacity = 1.f;
 		GUID NavMeshDebugSelectedEntity = GUID(0, 0);
 		bool bDrawMeshAABBs = false;
@@ -956,6 +974,12 @@ namespace Eagle
 			uint32_t AgentTypeID = AINavigation::InvalidAgentTypeID;
 		};
 		std::vector<ActiveNavMesh> m_ActiveNavMeshes;
+
+		std::vector<AABB> m_NavMeshRebuildRegions;
+
+		// Agent type ID -> blocked/unblocked areas
+		std::unordered_map<uint32_t, std::vector<AINavigation::AreaBlock>> m_NavBlockedAreas;
+		bool m_bRebuildAllNavMeshes = false;
 
 		friend class Entity;
 		friend class ComponentsNotificationSystem;

@@ -479,8 +479,10 @@ namespace Eagle
 
         std::size_t indicesCount = 0;
 
+        geometry.HitTriangleCounts.reserve(overlapHits.size());
         for (const auto& overlapHit : overlapHits)
         {
+            geometry.HitTriangleCounts.push_back(0u);
             if (!overlapHit.Body)
                 continue;
 
@@ -510,6 +512,7 @@ namespace Eagle
                 geometry.Indices.push_back(uint32_t(indicesCount + indices[i + 2]));
             }
 
+            geometry.HitTriangleCounts.back() = uint32_t(indices.size() / 3u);
             indicesCount += vertices.size();
             vertices.clear();
             indices.clear();

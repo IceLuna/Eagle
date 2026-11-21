@@ -623,6 +623,7 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "NavArea" << YAML::Value << collider.GetNavAreaID();
 			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
 			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //BoxColliderComponent
@@ -646,6 +647,8 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = boxColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = boxColliderNode["NavArea"])
+				collider.SetNavAreaID(node.as<uint32_t>());
 			if (auto node = boxColliderNode["CollisionGroupMask"])
 				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 			if (auto node = boxColliderNode["InteractingCollisionGroupMask"])
@@ -733,6 +736,7 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "NavArea" << YAML::Value << collider.GetNavAreaID();
 			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
 			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //SphereColliderComponent
@@ -756,6 +760,8 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = sphereColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = sphereColliderNode["NavArea"])
+				collider.SetNavAreaID(node.as<uint32_t>());
 			if (auto node = sphereColliderNode["CollisionGroupMask"])
 				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 			if (auto node = sphereColliderNode["InteractingCollisionGroupMask"])
@@ -781,6 +787,7 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "NavArea" << YAML::Value << collider.GetNavAreaID();
 			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
 			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //CapsuleColliderComponent
@@ -805,6 +812,8 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = capsuleColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = capsuleColliderNode["NavArea"])
+				collider.SetNavAreaID(node.as<uint32_t>());
 			if (auto node = capsuleColliderNode["CollisionGroupMask"])
 				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 			if (auto node = capsuleColliderNode["InteractingCollisionGroupMask"])
@@ -833,6 +842,7 @@ namespace Eagle
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::Key << "IsObstacle" << YAML::Value << collider.IsObstacle();
 			out << YAML::Key << "DoesAffectNavMeshBuild" << YAML::Value << collider.DoesAffectNavMeshBuild();
+			out << YAML::Key << "NavArea" << YAML::Value << collider.GetNavAreaID();
 			out << YAML::Key << "CollisionGroupMask" << YAML::Value << uint32_t(collider.GetCollisionGroup());
 			out << YAML::Key << "InteractingCollisionGroupMask" << YAML::Value << uint32_t(collider.GetInteractingCollisionGroup());
 			out << YAML::EndMap; //MeshColliderComponent
@@ -860,6 +870,8 @@ namespace Eagle
 				collider.SetIsObstacle(node.as<bool>());
 			if (auto node = meshColliderNode["DoesAffectNavMeshBuild"])
 				collider.SetAffectsNavMeshBuild(node.as<bool>());
+			if (auto node = meshColliderNode["NavArea"])
+				collider.SetNavAreaID(node.as<uint32_t>());
 			if (auto node = meshColliderNode["CollisionGroupMask"])
 				collider.SetCollisionGroup(CollisionGroup(node.as<uint32_t>() & collisionGroupValidMasks));
 			if (auto node = meshColliderNode["InteractingCollisionGroupMask"])
@@ -1457,6 +1469,39 @@ namespace Eagle
 			component.SetSettings(settings);
 		}
 
+		void SerializeNavigationAreaVolumeComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& component = entity.GetComponent<NavigationAreaVolumeComponent>();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap;
+
+			Serializer::SerializeRelativeTransform(out, component.GetRelativeTransform());
+			out << YAML::Key << "Area" << YAML::Value << component.GetAreaID();
+			out << YAML::Key << "HalfExtents" << YAML::Value << component.GetHalfExtents();
+			out << YAML::Key << "bAllAgentTypes" << YAML::Value << component.AffectsAllAgentTypes();
+			out << YAML::Key << "AgentTypes" << YAML::Value << YAML::Flow << component.GetAgentTypeIDs();
+
+			out << YAML::EndMap;
+		}
+
+		void DeserializeNavigationAreaVolumeComponent(Entity deserializedEntity, YAML::Node componentNode)
+		{
+			auto& component = deserializedEntity.AddComponent<NavigationAreaVolumeComponent>();
+
+			Transform relativeTransform;
+			Serializer::DeserializeRelativeTransform(componentNode, relativeTransform);
+			component.SetRelativeTransform(relativeTransform);
+			if (auto node = componentNode["Area"])
+				component.SetAreaID(node.as<uint32_t>());
+			if (auto node = componentNode["HalfExtents"])
+				component.SetHalfExtents(node.as<glm::vec3>());
+			if (auto node = componentNode["bAllAgentTypes"])
+				component.SetAffectsAllAgentTypes(node.as<bool>());
+			if (auto node = componentNode["AgentTypes"])
+				component.SetAgentTypeIDs(node.as<std::vector<uint32_t>>());
+		}
+
 		// Calls a deserialize function. It takes the valid masks of collision groups only if it uses them
 		template<auto DeserializeFn>
 		void DeserializeComponent(Entity deserializedEntity, YAML::Node node, uint32_t collisionGroupValidMasks)
@@ -1546,6 +1591,7 @@ namespace Eagle
 			EG_SERIALIZED_COMPONENT(DecalComponent),
 			EG_SERIALIZED_COMPONENT(NavigationMeshComponent),
 			EG_SERIALIZED_COMPONENT(NavigationCrowdAgentComponent),
+			EG_SERIALIZED_COMPONENT(NavigationAreaVolumeComponent),
 		};
 
 		#undef EG_SERIALIZED_COMPONENT

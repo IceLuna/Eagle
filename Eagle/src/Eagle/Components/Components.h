@@ -1594,6 +1594,11 @@ namespace Eagle
 		void SetAffectsNavMeshBuild(bool bAffects) { bAffectsNavMeshBuild = bAffects; }
 		bool DoesAffectNavMeshBuild() const { return bAffectsNavMeshBuild; }
 
+		// The nav area of the walkable surface built from this collider (only if it affects the nav mesh build).
+		// Nav meshes with `Auto Rebuild` are rebuilt when it changes. An area that the project doesn't have is treated as Default
+		void SetNavAreaID(uint32_t areaID);
+		uint32_t GetNavAreaID() const { return m_NavAreaID; }
+
 		bool IsObstacle() const { return bObstacle; }
 		void SetIsObstacle(bool bValue);
 
@@ -1652,6 +1657,7 @@ namespace Eagle
 		bool bTrigger = false;
 		bool bShowCollision = false;
 		bool bAffectsNavMeshBuild = true; // If set to false, collider won't be used during the nav mesh build process
+		uint32_t m_NavAreaID = AINavigation::DefaultAreaID;
 		bool bObstacle = false; // Can be used for NavMesh to dynamically block the path. Not supported by mesh colliders
 		bool bCollisionEnabled = true;
 	};
@@ -2658,6 +2664,59 @@ namespace Eagle
 		void DestroyNavMesh() { m_NavMesh.reset(); m_bBuildRequested = false; }
 	};
 
+	// Where areas overlap, the one with the higher priority wins.
+	class NavigationAreaVolumeComponent : public SceneComponent
+	{
+	public:
+		NavigationAreaVolumeComponent(const Entity& entity);
+
+		NavigationAreaVolumeComponent& operator=(const NavigationAreaVolumeComponent& other);
+		NavigationAreaVolumeComponent(const NavigationAreaVolumeComponent&) = delete;
+		NavigationAreaVolumeComponent(NavigationAreaVolumeComponent&&) noexcept = default;
+		NavigationAreaVolumeComponent& operator=(NavigationAreaVolumeComponent&&) noexcept = default;
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			OnChanged();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			OnChanged();
+		}
+
+		void SetAreaID(uint32_t areaID);
+		uint32_t GetAreaID() const { return m_AreaID; }
+
+		void SetHalfExtents(const glm::vec3& halfExtents);
+		const glm::vec3& GetHalfExtents() const { return m_HalfExtents; }
+
+		// If false, only the nav meshes of `GetAgentTypeIDs()` are affected
+		void SetAffectsAllAgentTypes(bool bAll);
+		bool AffectsAllAgentTypes() const { return m_bAllAgentTypes; }
+		bool AffectsAgentType(uint32_t agentTypeID) const;
+
+		void SetAgentTypeIDs(const std::vector<uint32_t>& agentTypeIDs);
+		const std::vector<uint32_t>& GetAgentTypeIDs() const { return m_AgentTypeIDs; }
+
+		AABB GetWorldBounds() const;
+		AINavigation::AreaVolume GetAreaVolume() const;
+
+		const std::optional<AABB>& GetLastBuildBounds() const { return m_LastBounds; }
+
+	private:
+		void OnChanged();
+
+	private:
+		std::vector<uint32_t> m_AgentTypeIDs;
+		glm::vec3 m_HalfExtents = glm::vec3(0.5f);
+		uint32_t m_AreaID = AINavigation::DefaultAreaID;
+		bool m_bAllAgentTypes = true;
+		std::optional<AABB> m_LastBounds;
+	};
+
 	class NavigationCrowdAgentComponent : public Component
 	{
 	public:
@@ -2697,6 +2756,9 @@ namespace Eagle
 		const Ref<AINavigation::Mesh>& GetNavMesh() const;
 
 		bool IsValid() const { return m_AgentIndex != -1; }
+
+		// Returns false if the agent isn't valid or isn't on the nav mesh
+		bool GetCurrentArea(uint32_t* outAreaID) const;
 
 	private:
 		bool CreateAgent(const glm::vec3& location);

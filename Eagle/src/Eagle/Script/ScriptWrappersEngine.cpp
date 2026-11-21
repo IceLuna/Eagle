@@ -1831,6 +1831,57 @@ namespace Eagle
 		return Project::GetDefaultNavAgentTypeID();
 	}
 
+	float Script::Eagle_NavAgentType_GetAreaCost(uint32_t agentTypeID, uint32_t areaID)
+	{
+		return Project::GetNavAreaCost(areaID, agentTypeID);
+	}
+
+	bool Script::Eagle_NavAgentType_IsAreaBlocked(uint32_t agentTypeID, uint32_t areaID)
+	{
+		return Project::IsNavAreaBlocked(areaID, agentTypeID);
+	}
+
+	//-------------- NavArea --------------
+	uint32_t Script::Eagle_NavArea_GetIDByName(MonoString* name)
+	{
+		if (!name)
+			return AINavigation::InvalidAreaID;
+
+		MonoStringHandler nameStr(name);
+		const AINavigation::Area* area = nameStr.c_str() ? Project::FindNavAreaByName(nameStr.c_str()) : nullptr;
+		return area ? area->ID : AINavigation::InvalidAreaID;
+	}
+
+	bool Script::Eagle_NavArea_IsValid(uint32_t areaID)
+	{
+		return Project::FindNavArea(areaID) != nullptr;
+	}
+
+	MonoString* Script::Eagle_NavArea_GetName(uint32_t areaID)
+	{
+		const AINavigation::Area* area = Project::FindNavArea(areaID);
+		return area ? mono_string_new(mono_domain_get(), area->Name.c_str()) : nullptr;
+	}
+
+	bool Script::Eagle_NavArea_GetInfo(uint32_t areaID, uint32_t* outID, float* outCost, glm::vec3* outDebugColor, bool* outBlocked)
+	{
+		const AINavigation::Area* area = Project::FindNavArea(areaID);
+		if (!area)
+		{
+			*outID = AINavigation::InvalidAreaID;
+			*outCost = 1.f;
+			*outDebugColor = glm::vec3(0.f);
+			*outBlocked = false;
+			return false;
+		}
+
+		*outID = area->ID;
+		*outCost = area->Cost;
+		*outDebugColor = area->DebugColor;
+		*outBlocked = area->bBlocked;
+		return true;
+	}
+
 	//-------------- CrowdNavigation --------------
 	bool Script::Eagle_CrowdNavigation_SetMoveTarget(const glm::vec3* target, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
 	{
@@ -1887,6 +1938,45 @@ namespace Eagle
 	{
 		if (const auto& navMesh = GetNavMeshForQuery(agentTypeID, "ResetCrowdMoveTarget"))
 			navMesh->GetCrowd().ResetMoveTarget();
+	}
+
+	bool Script::Eagle_NavMesh_GetAreaAt(uint32_t agentTypeID, const glm::vec3* point, uint32_t* outAreaID, bool bCustomSearchExtents, const glm::vec3* searchHalfExtents)
+	{
+		*outAreaID = AINavigation::InvalidAreaID;
+		const auto& navMesh = GetNavMeshForQuery(agentTypeID, "GetAreaAt");
+		return navMesh && navMesh->GetAreaAt(*point, outAreaID, ToSearchExtents(bCustomSearchExtents, searchHalfExtents));
+	}
+
+	bool Script::Eagle_NavMesh_IsAreaBlocked(uint32_t agentTypeID, uint32_t areaID)
+	{
+		return Scene::GetCurrentScene()->IsNavAreaBlocked(agentTypeID, areaID);
+	}
+
+	void Script::Eagle_NavMesh_SetAreaBlocked(uint32_t agentTypeID, uint32_t areaID, bool bBlocked)
+	{
+		if (!Project::FindNavAgentType(agentTypeID))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetAreaBlocked`. The project doesn't have an agent type with ID {}", agentTypeID);
+			return;
+		}
+
+		if (!Project::FindNavArea(areaID))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetAreaBlocked`. The project doesn't have a nav area with ID {}", areaID);
+			return;
+		}
+
+		Scene::GetCurrentScene()->SetNavAreaBlocked(agentTypeID, areaID, bBlocked);
+	}
+
+	void Script::Eagle_NavMesh_ResetAreaBlocked(uint32_t agentTypeID, uint32_t areaID)
+	{
+		Scene::GetCurrentScene()->ResetNavAreaBlocked(agentTypeID, areaID);
+	}
+
+	void Script::Eagle_NavMesh_ResetAreasBlocked(uint32_t agentTypeID)
+	{
+		Scene::GetCurrentScene()->ResetNavAreasBlocked(agentTypeID);
 	}
 
 	//-------------- Log --------------

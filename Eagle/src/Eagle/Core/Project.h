@@ -41,6 +41,10 @@ namespace Eagle
 		uint32_t DefaultNavAgentTypeID = AINavigation::InvalidAgentTypeID; // Used by queries and entities that don't pick an agent type
 		uint32_t NextNavAgentTypeID = 1u;
 
+		// From the highest priority to the lowest. Default is always the last one
+		std::vector<AINavigation::Area> NavAreas;
+		uint32_t NextNavAreaID = AINavigation::DefaultAreaID + 1u;
+
 		// The game (also when played in the editor) doesn't update while its window is minimized.
 		// Otherwise, the engine keeps updating its systems without rendering
 		bool bPauseWhenMinimized = false;
@@ -107,6 +111,23 @@ namespace Eagle
 		// Sets everything but the ID and the name of the type with `type.ID` (see `RenameNavAgentType()`). Values are clamped
 		static void SetNavAgentType(const AINavigation::AgentType& type);
 
+		// Note: returned references and pointers are invalidated when areas are added, removed or moved
+		static const std::vector<AINavigation::Area>& GetNavAreas() { return s_Info.NavAreas; }
+		static const AINavigation::Area* FindNavArea(uint32_t id);
+		static const AINavigation::Area* FindNavAreaByName(std::string_view name);
+		static bool CanAddNavArea() { return s_Info.NavAreas.size() < AINavigation::MaxAreas; }
+		static uint32_t AddNavArea(const std::string& name); // Returns the ID of the new area, or `InvalidAreaID` if failed. Its name is made unique
+		static bool RemoveNavArea(uint32_t id); // Default can't be removed
+		static bool RenameNavArea(uint32_t id, const std::string& name); // Same rules as agent types. Default can't be renamed
+		static void SetNavArea(const AINavigation::Area& area); // Sets the cost and the color of the area with `area.ID`
+		static bool MoveNavArea(uint32_t id, uint32_t newIndex); // Moves an area to another priority (0 is the highest). Default stays the last one
+
+		// Returns the agent type's override, or if it's not set, then the area's cost.
+		// Unknown areas cost same as Default
+		static float GetNavAreaCost(uint32_t areaID, uint32_t agentTypeID);
+
+		static bool IsNavAreaBlocked(uint32_t areaID, uint32_t agentTypeID);
+
 		static const Path& GetProjectPath() { return s_Info.BasePath; }
 		static const Path GetProjectFilePath() { return s_Info.BasePath / (s_Info.Name + Project::GetExtension()); }
 		static bool IsOpened() { return !s_Info.BasePath.empty(); }
@@ -151,6 +172,7 @@ namespace Eagle
 	private:
 		static bool Load(const Path& filepath, ProjectInfo* outInfo);
 		static bool IsNavAgentTypeNameAvailable(std::string_view name, uint32_t exceptID = AINavigation::InvalidAgentTypeID);
+		static bool IsNavAreaNameAvailable(std::string_view name, uint32_t exceptID = AINavigation::InvalidAreaID);
 
 	private:
 		static ProjectInfo s_Info;

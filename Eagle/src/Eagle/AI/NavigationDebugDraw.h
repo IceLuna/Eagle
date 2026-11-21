@@ -28,6 +28,7 @@ namespace Eagle::AINavigation
 		std::vector<RendererTriangle>& Triangles;
 
 		std::optional<glm::vec3> AreaColor;
+		std::array<std::optional<glm::vec3>, 64> ColorsPerArea;
 		float OffsetY = 0.f; // Added to the height of everything that's drawn
 		float Opacity = 1.f; // Multiplies the alpha of Detour's colors
 

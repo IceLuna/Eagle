@@ -37,6 +37,20 @@ namespace Eagle::AINavigation
 		return ap;
 	}
 
+	static bool HaveSameCosts(const dtQueryFilter& a, const dtQueryFilter& b)
+	{
+		if (a.getIncludeFlags() != b.getIncludeFlags() || a.getExcludeFlags() != b.getExcludeFlags())
+			return false;
+
+		for (int area = 0; area < DT_MAX_AREAS; ++area)
+		{
+			if (a.getAreaCost(area) != b.getAreaCost(area))
+				return false;
+		}
+
+		return true;
+	}
+
 	static void ReportError(std::string&& message)
 	{
 		EG_CORE_ERROR(message);
@@ -82,8 +96,7 @@ namespace Eagle::AINavigation
 			return false;
 		}
 
-		// Make polygons with 'disabled' flag invalid.
-		m_Crowd->getEditableFilter(0)->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED);
+		SetFilter(m_Filter);
 
 		// Setup local avoidance params to different qualities.
 		dtObstacleAvoidanceParams params;
@@ -136,6 +149,38 @@ namespace Eagle::AINavigation
 	{
 		Release();
 		return Init(settings, m_NavMesh, m_NavQuery, m_Filter);
+	}
+
+	void Crowd::SetFilter(const dtQueryFilter& filter, bool bWalkablePolysChanged)
+	{
+		const bool bChanged = bWalkablePolysChanged || !HaveSameCosts(m_Filter, filter);
+		m_Filter = filter;
+		
+		if (!m_Crowd)
+			return;
+
+		dtQueryFilter* editableFilter = m_Crowd->getEditableFilter(0);
+		*editableFilter = m_Filter;
+		editableFilter->setExcludeFlags(SAMPLE_POLYFLAGS_DISABLED); // Make polygons with 'disabled' flag invalid
+
+		if (bChanged)
+		{
+			for (int i = 0; i < m_Crowd->getAgentCount(); ++i)
+				ReplanPath(i);
+		}
+	}
+
+	void Crowd::ReplanPath(int agentIndex)
+	{
+		const dtCrowdAgent* ag = m_Crowd ? m_Crowd->getAgent(agentIndex) : nullptr;
+		if (!ag || !ag->active)
+			return;
+
+		if (ag->targetState != DT_CROWDAGENT_TARGET_NONE && ag->targetState != DT_CROWDAGENT_TARGET_FAILED && ag->targetState != DT_CROWDAGENT_TARGET_VELOCITY && ag->targetRef)
+		{
+			const glm::vec3 targetPos = glm::vec3(ag->targetPos[0], ag->targetPos[1], ag->targetPos[2]);
+			m_Crowd->requestMoveTarget(agentIndex, ag->targetRef, &targetPos.x);
+		}
 	}
 
 	int Crowd::AddAgent(const glm::vec3& pos, const AgentSettings& settings)
@@ -197,6 +242,18 @@ namespace Eagle::AINavigation
 		return false;
 	}
 
+	dtPolyRef Crowd::GetAgentPoly(int agentIndex) const
+	{
+		if (!m_Crowd)
+			return 0u;
+
+		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
+		if (!ag || !ag->active || ag->state != DT_CROWDAGENT_STATE_WALKING)
+			return 0u;
+
+		return ag->corridor.getFirstPoly();
+	}
+
 	bool Crowd::GetAgentVelocity(int agentIndex, glm::vec3* outVelocity) const
 	{
 		if (!m_Crowd)
@@ -253,11 +310,7 @@ namespace Eagle::AINavigation
 		dtVcopy(ag->npos, &nearest.x);
 
 		// The path is planned again from the new location
-		if (ag->targetState != DT_CROWDAGENT_TARGET_NONE && ag->targetState != DT_CROWDAGENT_TARGET_FAILED && ag->targetState != DT_CROWDAGENT_TARGET_VELOCITY && ag->targetRef)
-		{
-			const glm::vec3 targetPos = glm::vec3(ag->targetPos[0], ag->targetPos[1], ag->targetPos[2]);
-			m_Crowd->requestMoveTarget(agentIndex, ag->targetRef, &targetPos.x);
-		}
+		ReplanPath(agentIndex);
 	}
 
 	MoveRequestState Crowd::GetAgentTargetState(int agentIndex) const

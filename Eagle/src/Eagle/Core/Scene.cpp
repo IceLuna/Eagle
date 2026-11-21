@@ -182,7 +182,12 @@ namespace Eagle
 		SceneAddAndCopyComponent<SceneSequenceComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationCrowdAgentComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<NavigationAreaVolumeComponent>(this, m_Registry, other->m_Registry, createdEntities);
+
+		// Last, since copying a built nav mesh builds it. Colliders and area volumes must be there by then
+		// because signals aren't connected yet, so nothing that's copied after it would request a rebuild
 		SceneAddAndCopyComponent<NavigationMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
+
 		ValidateActiveNavMeshes();
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
@@ -989,6 +994,160 @@ namespace Eagle
 		}
 	}
 
+	void Scene::RequestNavMeshRebuild(const std::optional<AABB>& region)
+	{
+		bool bTouches = false;
+		for (const NavMeshSlot& slot : m_NavMeshSlots)
+		{
+			if (!slot.Mesh)
+				continue;
+
+			const AABB& bounds = slot.Mesh->GetAABB();
+			if (!region || (glm::all(glm::lessThanEqual(region->Min, bounds.Max)) && glm::all(glm::lessThanEqual(bounds.Min, region->Max))))
+			{
+				bTouches = true;
+				break;
+			}
+		}
+
+		if (!bTouches)
+			return;
+
+		if (region)
+			m_NavMeshRebuildRegions.push_back(*region);
+		else
+			m_bRebuildAllNavMeshes = true;
+	}
+
+	void Scene::ProcessNavMeshRebuildRequests()
+	{
+		if (!m_bRebuildAllNavMeshes && m_NavMeshRebuildRegions.empty())
+			return;
+
+		const bool bAll = m_bRebuildAllNavMeshes;
+		const std::vector<AABB> regions = std::move(m_NavMeshRebuildRegions);
+		m_bRebuildAllNavMeshes = false;
+
+		// Copied, since rebuilding changes the slots
+		std::vector<GUID> toRebuild;
+		for (const NavMeshSlot& slot : m_NavMeshSlots)
+		{
+			if (!slot.Mesh)
+				continue;
+
+			const AABB& bounds = slot.Mesh->GetAABB();
+			const bool bTouched = bAll || std::ranges::any_of(regions, [&bounds](const AABB& region)
+			{
+				return glm::all(glm::lessThanEqual(region.Min, bounds.Max)) && glm::all(glm::lessThanEqual(bounds.Min, region.Max));
+			});
+			if (bTouched)
+				toRebuild.push_back(slot.Entity);
+		}
+
+		for (const GUID& guid : toRebuild)
+		{
+			Entity entity = GetEntityByGUID(guid);
+			if (!entity || !entity.HasComponent<NavigationMeshComponent>())
+				continue;
+
+			auto& component = entity.GetComponent<NavigationMeshComponent>();
+			if (component.bAutoRebuild)
+				BuildNavMesh(component);
+		}
+	}
+
+	AINavigation::AreaCostSources Scene::GetNavAreaCostSources(uint32_t agentTypeID) const
+	{
+		AINavigation::AreaCostSources sources;
+		sources.Areas = Project::GetNavAreas();
+		if (const AINavigation::AgentType* type = Project::FindNavAgentType(agentTypeID))
+			sources.AgentTypeOverrides = type->AreaOverrides;
+
+		auto it = m_NavBlockedAreas.find(agentTypeID);
+		if (it != m_NavBlockedAreas.end())
+			sources.BlockedAreas = it->second;
+
+		return sources;
+	}
+
+	void Scene::SetNavAreaBlocked(uint32_t agentTypeID, uint32_t areaID, bool bBlocked)
+	{
+		auto& blocks = m_NavBlockedAreas[agentTypeID];
+		auto it = std::ranges::find_if(blocks, [areaID](const AINavigation::AreaBlock& block) { return block.AreaID == areaID; });
+		if (it == blocks.end())
+			blocks.push_back({ areaID, bBlocked });
+		else
+			it->bBlocked = bBlocked;
+
+		if (const auto& mesh = GetNavMesh(agentTypeID))
+			mesh->SetAreaCosts(GetNavAreaCostSources(agentTypeID));
+	}
+
+	void Scene::ResetNavAreaBlocked(uint32_t agentTypeID, uint32_t areaID)
+	{
+		auto it = m_NavBlockedAreas.find(agentTypeID);
+		if (it == m_NavBlockedAreas.end())
+			return;
+
+		if (std::erase_if(it->second, [areaID](const AINavigation::AreaBlock& block) { return block.AreaID == areaID; }) == 0u)
+			return;
+
+		if (const auto& mesh = GetNavMesh(agentTypeID))
+			mesh->SetAreaCosts(GetNavAreaCostSources(agentTypeID));
+	}
+
+	void Scene::ResetNavAreasBlocked(uint32_t agentTypeID)
+	{
+		if (m_NavBlockedAreas.erase(agentTypeID) == 0u)
+			return;
+
+		if (const auto& mesh = GetNavMesh(agentTypeID))
+			mesh->SetAreaCosts(GetNavAreaCostSources(agentTypeID));
+	}
+
+	bool Scene::IsNavAreaBlocked(uint32_t agentTypeID, uint32_t areaID) const
+	{
+		const AINavigation::AreaCostSources sources = GetNavAreaCostSources(agentTypeID);
+		const AINavigation::Area* area = AINavigation::FindAreaOrDefault(sources.Areas, areaID);
+		return area && AINavigation::ResolveAreaBlocked(*area, sources);
+	}
+
+	void Scene::UpdateNavMeshAreaCosts()
+	{
+		for (const NavMeshSlot& slot : m_NavMeshSlots)
+		{
+			if (slot.Mesh)
+				slot.Mesh->SetAreaCosts(GetNavAreaCostSources(slot.Mesh->GetAgentType().ID));
+		}
+	}
+
+	void Scene::OnNavAreasChanged()
+	{
+		std::vector<uint32_t> priority;
+		for (const AINavigation::Area& area : Project::GetNavAreas())
+			priority.push_back(area.ID);
+
+		std::vector<GUID> outdated;
+		for (const NavMeshSlot& slot : m_NavMeshSlots)
+		{
+			if (slot.Mesh && slot.Mesh->HasAreas() && slot.Mesh->GetAreaIDsByPriority() != priority)
+				outdated.push_back(slot.Entity);
+		}
+
+		for (const GUID& guid : outdated)
+		{
+			Entity entity = GetEntityByGUID(guid);
+			if (!entity || !entity.HasComponent<NavigationMeshComponent>())
+				continue;
+
+			auto& component = entity.GetComponent<NavigationMeshComponent>();
+			if (component.bAutoRebuild)
+				BuildNavMesh(component);
+		}
+
+		UpdateNavMeshAreaCosts();
+	}
+
 	void Scene::RebuildCrowd(NavigationMeshComponent& navMesh)
 	{
 		const Ref<AINavigation::Mesh>& mesh = navMesh.GetNavMesh();
@@ -1097,6 +1256,7 @@ namespace Eagle
 		// Crowd agents and script fields keep removed agent types, so that they don't move and it's noticed.
 		// The refresh removes the agents of removed types from the crowds
 		RefreshCrowdAgents();
+		UpdateNavMeshAreaCosts();
 
 		return bChanged;
 	}
@@ -1137,6 +1297,7 @@ namespace Eagle
 	void Scene::OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
 	{
 		DestroyPendingEntities();
+		ProcessNavMeshRebuildRequests();
 
 		// While something else drives what's rendered (the sequencer previewing a cutscene, for example),
 		// the editor camera isn't what's on screen. Moving it would do nothing visible until the override
@@ -1158,6 +1319,7 @@ namespace Eagle
 	void Scene::OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
 	{	
 		DestroyPendingEntities();
+		ProcessNavMeshRebuildRequests();
 
 		m_RuntimeCamera = FindOrCreateRuntimeCamera();
 		if (!m_RuntimeCamera->FixedAspectRatio)
@@ -2795,6 +2957,14 @@ namespace Eagle
 		entity.GetComponent<CapsuleColliderComponent>().SetIsObstacle(false);
 	}
 
+	void Scene::OnNavAreaVolumeRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		const auto& volume = entity.GetComponent<NavigationAreaVolumeComponent>();
+		const auto& lastBounds = volume.GetLastBuildBounds();
+		RequestNavMeshRebuild(lastBounds ? *lastBounds : volume.GetWorldBounds());
+	}
+
 	void Scene::OnCrowdAgentAdded(entt::registry& r, entt::entity e)
 	{
 		Entity entity(e, this);
@@ -2875,6 +3045,7 @@ namespace Eagle
 		m_Registry.on_destroy<CapsuleColliderComponent>().connect<&Scene::OnCapsuleColliderRemoved>(*this);
 		m_Registry.on_construct<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentAdded>(*this);
 		m_Registry.on_destroy<NavigationCrowdAgentComponent>().connect<&Scene::OnCrowdAgentRemoved>(*this);
+		m_Registry.on_destroy<NavigationAreaVolumeComponent>().connect<&Scene::OnNavAreaVolumeRemoved>(*this);
 		m_Registry.on_destroy<CameraComponent>().connect<&Scene::OnCameraRemoved>(*this);
 		m_Registry.on_destroy<ReverbComponent>().connect<&Scene::OnReverbRemoved>(*this);
 		m_Registry.on_construct<DirectionalLightComponent>().connect<&Scene::OnDirectionalLightAdded>(*this);
@@ -2929,7 +3100,8 @@ namespace Eagle
 		EntityCopyComponent<SceneSequenceComponent>(source, dest);
 		EntityCopyComponent<DecalComponent>(source, dest);
 		EntityCopyComponent<NavigationCrowdAgentComponent>(source, dest);
-		EntityCopyComponent<NavigationMeshComponent>(source, dest);
+		EntityCopyComponent<NavigationAreaVolumeComponent>(source, dest);
+		EntityCopyComponent<NavigationMeshComponent>(source, dest); // Last, since copying a built nav mesh builds it
 
 		if (bIsPlaying)
 		{
