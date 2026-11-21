@@ -3,8 +3,10 @@
 
 #include "Eagle/Core/Application.h"
 #include "Eagle/Core/CustomWindowFrame.h"
+#include "Eagle/Core/Project.h"
 
 #include <imgui_internal.h>
+#include <format>
 
 namespace Eagle
 {
@@ -203,7 +205,7 @@ namespace Eagle
 		}
 
 		// The tab well and the title bar of the current frame window
-		void DrawFrameContents(ImGuiID tabWellID, bool bTitleBar, const std::string& title, const std::function<void()>& onClose)
+		void DrawFrameContents(ImGuiID tabWellID, bool bTitleBar, const std::string& title, const std::function<void()>& onClose, std::string_view status = {})
 		{
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 			const float titleBarHeight = bTitleBar ? TitleBar::GetHeight() : 0.f;
@@ -224,6 +226,8 @@ namespace Eagle
 				TitleBarDesc desc;
 				desc.Title = title;
 				desc.Icon = s_Icon;
+				desc.Label = Project::GetProjectInfo().Name;
+				desc.Status = status;
 				desc.OnClose = onClose;
 				if (activeTab)
 				{
@@ -251,7 +255,12 @@ namespace Eagle
 
 			// A fullscreen window doesn't have a title bar. And it's not needed if the OS draws one
 			const bool bTitleBar = appWindow.HasCustomTitleBar() && !appWindow.IsFullscreen();
-			DrawFrameContents(GetMainDockspaceID(), bTitleBar, appWindow.GetWindowTitle(), &TitleBar::RequestAppClose);
+
+			// ImGui's average over the last 60 frames, so that it's readable
+			const float fps = ImGui::GetIO().Framerate;
+			const std::string stats = fps > 0.f ? std::format("FPS: {:.1f} / {:.1f} ms", fps, 1000.f / fps) : std::string();
+
+			DrawFrameContents(GetMainDockspaceID(), bTitleBar, appWindow.GetWindowTitle(), &TitleBar::RequestAppClose, stats);
 
 			ImGui::End();
 		}

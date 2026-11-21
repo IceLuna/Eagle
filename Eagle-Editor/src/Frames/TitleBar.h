@@ -18,6 +18,12 @@ namespace Eagle
 		// Drawn on the left. Optional
 		Ref<Texture2D> Icon;
 
+		// Drawn on the right, next to the buttons (for example, the project's name). Optional
+		std::string_view Label;
+
+		// Drawn dimmed on the left of `Label` (for example, the frame rate). Optional
+		std::string_view Status;
+
 		// Called within a menu bar, so it should submit `ImGui::BeginMenu()` items. Optional
 		std::function<void()> DrawMenus;
 
@@ -25,7 +31,7 @@ namespace Eagle
 		std::function<void()> OnClose;
 	};
 
-	// The title bar of the editor's windows: an icon, menus, a title and minimize/maximize/close buttons.
+	// The title bar of the editor's windows.
 	// It replaces the OS title bar of windows with a custom frame (see `CustomWindowFrame`), and it's drawn at the top of an ImGui window
 	class TitleBar
 	{

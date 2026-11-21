@@ -244,20 +244,55 @@ namespace Eagle
 				region.Interactive.push_back(ImRect(ImVec2(x, bar.Min.y), ImVec2(contentMaxX, bar.Max.y)));
 		}
 
+		const float spacing = IM_ROUND(height * 0.5f);
+		const float textY = IM_ROUND(bar.GetCenter().y - ImGui::GetFontSize() * 0.5f);
+		const float minX = contentMaxX + spacing;
+		float maxX = buttonsMinX - spacing;
+
+		// --- Label and status ---
+		// On the right, next to the buttons
+		{
+			auto textWidth = [](std::string_view text) { return text.empty() ? 0.f : ImGui::CalcTextSize(text.data(), text.data() + text.size()).x; };
+			const float available = maxX - minX;
+			float used = textWidth(desc.Title);
+			auto fits = [&](float width)
+			{
+				const float needed = used + (used > 0.f ? spacing : 0.f) + width;
+				if (width <= 0.f || needed > available)
+					return false;
+				used = needed;
+				return true;
+			};
+			const float labelWidth = textWidth(desc.Label);
+			const bool bLabel = fits(labelWidth);
+			const float statusWidth = textWidth(desc.Status);
+			const bool bStatus = fits(statusWidth);
+
+			// From right to left
+			if (bLabel)
+			{
+				maxX -= labelWidth;
+				drawList->AddText(ImVec2(maxX, textY), textColor, desc.Label.data(), desc.Label.data() + desc.Label.size());
+				maxX -= spacing;
+			}
+			if (bStatus)
+			{
+				maxX -= statusWidth;
+				drawList->AddText(ImVec2(maxX, textY), ImGui::GetColorU32(ImGuiCol_TextDisabled), desc.Status.data(), desc.Status.data() + desc.Status.size());
+				maxX -= spacing;
+			}
+		}
+
 		// --- Title ---
-		// Centered in the title bar, unless it'd overlap the menus or the buttons
+		// Centered in the title bar, unless it'd overlap the menus, the label and status, or the buttons
 		if (!desc.Title.empty())
 		{
 			const char* titleBegin = desc.Title.data();
 			const char* titleEnd = titleBegin + desc.Title.size();
 			const ImVec2 textSize = ImGui::CalcTextSize(titleBegin, titleEnd);
-			const float spacing = IM_ROUND(height * 0.5f);
-			const float minX = contentMaxX + spacing;
-			const float maxX = buttonsMinX - spacing;
 			if (maxX > minX)
 			{
 				const float textX = ImClamp(IM_ROUND(bar.GetCenter().x - textSize.x * 0.5f), minX, ImMax(minX, maxX - textSize.x));
-				const float textY = IM_ROUND(bar.GetCenter().y - textSize.y * 0.5f);
 				ImGui::PushStyleColor(ImGuiCol_Text, textColor);
 				ImGui::RenderTextEllipsis(drawList, ImVec2(textX, textY), ImVec2(maxX, bar.Max.y), maxX, titleBegin, titleEnd, &textSize);
 				ImGui::PopStyleColor();
