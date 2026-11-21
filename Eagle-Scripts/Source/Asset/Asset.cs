@@ -867,7 +867,7 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern AITaskManager CreateTaskManager_Native(GUID id, out AITaskManager manager);
+        internal static extern void CreateTaskManager_Native(GUID id, out AITaskManager manager);
     }
 
     public class AssetSceneSequence : Asset

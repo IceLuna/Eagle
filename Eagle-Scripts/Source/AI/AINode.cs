@@ -13,10 +13,10 @@ namespace Eagle
 
     public class AINode
     {
-        // Called once before task is about to run
+        // Called once before the node's first `Update`, after the decorators let it run
         public virtual void OnBegin() { }
 
-        // Called once after the task is finished/aborted
+        // Called once after the node is finished/aborted
         public virtual void OnEnd(AINodeStatus status) {}
 
         protected void ResetDecorators()
@@ -29,23 +29,36 @@ namespace Eagle
 
         public AINodeStatus Run(float ts)
         {
-            if (m_LastStatus != AINodeStatus.Running)
+            if (CanRun(ts, out AINodeStatus status))
             {
-                OnBegin();
+                if (!m_bBegun)
+                {
+                    m_bBegun = true;
+                    OnBegin();
+                }
+
+                status = Update(ts);
             }
 
-            if (CanRun(ts, out m_LastStatus))
-            {
-                m_LastStatus = Update(ts);
-            }
-            
-            if (m_LastStatus != AINodeStatus.Running)
-            {
-                OnEnd(m_LastStatus);
-                ResetDecorators();
-            }
+            if (status != AINodeStatus.Running)
+                End(status);
 
-            return m_LastStatus;
+            return status;
+        }
+
+        // Composite nodes call it on their running child when they're aborted, so that the child starts over the next time it's run
+        internal void End(AINodeStatus status)
+        {
+            bool bBegun = m_bBegun;
+            m_bBegun = false;
+
+            if (bBegun)
+                OnEnd(status);
+
+            foreach (var decorator in m_Decorators)
+                decorator.OnNodeEnd(status, bBegun);
+
+            ResetDecorators();
         }
 
         public T AddDecorator<T>() where T : AINodeDecorator, new()
@@ -96,6 +109,6 @@ namespace Eagle
 
         protected List<AINodeDecorator> m_Decorators = new List<AINodeDecorator>();
         protected AIBlackboard m_Blackboard = null;
-        private AINodeStatus m_LastStatus = AINodeStatus.Succeeded;
+        private bool m_bBegun = false;
     }
 }

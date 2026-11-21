@@ -83,10 +83,10 @@ namespace Eagle
         public override void OnEnd(AINodeStatus status)
         {
             base.OnEnd(status);
-            // If child was running, and this composite node was terminated, we should call `OnEnd` for the active child
+            // If child was running, and this composite node was terminated, the active child is ended too
             if (m_LastChildStatus == AINodeStatus.Running)
             {
-                m_Children[m_Current].OnEnd(status);
+                m_Children[m_Current].End(status);
                 m_LastChildStatus = status;
             }
             m_Current = 0;
@@ -105,11 +105,9 @@ namespace Eagle
             // Doesn't matter what we set here but Running
             m_LastChildStatus = AINodeStatus.Failed;
 
-            if (m_Children.Count == 0)
-                return AINodeStatus.Succeeded;
-
+            // No child succeeded
             if (m_Current >= m_Children.Count)
-                return AINodeStatus.Succeeded;
+                return AINodeStatus.Failed;
 
             m_LastChildStatus = m_Children[m_Current].Run(ts);
             switch (m_LastChildStatus)
@@ -136,10 +134,10 @@ namespace Eagle
         public override void OnEnd(AINodeStatus status)
         {
             base.OnEnd(status);
-            // If child was running, and this composite node was terminated, we should call `OnEnd` for the active child
+            // If child was running, and this composite node was terminated, the active child is ended too
             if (m_LastChildStatus == AINodeStatus.Running)
             {
-                m_Children[m_Current].OnEnd(status);
+                m_Children[m_Current].End(status);
                 m_LastChildStatus = status;
             }
             m_Current = 0;

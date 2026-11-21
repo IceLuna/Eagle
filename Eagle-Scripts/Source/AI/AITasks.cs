@@ -25,7 +25,7 @@ namespace Eagle
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
             m_Blackboard.TryGetValue(TargetEntity, out m_TargetEntity);
-            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+            m_RotationSpeed = m_Blackboard.GetValue(RotationSpeed, DefaultRotationSpeed);
         }
 
         protected override AINodeStatus Update(float ts)
@@ -36,17 +36,28 @@ namespace Eagle
             Vector3 location = m_Owner.GetWorldLocation();
             Vector3 target = m_TargetEntity.GetWorldLocation();
 
-            Vector3 dir = Mathf.Normalize(target - location);
-            Rotator targetRot = Mathf.LookAtY(dir);
-            Rotator result = Mathf.Slerp(m_Owner.GetWorldRotation(), targetRot, ts * m_RotationSpeed);
+            // Only turns around Y
+            Vector3 dir = target - location;
+            dir.Y = 0f;
+            float length = Mathf.Length(dir);
+            if (length < 0.0001f)
+                return AINodeStatus.Succeeded;
+
+            Rotator targetRot = Mathf.LookAtY(dir / length);
+            Rotator result = Mathf.Slerp(m_Owner.GetWorldRotation(), targetRot, Mathf.Clamp(ts * m_RotationSpeed, 0f, 1f));
             m_Owner.SetWorldRotation(result, PhysicsMove.Move);
 
-            return targetRot.Equals(result, Epsilon) ? AINodeStatus.Succeeded : AINodeStatus.Running;
+            // `q` and `-q` are the same rotation, and Slerp can approach either of them
+            Quat negated = new Quat(-result.Rotation.W, -result.Rotation.X, -result.Rotation.Y, -result.Rotation.Z);
+            bool bFacing = targetRot.Rotation.Equals(result.Rotation, Epsilon) || targetRot.Rotation.Equals(negated, Epsilon);
+            return bFacing ? AINodeStatus.Succeeded : AINodeStatus.Running;
         }
 
         private Entity m_TargetEntity = null;
         private Entity m_Owner = null;
-        private float m_RotationSpeed = 3.5f;
+        private float m_RotationSpeed = DefaultRotationSpeed;
+
+        private const float DefaultRotationSpeed = 3.5f;
     }
 
     [UIName("Go to Point")]
@@ -74,15 +85,15 @@ namespace Eagle
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
-            m_Blackboard.TryGetValue(Target, out m_Target);
-            m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
-            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+            m_bHasTarget = m_Blackboard.TryGetValue(Target, out m_Target);
+            m_MoveSpeed = m_Blackboard.GetValue(MoveSpeed, DefaultMoveSpeed);
+            m_RotationSpeed = m_Blackboard.GetValue(RotationSpeed, DefaultRotationSpeed);
             m_MoveState.Reset();
         }
 
         protected override AINodeStatus Update(float ts)
         {
-            if (m_Owner == null)
+            if (m_Owner == null || !m_bHasTarget)
                 return AINodeStatus.Failed;
 
             bool bFinished = Navigation.MoveToTarget(m_Owner, m_Target, AcceptanceDistance, ts, m_MoveSpeed, m_RotationSpeed, m_MoveState, FallbackAgentType);
@@ -102,10 +113,14 @@ namespace Eagle
         }
 
         protected Vector3 m_Target = new Vector3(0);
+        protected bool m_bHasTarget = false;
         private MoveToTargetState m_MoveState = new MoveToTargetState();
         private Entity m_Owner = null;
-        private float m_MoveSpeed = 1f;
-        private float m_RotationSpeed = 3.5f;
+        private float m_MoveSpeed = DefaultMoveSpeed;
+        private float m_RotationSpeed = DefaultRotationSpeed;
+
+        private const float DefaultMoveSpeed = 1f;
+        private const float DefaultRotationSpeed = 3.5f;
     }
 
     [UIName("Go to Entity")]
@@ -135,8 +150,8 @@ namespace Eagle
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
             m_Blackboard.TryGetValue(TargetEntity, out m_TargetEntity);
-            m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
-            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+            m_MoveSpeed = m_Blackboard.GetValue(MoveSpeed, DefaultMoveSpeed);
+            m_RotationSpeed = m_Blackboard.GetValue(RotationSpeed, DefaultRotationSpeed);
             m_MoveState.Reset();
         }
 
@@ -164,8 +179,11 @@ namespace Eagle
         private MoveToTargetState m_MoveState = new MoveToTargetState();
         private Entity m_TargetEntity = null;
         private Entity m_Owner = null;
-        private float m_MoveSpeed = 1f;
-        private float m_RotationSpeed = 3.5f;
+        private float m_MoveSpeed = DefaultMoveSpeed;
+        private float m_RotationSpeed = DefaultRotationSpeed;
+
+        private const float DefaultMoveSpeed = 1f;
+        private const float DefaultRotationSpeed = 3.5f;
     }
 
     [UIName("Go to a random point")]
@@ -194,8 +212,8 @@ namespace Eagle
         public override void OnBegin()
         {
             m_Blackboard.TryGetValue(Owner, out m_Owner);
-            m_Blackboard.TryGetValue(MoveSpeed, out m_MoveSpeed);
-            m_Blackboard.TryGetValue(RotationSpeed, out m_RotationSpeed);
+            m_MoveSpeed = m_Blackboard.GetValue(MoveSpeed, DefaultMoveSpeed);
+            m_RotationSpeed = m_Blackboard.GetValue(RotationSpeed, DefaultRotationSpeed);
             m_MoveState.Reset();
 
             m_bHasTarget = false;
@@ -232,12 +250,15 @@ namespace Eagle
         protected Entity m_Owner = null;
         protected Vector3 m_Target = new Vector3(0);
         protected bool m_bHasTarget = false;
-        protected float m_MoveSpeed = 1f;
-        protected float m_RotationSpeed = 3.5f;
+        protected float m_MoveSpeed = DefaultMoveSpeed;
+        protected float m_RotationSpeed = DefaultRotationSpeed;
+
+        private const float DefaultMoveSpeed = 1f;
+        private const float DefaultRotationSpeed = 3.5f;
     }
 
     [UIName("Play Sound")]
-    [Tooltip("Failes, if no audio is provided. Succeeds immeditely when sound is spawned")]
+    [Tooltip("Fails if no audio is provided, or a 3D sound has no position. Succeeds immediately when the sound is spawned")]
     public class AITaskPlaySound : AITask
     {
         public AssetAudio Audio = null;
@@ -256,7 +277,7 @@ namespace Eagle
         public bool b3D = false;
 
         [UIName("Position")]
-        [Tooltip("Blackboard key of the 3D position. Used only if it's a 3D sound")]
+        [Tooltip("Blackboard key of the 3D position (Vector3). Used only if it's a 3D sound")]
         public string Position = "";
 
         [UIName("Rolloff Model")]
@@ -274,15 +295,12 @@ namespace Eagle
                 m_AudioToUse = Audio;
             }
 
-            if (b3D)
-            {
-                m_Blackboard.TryGetValue(Position, out m_AudioToUse);
-            }
+            m_bHasPosition = b3D && m_Blackboard.TryGetValue(Position, out m_Position);
         }
 
         protected override AINodeStatus Update(float ts)
         {
-            if (m_AudioToUse == null)
+            if (m_AudioToUse == null || (b3D && !m_bHasPosition))
                 return AINodeStatus.Failed;
 
             SoundSettings settings = new SoundSettings(Volume);
@@ -306,6 +324,7 @@ namespace Eagle
 
         protected AssetAudio m_AudioToUse = null;
         protected Vector3 m_Position;
+        protected bool m_bHasPosition = false;
     }
 
     [UIName("Wait")]
@@ -314,19 +333,12 @@ namespace Eagle
         public float Delay = 1.0f;
 
         [UIName("Delay Blackboard Key")]
-        [Tooltip("If specified, a delay from the blackboard will be used")]
+        [Tooltip("If specified, a delay from the blackboard will be used. If the blackboard doesn't have it, Delay is used")]
         public string DelayBlackboardKey = "";
 
         public override void OnBegin()
         {
-            if (DelayBlackboardKey != null && DelayBlackboardKey.Length > 0)
-            {
-                m_Blackboard.TryGetValue(DelayBlackboardKey, out m_Delay);
-            }
-            else
-            {
-                m_Delay = Delay;
-            }
+            m_Delay = m_Blackboard.GetValue(DelayBlackboardKey, Delay);
         }
 
         public override void OnEnd(AINodeStatus status)

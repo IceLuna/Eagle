@@ -11,6 +11,10 @@ namespace Eagle
         public virtual AINodeStatus Update(float ts) { return AINodeStatus.Failed; }
 
         public virtual void Reset() { } // Resets the state
+
+        // Called when the node it's attached to finishes (succeeds, fails, or is aborted), before `Reset`.
+        // @bNodeRan. False if the node didn't run, because a decorator didn't let it
+        public virtual void OnNodeEnd(AINodeStatus status, bool bNodeRan) { }
         
         internal void SetBlackboard(AIBlackboard blackboard)
         {
@@ -43,6 +47,67 @@ namespace Eagle
         }
 
         private float m_Time = 0f;
+    }
+
+    [UIName("Cooldown")]
+    [Tooltip("Prevents a node from running until its cooldown ends. The cooldown starts when the node finishes: succeeds, fails, or is aborted.\n"
+        + "It's checked when the node starts, so a running node isn't stopped. The time is the AI Task Manager's, so it only passes while the tree is updated")]
+    public class AINodeDecoratorCooldown : AINodeDecorator
+    {
+        [UIName("Cooldown Time")]
+        [Tooltip("Seconds")]
+        public float CooldownTime = 5f;
+
+        public override AINodeStatus Update(float ts)
+        {
+            if (m_bLetRun)
+                return AINodeStatus.Succeeded;
+
+            if (m_bCoolingDown)
+            {
+                AITaskManager manager = AITaskManager.GetCurrent();
+                if (manager == null)
+                {
+                    Log.Error("Cooldown decorator: failed to get AI Task Manager. Ignored");
+                }
+                else if (manager.GetTime() < m_CooldownEnd)
+                {
+                    return AINodeStatus.Failed;
+                }
+                else
+                {
+                    m_bCoolingDown = false;
+                }
+            }
+
+            m_bLetRun = true;
+            return AINodeStatus.Succeeded;
+        }
+
+        public override void OnNodeEnd(AINodeStatus status, bool bNodeRan)
+        {
+            if (!bNodeRan)
+                return;
+
+            AITaskManager manager = AITaskManager.GetCurrent();
+            if (manager == null)
+            {
+                Log.Error("Cooldown decorator: failed to get AI Task Manager. Ignored");
+                return;
+            }
+
+            m_CooldownEnd = manager.GetTime() + CooldownTime;
+            m_bCoolingDown = true;
+        }
+
+        public override void Reset()
+        {
+            m_bLetRun = false;
+        }
+
+        private double m_CooldownEnd = 0.0;
+        private bool m_bCoolingDown = false;
+        private bool m_bLetRun = false;
     }
 
     [UIName("Is Blackboard Value Set")]

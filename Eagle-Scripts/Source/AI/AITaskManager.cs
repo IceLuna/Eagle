@@ -7,8 +7,25 @@ namespace Eagle
     {
         public void Update(float ts)
         {
-            m_Root?.Run(ts);
+            m_Time += ts;
+
+            AITaskManager previous = s_Updating;
+            s_Updating = this;
+            try
+            {
+                m_Root?.Run(ts);
+            }
+            finally
+            {
+                s_Updating = previous;
+            }
         }
+
+        public double GetTime() { return m_Time; }
+
+        // The manager whose tree is being updated
+        // Null outside of `Update`
+        internal static AITaskManager GetCurrent() {  return s_Updating; }
 
         public void SetRoot(AINode root)
         {
@@ -28,5 +45,9 @@ namespace Eagle
 
         protected AINode m_Root = null;
         protected AIBlackboard m_Blackboard = new AIBlackboard();
+        private double m_Time = 0.0;
+
+        [ThreadStatic]
+        private static AITaskManager s_Updating;
     }
 }
