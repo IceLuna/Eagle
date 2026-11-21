@@ -281,7 +281,16 @@ namespace Eagle::AINavigation
 		}
 
 		dtCrowdAgent* ag = m_Crowd->getEditableAgent(agentIndex);
-		if (!ag || !ag->active || ag->state != DT_CROWDAGENT_STATE_WALKING)
+		if (!ag || !ag->active)
+			return;
+
+		if (ag->state == DT_CROWDAGENT_STATE_INVALID)
+		{
+			dtVcopy(ag->npos, &location.x);
+			return;
+		}
+
+		if (ag->state != DT_CROWDAGENT_STATE_WALKING)
 			return;
 
 		ag->vel[0] = velocity.x;
@@ -449,11 +458,45 @@ namespace Eagle::AINavigation
 		m_Crowd->updateAgentParameters(agentIndex, &params);
 	}
 	
+	void Crowd::PlaceInvalidAgents()
+	{
+		const float* halfExtents = m_Crowd->getQueryHalfExtents();
+		for (int i = 0; i < m_Crowd->getAgentCount(); ++i)
+		{
+			dtCrowdAgent* ag = m_Crowd->getEditableAgent(i);
+			if (!ag->active || ag->state != DT_CROWDAGENT_STATE_INVALID)
+				continue;
+
+			// Same as `dtCrowd::addAgent` does
+			const dtQueryFilter* filter = m_Crowd->getFilter(ag->params.queryFilterType);
+			dtPolyRef ref = 0u;
+			float nearest[3];
+			dtVcopy(nearest, ag->npos);
+			if (dtStatusFailed(m_NavQuery->findNearestPoly(ag->npos, halfExtents, filter, &ref, nearest)) || ref == 0u)
+				continue;
+
+			ag->corridor.reset(ref, nearest);
+			ag->boundary.reset();
+			ag->partial = false;
+			ag->topologyOptTime = 0.f;
+			ag->targetReplanTime = 0.f;
+			ag->nneis = 0;
+			dtVset(ag->dvel, 0.f, 0.f, 0.f);
+			dtVset(ag->nvel, 0.f, 0.f, 0.f);
+			dtVset(ag->vel, 0.f, 0.f, 0.f);
+			dtVcopy(ag->npos, nearest);
+			ag->state = DT_CROWDAGENT_STATE_WALKING;
+
+			ReplanPath(i);
+		}
+	}
+
 	void Crowd::Update(Timestep ts)
 	{
 		if (!m_Crowd)
 			return;
 
+		PlaceInvalidAgents();
 		m_Crowd->update(ts, nullptr);
 	}
 }

@@ -97,6 +97,10 @@ namespace Eagle::AINavigation
 
 		void ReplanPath(int agentIndex);
 
+		// Detour marks an agent invalid when there's no polygon it can walk on near it and never places it back (for example, the area under it got blocked or it was added there).
+		// These agents are placed back once there's one, and follow their targets again
+		void PlaceInvalidAgents();
+
 	private:
 		dtCrowd* m_Crowd = nullptr;
 		dtPolyRef m_TargetRef{};

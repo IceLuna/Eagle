@@ -302,6 +302,7 @@ namespace Eagle
 
         // Blocks or unblocks an area for every agent on this nav mesh.
         // Agents plan their paths again. An agent standing in an area when it's blocked is moved to the nearest point it can walk on, if there's one nearby.
+        // Otherwise it stops until there is one (for example, the area is unblocked), and then follows its move target again.
         public void SetAreaBlocked(NavArea area, bool bBlocked) { SetAreaBlocked_Native(m_AgentTypeID, area.ID, bBlocked); }
         public void ResetAreaBlocked(NavArea area) { ResetAreaBlocked_Native(m_AgentTypeID, area.ID); } // Back to the project settings
         public void ResetAreasBlocked() { ResetAreasBlocked_Native(m_AgentTypeID); }

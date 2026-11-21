@@ -121,13 +121,13 @@ namespace Eagle
 		}
 	}
 
-	void ValidateAreaOverrides(std::vector<AINavigation::AreaOverride>& overrides)
+	void ValidateAreaOverrides(std::vector<AINavigation::AreaOverride>& overrides, std::span<const AINavigation::Area> areas)
 	{
 		std::vector<AINavigation::AreaOverride> valid;
 		valid.reserve(overrides.size());
 		for (AINavigation::AreaOverride areaOverride : overrides)
 		{
-			const bool bUnknownArea = Project::FindNavArea(areaOverride.AreaID) == nullptr;
+			const bool bUnknownArea = std::ranges::none_of(areas, [&areaOverride](const AINavigation::Area& area) { return area.ID == areaOverride.AreaID; });
 			if (bUnknownArea || AINavigation::FindAreaOverride(valid, areaOverride.AreaID))
 				continue;
 
@@ -208,7 +208,7 @@ namespace Eagle
 			}
 
 			type.Clamp();
-			ValidateAreaOverrides(type.AreaOverrides);
+			ValidateAreaOverrides(type.AreaOverrides, info.NavAreas);
 			validTypes.push_back(std::move(type));
 		}
 		info.NavAgentTypes = std::move(validTypes);
@@ -1399,7 +1399,7 @@ namespace Eagle
 				type.MaxSlope = newType.MaxSlope;
 				type.AreaOverrides = newType.AreaOverrides;
 				type.Clamp();
-				ValidateAreaOverrides(type.AreaOverrides);
+				ValidateAreaOverrides(type.AreaOverrides, s_Info.NavAreas);
 
 				return;
 			}

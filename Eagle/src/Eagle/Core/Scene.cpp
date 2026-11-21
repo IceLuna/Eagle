@@ -79,6 +79,18 @@ namespace Eagle
 		}
 	}
 
+	static bool IsNavAreaPriorityOutdated(std::span<const uint32_t> meshPriority, std::span<const AINavigation::Area> projectAreas)
+	{
+		auto it = meshPriority.begin();
+		for (const AINavigation::Area& area : projectAreas)
+		{
+			if (it != meshPriority.end() && *it == area.ID)
+				++it;
+		}
+
+		return it != meshPriority.end();
+	}
+
 	Scene::Scene()
 		: m_DebugName("Empty")
 	{
@@ -1123,14 +1135,12 @@ namespace Eagle
 
 	void Scene::OnNavAreasChanged()
 	{
-		std::vector<uint32_t> priority;
-		for (const AINavigation::Area& area : Project::GetNavAreas())
-			priority.push_back(area.ID);
+		const auto& areas = Project::GetNavAreas();
 
 		std::vector<GUID> outdated;
 		for (const NavMeshSlot& slot : m_NavMeshSlots)
 		{
-			if (slot.Mesh && slot.Mesh->HasAreas() && slot.Mesh->GetAreaIDsByPriority() != priority)
+			if (slot.Mesh && slot.Mesh->HasAreas() && IsNavAreaPriorityOutdated(slot.Mesh->GetAreaIDsByPriority(), areas))
 				outdated.push_back(slot.Entity);
 		}
 
