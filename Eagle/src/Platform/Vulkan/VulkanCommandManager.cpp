@@ -1147,18 +1147,18 @@ namespace Eagle
 	}
 
 #ifdef EG_GPU_TIMINGS
-	void VulkanCommandBuffer::StartTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
+	void VulkanCommandBuffer::StartTiming(const Ref<RHIGPUTiming>& timing, uint32_t queryIndex)
 	{
 		VkQueryPool pool = (VkQueryPool)timing->GetQueryPoolHandle();
-		const uint32_t queryIndex = frameIndex * 2;
-		vkCmdResetQueryPool(m_CommandBuffer, pool, queryIndex, 2);
-		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, queryIndex);
+		const uint32_t firstQuery = queryIndex * 2;
+		vkCmdResetQueryPool(m_CommandBuffer, pool, firstQuery, 2);
+		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, firstQuery);
 	}
 
-	void VulkanCommandBuffer::EndTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
+	void VulkanCommandBuffer::EndTiming(const Ref<RHIGPUTiming>& timing, uint32_t queryIndex)
 	{
 		VkQueryPool pool = (VkQueryPool)timing->GetQueryPoolHandle();
-		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, frameIndex * 2 + 1);
+		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, queryIndex * 2 + 1);
 	}
 
 	void VulkanCommandBuffer::BeginMarker(std::string_view name)

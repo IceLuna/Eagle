@@ -14,11 +14,18 @@ namespace Eagle
 		virtual ~VulkanGPUTiming();
 
 		virtual void* GetQueryPoolHandle() override { return m_Pool; }
-		virtual void QueryTiming(uint32_t frameInFlight) override;
+
+	protected:
+		virtual void RecreatePool() override;
+		virtual bool ReadTimings(uint32_t frameIndex, uint32_t count, float& outTiming) override;
+
+		void CreatePool();
+		void DestroyPool();
 
 	protected:
 		VkDevice m_Device;
 		VkQueryPool m_Pool = VK_NULL_HANDLE;
+		std::vector<uint64_t> m_Results;
 	};
 }
 

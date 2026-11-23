@@ -110,6 +110,8 @@ namespace Eagle
 		void BeginWindowReveal();
 		void UpdateWindowReveal();
 
+		void AverageCPUTimings();
+
 	protected:
 		Ref<Window> m_Window;
 		Ref<RendererContext> m_RendererContext;
@@ -119,8 +121,16 @@ namespace Eagle
 
 		std::unordered_map<std::thread::id, std::string_view> m_Threads;
 
-		std::unordered_map<std::thread::id, std::unordered_set<std::string_view>> m_CPUTimingsInUse;
-		std::unordered_map<std::thread::id, std::set<CPUTiming::Data>> m_CPUTimings;
+		struct AveragedCPUTiming
+		{
+			std::string_view Name;
+			float Timing = 0.f;
+			double LastSeen = 0.0;
+			std::vector<AveragedCPUTiming> Children;
+		};
+
+		std::unordered_map<std::thread::id, std::vector<CPUTiming::Data>> m_CPUTimingsThisFrame;
+		std::unordered_map<std::thread::id, std::vector<AveragedCPUTiming>> m_CPUTimings;
 
 		std::vector<std::function<void()>> m_NextFrameFuncs;
 		bool bProcessingNextFrameFuncs = false; // Used to prevent pushes to `m_NextFrameFuncs` from inside `m_NextFrameFuncs`. Instead, they're called immediately

@@ -18,14 +18,8 @@ namespace Eagle
 		struct Data
 		{
 			std::string_view Name;
-			mutable uint64_t SamplesCount = 1;
-			mutable float Timing = 0.f;
-			mutable std::vector<Data> Children;
-
-			bool operator< (const Data& other) const
-			{
-				return Name < other.Name;
-			}
+			float Timing = 0.f; // Milliseconds
+			std::vector<Data> Children;
 		};
 
 		std::string_view GetName() const { return m_Data.Name; }

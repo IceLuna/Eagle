@@ -144,28 +144,28 @@ namespace Eagle
 		uint32_t FlipY = 0;
 	};
 
+	// Timings that weren't used for this long are removed
+	static constexpr std::chrono::seconds s_GPUTimingLifetime(1);
+
 	static void UpdateGPUTimings()
 	{
+		std::scoped_lock lock(g_TimingsMutex);
+
+		const auto now = std::chrono::steady_clock::now();
+		for (auto& [name, timing] : s_RendererData->RHIGPUTimings)
+			timing->Update(s_RendererData->CurrentRenderingFrameIndex, now);
+
+		const auto IsOld = [now](const Ref<RHIGPUTiming>& timing) { return (now - timing->GetLastUsedTime()) > s_GPUTimingLifetime; };
+
 		// First, we need to deinit timings before releasing the memory
 		// Because they can point to each other and if one of the dies, the other might try to access it during deinitialization
-		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end(); ++it)
+		for (auto& [name, timing] : s_RendererData->RHIGPUTimings)
 		{
-			if (it->second->bIsUsed == false)
-				it->second->Destroy();
+			if (IsOld(timing))
+				timing->Destroy();
 		}
 
-		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end();)
-		{
-			// If it wasn't used in prev frame, erase it
-			if (it->second->bIsUsed == false)
-				it = s_RendererData->RHIGPUTimings.erase(it);
-			else
-			{
-				it->second->QueryTiming(s_RendererData->CurrentRenderingFrameIndex);
-				it->second->bIsUsed = false; // Set to false for the current frame
-				++it;
-			}
-		}
+		std::erase_if(s_RendererData->RHIGPUTimings, [&IsOld](const auto& it) { return IsOld(it.second); });
 	}
 
 	static GPUTimingData ProcessTimingChildren(const RHIGPUTiming* timing)

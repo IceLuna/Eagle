@@ -41,6 +41,79 @@ namespace Eagle
 			return a.Timing > b.Timing;
 		}
 	} s_CustomCPUTimingsLess;
+
+	// How much each frame moves an average towards the frame's timing. About the last 20 frames count
+	static constexpr float s_CPUTimingAveraging = 0.05f;
+
+	// Timings that didn't run for this many seconds are removed
+	static constexpr double s_CPUTimingLifetime = 1.0;
+
+	static void MergeCPUTiming(std::vector<CPUTiming::Data>& timings, const CPUTiming::Data& timing)
+	{
+		auto it = std::ranges::find_if(timings, [&timing](const CPUTiming::Data& other) { return other.Name == timing.Name; });
+
+		CPUTiming::Data* merged = nullptr;
+		if (it != timings.end())
+		{
+			merged = &*it;
+			merged->Timing += timing.Timing;
+		}
+		else
+		{
+			merged = &timings.emplace_back();
+			merged->Name = timing.Name;
+			merged->Timing = timing.Timing;
+		}
+
+		for (const CPUTiming::Data& child : timing.Children)
+			MergeCPUTiming(merged->Children, child);
+	}
+
+	template<typename AveragedTiming>
+	static void AverageCPUTimingsLevel(std::vector<AveragedTiming>& averages, const std::vector<CPUTiming::Data>& frame, double now)
+	{
+		for (const CPUTiming::Data& timing : frame)
+		{
+			auto it = std::ranges::find_if(averages, [name = timing.Name](const auto& timing) { return timing.Name == name; });
+			AveragedTiming* average = nullptr;
+			if (it != averages.end())
+			{
+				average = &*it;
+				average->Timing += (timing.Timing - average->Timing) * s_CPUTimingAveraging;
+			}
+			else
+			{
+				average = &averages.emplace_back();
+				average->Name = timing.Name;
+				average->Timing = timing.Timing;
+			}
+			average->LastSeen = now;
+			AverageCPUTimingsLevel(average->Children, timing.Children, now);
+		}
+	}
+
+	template<typename AveragedTiming>
+	static void RemoveOldCPUTimings(std::vector<AveragedTiming>& averages, double now)
+	{
+		std::erase_if(averages, [now](const AveragedTiming& timing) { return now - timing.LastSeen > s_CPUTimingLifetime; });
+		for (AveragedTiming& timing : averages)
+			RemoveOldCPUTimings(timing.Children, now);
+	}
+
+	// Sorted from the slowest
+	template<typename AveragedTiming>
+	static CPUTiming::Data ToCPUTimingData(const AveragedTiming& average)
+	{
+		CPUTiming::Data data;
+		data.Name = average.Name;
+		data.Timing = average.Timing;
+		data.Children.reserve(average.Children.size());
+		for (const AveragedTiming& child : average.Children)
+			data.Children.push_back(ToCPUTimingData(child));
+
+		std::sort(data.Children.begin(), data.Children.end(), s_CustomCPUTimingsLess);
+		return data;
+	}
 #endif
 
 	Application* Application::s_Instance = nullptr;
@@ -58,7 +131,6 @@ namespace Eagle
 		std::filesystem::current_path(m_CorePath);
 
 		m_Threads.reserve(4);
-		m_CPUTimingsInUse.reserve(4);
 		m_Threads[std::this_thread::get_id()] = "Main Thread";
 
 		ParseCmdArguments(props.argc, props.argv);
@@ -367,34 +439,10 @@ namespace Eagle
 				m_Window->WaitEvents(remaining);
 		}
 
-#ifdef EG_CPU_TIMINGS
-		// A frame run from within `ProcessEvents()` is nested in the outer one, so the outer frame's timings are still in use
+		// A frame run from within `ProcessEvents()` is nested in the outer one, so its timings are added to the outer frame's
 		if (bProcessEvents)
-		{
-			std::scoped_lock lock(s_TimingsMutex);
+			AverageCPUTimings();
 
-			for (auto& [threadID, timings] : m_CPUTimings)
-			{
-				auto& timingsInUse = m_CPUTimingsInUse.find(threadID)->second;
-
-				for (auto it = timings.begin(); it != timings.end();)
-				{
-					std::string_view name = (*it).Name;
-					auto inUseIt = timingsInUse.find(name);
-					if (inUseIt != timingsInUse.end())
-					{
-						++it;
-					}
-					else
-					{
-						it = timings.erase(it);
-					}
-				}
-			}
-			for (auto& it : m_CPUTimingsInUse)
-				it.second.clear();
-		}
-#endif
 		EG_CPU_TIMING_SCOPED("Whole frame");
 		UpdateTime();
 
@@ -563,67 +611,30 @@ namespace Eagle
 	void Application::AddCPUTiming(const CPUTiming* timing)
 	{
 		std::scoped_lock lock(s_TimingsMutex);
-
-		auto id = std::this_thread::get_id();
-		auto name = timing->GetName();
-		m_CPUTimingsInUse[id].emplace(name);
-
-		const auto& timingData = timing->GetData();
-		auto& timingsByName = m_CPUTimings[id];
-
-		auto it = timingsByName.find(timingData);
-		if (it != timingsByName.end()) // Update timings data
-		{
-			const float oldTiming = (*it).Timing;
-			const float newTiming = timingData.Timing;
-			const uint64_t samples = (*it).SamplesCount + 1;
-
-			if (samples > 500)
-			{
-				// Reset
-				(*it).Timing = timingData.Timing;
-				(*it).Children = timingData.Children;
-				(*it).SamplesCount = 1;
-			}
-			else
-			{
-				// Running average
-				(*it).Timing = oldTiming + ((newTiming - oldTiming) / (float)samples);
-				(*it).Children = timingData.Children;
-				(*it).SamplesCount++;
-			}
-		}
-		else
-		{
-			timingsByName.emplace(timingData);
-		}
+		MergeCPUTiming(m_CPUTimingsThisFrame[std::this_thread::get_id()], timing->GetData());
 	}
 
-	static CPUTiming::Data ProcessCPUTiming(const CPUTiming::Data& timing)
+	void Application::AverageCPUTimings()
 	{
-		CPUTiming::Data data;
-		data.Name = timing.Name;
-		data.Timing = timing.Timing;
+#ifdef EG_CPU_TIMINGS
+		std::scoped_lock lock(s_TimingsMutex);
 
-		const auto& children = timing.Children;
-		for (auto& child : children)
+		const double now = glfwGetTime();
+		for (auto& [threadID, frame] : m_CPUTimingsThisFrame)
 		{
-			auto& childData = data.Children.emplace_back();
-			childData.Name = child.Name;
-			childData.Timing = child.Timing;
+			AverageCPUTimingsLevel(m_CPUTimings[threadID], frame, now);
+			frame.clear();
 		}
 
-		const size_t childsCount = children.size();
-		for (size_t i = 0; i < childsCount; ++i)
+		for (auto it = m_CPUTimings.begin(); it != m_CPUTimings.end();)
 		{
-			auto& child = children[i];
-			for (auto& childsChild : child.Children)
-				data.Children[i].Children.push_back(ProcessCPUTiming(childsChild));
-			std::sort(data.Children[i].Children.begin(), data.Children[i].Children.end(), s_CustomCPUTimingsLess);
+			RemoveOldCPUTimings(it->second, now);
+			if (it->second.empty())
+				it = m_CPUTimings.erase(it);
+			else
+				++it;
 		}
-		std::sort(data.Children.begin(), data.Children.end(), s_CustomCPUTimingsLess);
-
-		return data;
+#endif
 	}
 
 	CPUTimingsContainer Application::GetCPUTimings() const
@@ -633,8 +644,11 @@ namespace Eagle
 			std::scoped_lock lock(s_TimingsMutex);
 			for (auto& [threadID, timings] : m_CPUTimings)
 			{
+				auto& threadTimings = result[threadID];
 				for (auto& timing : timings)
-					result[threadID].push_back(ProcessCPUTiming(timing));
+					threadTimings.push_back(ToCPUTimingData(timing));
+
+				std::sort(threadTimings.begin(), threadTimings.end(), s_CustomCPUTimingsLess);
 			}
 		}
 		return result;

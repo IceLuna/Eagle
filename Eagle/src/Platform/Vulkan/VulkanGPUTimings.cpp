@@ -11,17 +11,26 @@ namespace Eagle
 	VulkanGPUTiming::VulkanGPUTiming()
 	{
 		m_Device = VulkanContext::GetDevice()->GetVulkanDevice();
+		CreatePool();
+	}
 
+	VulkanGPUTiming::~VulkanGPUTiming()
+	{
+		DestroyPool();
+	}
+
+	void VulkanGPUTiming::CreatePool()
+	{
 		VkQueryPoolCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
 		ci.queryType = VK_QUERY_TYPE_TIMESTAMP;
-		ci.queryCount = 2 * RendererConfig::FramesInFlight;
+		ci.queryCount = 2 * m_QueriesPerFrame * RendererConfig::FramesInFlight;
 
 		VK_CHECK(vkCreateQueryPool(m_Device, &ci, nullptr, &m_Pool));
 		vkResetQueryPool(m_Device, m_Pool, 0, ci.queryCount);
 	}
 
-	VulkanGPUTiming::~VulkanGPUTiming()
+	void VulkanGPUTiming::DestroyPool()
 	{
 		RenderManager::SubmitResourceFree([device = m_Device, pool = m_Pool]()
 		{
@@ -29,16 +38,28 @@ namespace Eagle
 		});
 		m_Pool = VK_NULL_HANDLE;
 	}
-	
-	void VulkanGPUTiming::QueryTiming(uint32_t frameInFlight)
-	{
-		std::uint64_t timings[2] = {};
 
-		VkResult res = vkGetQueryPoolResults(m_Device, m_Pool, 2 * frameInFlight, 2, sizeof(timings), timings, sizeof(*timings), VK_QUERY_RESULT_64_BIT);
-		if (res != VK_NOT_READY)
-		{
-			m_Timing = float(timings[1] - timings[0]) * VulkanContext::GetDevice()->GetPhysicalDevice()->GetProperties().limits.timestampPeriod * 1e-6f;
-		}
+	void VulkanGPUTiming::RecreatePool()
+	{
+		DestroyPool();
+		CreatePool();
+	}
+
+	bool VulkanGPUTiming::ReadTimings(uint32_t frameIndex, uint32_t count, float& outTiming)
+	{
+		m_Results.resize(2 * size_t(count));
+
+		const uint32_t firstQuery = 2 * frameIndex * m_QueriesPerFrame;
+		VkResult res = vkGetQueryPoolResults(m_Device, m_Pool, firstQuery, 2 * count, m_Results.size() * sizeof(uint64_t), m_Results.data(), sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+		if (res != VK_SUCCESS)
+			return false;
+
+		uint64_t ticks = 0;
+		for (uint32_t i = 0; i < count; ++i)
+			ticks += m_Results[2 * i + 1] - m_Results[2 * i];
+
+		outTiming = float(ticks) * VulkanContext::GetDevice()->GetPhysicalDevice()->GetProperties().limits.timestampPeriod * 1e-6f;
+		return true;
 	}
 }
 

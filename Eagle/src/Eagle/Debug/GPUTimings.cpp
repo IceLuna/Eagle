@@ -12,6 +12,46 @@ namespace Eagle
 {
 	extern std::mutex g_TimingsMutex;
 
+	// How much each frame moves the average towards its own value
+	static constexpr float s_GPUTimingAveraging = 0.05f;
+
+	RHIGPUTiming::RHIGPUTiming()
+		: m_UsedQueries(RendererConfig::FramesInFlight, 0u)
+		, m_LastUsedTime(std::chrono::steady_clock::now())
+	{}
+
+	void RHIGPUTiming::Update(uint32_t frameIndex, std::chrono::steady_clock::time_point now)
+	{
+		const uint32_t used = m_UsedQueries[frameIndex];
+		m_UsedQueries[frameIndex] = 0;
+		if (used == 0)
+			return;
+
+		m_LastUsedTime = now;
+		if (used > m_QueriesPerFrame)
+		{
+			// Some of its uses weren't measured, so the total is incomplete. The other frames in flight wrote to the old pool, so they're skipped too
+			m_QueriesPerFrame = std::max(used, m_QueriesPerFrame * 2);
+			RecreatePool();
+			std::fill(m_UsedQueries.begin(), m_UsedQueries.end(), 0u);
+			return;
+		}
+
+		float timing = 0.f;
+		if (!ReadTimings(frameIndex, used, timing))
+			return;
+
+		if (m_bHasTiming)
+		{
+			m_Timing += (timing - m_Timing) * s_GPUTimingAveraging;
+		}
+		else
+		{
+			m_Timing = timing;
+			m_bHasTiming = true;
+		}
+	}
+
 	Ref<RHIGPUTiming> RHIGPUTiming::Create(const std::string_view name)
 	{
 		Ref <RHIGPUTiming> result;
@@ -68,10 +108,10 @@ namespace Eagle
 			m_GPUTiming = RHIGPUTiming::Create(m_Name);
 			RenderManager::RegisterGPUTiming(m_GPUTiming, m_Name);
 		}
-		m_GPUTiming->bIsUsed = true;
 
-		m_FrameIndex = RenderManager::GetCurrentFrameIndex();
-		m_Cmd->StartTiming(m_GPUTiming, m_FrameIndex);
+		m_QueryIndex = m_GPUTiming->AllocateQuery(RenderManager::GetCurrentFrameIndex());
+		if (m_QueryIndex != RHIGPUTiming::InvalidQuery)
+			m_Cmd->StartTiming(m_GPUTiming, m_QueryIndex);
 #ifdef EG_GPU_MARKERS
 		m_Cmd->BeginMarker(m_Name);
 #endif
@@ -94,7 +134,8 @@ namespace Eagle
 		EG_ASSERT(m_bStarted);
 		EG_ASSERT(m_Cmd.operator bool() && m_Name.data());
 
-		m_Cmd->EndTiming(m_GPUTiming, m_FrameIndex);
+		if (m_QueryIndex != RHIGPUTiming::InvalidQuery)
+			m_Cmd->EndTiming(m_GPUTiming, m_QueryIndex);
 #ifdef EG_GPU_MARKERS
 		m_Cmd->EndMarker();
 #endif

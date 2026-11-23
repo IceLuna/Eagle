@@ -106,8 +106,8 @@ namespace Eagle
 		void GenerateMips(const Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout) override;
 
 #ifdef EG_GPU_TIMINGS
-		virtual void StartTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex) override;
-		virtual void EndTiming(const Ref<RHIGPUTiming>& timing, uint32_t frameIndex) override;
+		virtual void StartTiming(const Ref<RHIGPUTiming>& timing, uint32_t queryIndex) override;
+		virtual void EndTiming(const Ref<RHIGPUTiming>& timing, uint32_t queryIndex) override;
 		virtual void BeginMarker(std::string_view name) override;
 		virtual void EndMarker() override;
 #endif
