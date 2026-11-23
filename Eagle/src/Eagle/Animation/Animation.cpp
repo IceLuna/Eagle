@@ -32,7 +32,7 @@ namespace Eagle
 
 	const BoneNode* SkeletalMeshAnimation::FindRootMotionBone(const SkeletalMeshInfo& skeletalInfo) const
 	{
-		const BoneNode* node = &skeletalInfo.RootBone;
+		const BoneNode* node = &skeletalInfo.GetRootBone();
 		while (node)
 		{
 			const bool bAnimated = FindBone(node->GetNameHash()) != nullptr;
@@ -57,7 +57,7 @@ namespace Eagle
 		}
 
 		std::string rootBoneName;
-		const bool bFoundRootBone = Utils::FindRootBoneName(m_AnimBones, skeletalInfo, skeletalInfo.RootBone, &rootBoneName);
+		const bool bFoundRootBone = Utils::FindRootBoneName(m_AnimBones, skeletalInfo, skeletalInfo.GetRootBone(), &rootBoneName);
 		if (!bFoundRootBone)
 		{
 			EG_CORE_ERROR("Failed to extract root motion data. Failed to find the root bone!");
@@ -87,7 +87,7 @@ namespace Eagle
 		if (bFromBasePose)
 		{
 			SkeletalPose pose{};
-			AnimationSystem::FinalizePose(pose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
+			AnimationSystem::FinalizePose(pose, skeletalInfo.GetRootBone(), glm::mat4(1), skeletalInfo);
 			auto itRootTr = pose.FindBone(rootBoneName);
 			if (itRootTr != pose.Bones.end())
 			{
@@ -143,7 +143,7 @@ namespace Eagle
             return false;
 
 		std::string rootBoneName;
-		const bool bFoundRootBone = Utils::FindRootBoneName(m_AnimBones, skeletalInfo, skeletalInfo.RootBone, &rootBoneName);
+		const bool bFoundRootBone = Utils::FindRootBoneName(m_AnimBones, skeletalInfo, skeletalInfo.GetRootBone(), &rootBoneName);
 		if (!bFoundRootBone)
 		{
 			EG_CORE_ERROR("Failed to remove root motion data. Failed to find the root bone!");

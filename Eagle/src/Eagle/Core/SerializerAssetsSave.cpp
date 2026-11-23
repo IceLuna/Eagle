@@ -693,7 +693,7 @@ namespace Eagle
 			out << YAML::Key << "CoordCorrection" << YAML::Value << skeletalInfo.CoordCorrection;
 
 			out << YAML::Key << "Skeletal" << YAML::Value;
-			Serializer::EmitBoneNode(out, skeletalInfo.RootBone);
+			Serializer::EmitBoneNode(out, skeletalInfo.GetRootBone());
 		}
 
 		out << YAML::Key << "BoneInfoMap";

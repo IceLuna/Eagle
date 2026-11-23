@@ -847,7 +847,7 @@ namespace Eagle
 			{
 				auto& skeletal = view.get<SkeletalMeshComponent>(entity);
 				if (auto& asset = skeletal.GetMeshAsset())
-					Utils::DrawBones(m_DebugLinesToDraw, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, skeletal.LastPose, skeletal.IsRagdollEnabled(), Math::ToTransformMatrix(skeletal.GetWorldTransform()));
+					Utils::DrawBones(m_DebugLinesToDraw, asset->GetMesh()->GetSkeletalMeshInfo().GetRootBone(), skeletal.LastPose, skeletal.IsRagdollEnabled(), Math::ToTransformMatrix(skeletal.GetWorldTransform()));
 			}
 		}
 

@@ -102,7 +102,7 @@ namespace Eagle
 
         static void CalculateAdditivePose_Internal(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const SkeletalMeshInfo& skeletal, SkeletalPose* resultPose)
         {
-            for (const auto& entry : skeletal.FlattenedBones)
+            for (const auto& entry : skeletal.GetFlattenedBones())
             {
                 const uint64_t nodeHash = entry.Node->GetNameHash();
 
@@ -122,7 +122,7 @@ namespace Eagle
 
         static void ApplyAdditive_Internal(const SkeletalPose& targetPose, const SkeletalPose& additivePose, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* resultPose)
         {
-            for (const auto& entry : skeletal.FlattenedBones)
+            for (const auto& entry : skeletal.GetFlattenedBones())
             {
                 const uint64_t nodeHash = entry.Node->GetNameHash();
 
@@ -143,7 +143,7 @@ namespace Eagle
         
         static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalMeshInfo& skeletal, float blendAlpha, SkeletalPose* outPose)
         {
-            for (const auto& entry : skeletal.FlattenedBones)
+            for (const auto& entry : skeletal.GetFlattenedBones())
             {
                 const uint64_t nodeHash = entry.Node->GetNameHash();
 
@@ -164,7 +164,7 @@ namespace Eagle
         static void BlendPoses_Internal(const SkeletalPose& pose1, const SkeletalPose& pose2, const SkeletalPose& pose3, const SkeletalMeshInfo& skeletal, const glm::vec3& buv, SkeletalPose* outPose)
         {
             const Transform defaultTr = {};
-            for (const auto& entry : skeletal.FlattenedBones)
+            for (const auto& entry : skeletal.GetFlattenedBones())
             {
                 const uint64_t nodeHash = entry.Node->GetNameHash();
 
@@ -226,7 +226,7 @@ namespace Eagle
             if (parentNode)
             {
                 Transform parentBaseTransform;
-                if (parentNode != &skeletal.RootBone) // RootBone can be affected by `CoordCorrection`, but since we ignore parent here, we need to apply it again
+                if (parentNode != &skeletal.GetRootBone()) // RootBone can be affected by `CoordCorrection`, but since we ignore parent here, we need to apply it again
                     parentBaseTransform = Math::DecomposeTransformMatrix(skeletal.CoordCorrection * parentNode->Transformation);
                 else
                     parentBaseTransform = Math::DecomposeTransformMatrix(parentNode->Transformation);
@@ -250,15 +250,17 @@ namespace Eagle
         static void FinalizePose_Internal(SkeletalPose& pose, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>* outTransforms)
         {
             std::vector<glm::mat4> globalTransforms;
-            globalTransforms.resize(skeletal.FlattenedBones.size());
+
+            const auto& bones = skeletal.GetFlattenedBones();
+            globalTransforms.resize(bones.size());
 
             if (outTransforms && outTransforms->size() < skeletal.GetNumBoneTransforms())
                 outTransforms->resize(skeletal.GetNumBoneTransforms());
 
             const bool bHasOverrides = !pose.ParentOverrides.empty();
-            for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
+            for (size_t i = 0; i < bones.size(); ++i)
             {
-                const auto& entry = skeletal.FlattenedBones[i];
+                const auto& entry = bones[i];
                 const BoneNode& curNode = *entry.Node;
                 const uint64_t nodeHash = curNode.GetNameHash();
                 const glm::mat4& parentTr = (entry.ParentIndex < 0) ? parentTransform : globalTransforms[entry.ParentIndex];
@@ -301,7 +303,7 @@ namespace Eagle
                 const float ticksPerSecond = bsVertex->AnimSpeed * meshAnim->TicksPerSecond;
                 const float currentTime = (float)AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), currentTimeSeconds * ticksPerSecond, true);
                 const float prevTime = (float)AnimationSystem::WrapAnimationTime(double(meshAnim->Duration), prevTimeSeconds * ticksPerSecond, true);
-                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, currentTime, outPose);
+                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.GetRootBone(), currentTime, outPose);
                 CalculateBlendSpaceVertexRootMotion(meshAnim, prevTime, currentTime, bsVertex->AnimSpeed, outPose);
                 outPose->TimeTillAnimationLoops = AnimationSystem::CalculateTimeTillAnimationLoops(meshAnim, currentTime, bsVertex->AnimSpeed);
                 if (bGatherAnimEvents)
@@ -309,7 +311,7 @@ namespace Eagle
             }
             else
             {
-                AnimationSystem::FinalizePose(*outPose, skeletal.RootBone, parentTransform, skeletal);
+                AnimationSystem::FinalizePose(*outPose, skeletal.GetRootBone(), parentTransform, skeletal);
             }
         }
 
@@ -323,14 +325,14 @@ namespace Eagle
                 const SkeletalMeshAnimation* meshAnim = bsVertex->Animation->GetAnimation().get();
                 const float currentTimeTicks = float(currentTime * meshAnim->Duration);
                 const float prevTimeTicks = float(prevTime * meshAnim->Duration);
-                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.RootBone, currentTimeTicks, outPose);
+                AnimationSystem::AnimationClip(skeletal, meshAnim, skeletal.GetRootBone(), currentTimeTicks, outPose);
                 CalculateBlendSpaceVertexRootMotion(meshAnim, prevTimeTicks, currentTimeTicks, bsVertex->AnimSpeed, outPose);
                 if (bGatherAnimEvents)
                     AnimationSystem::GetEventsToTrigger(meshAnim, prevTimeTicks, currentTimeTicks, bsVertex->AnimSpeed, true, &outPose->EventsToTrigger);
             }
             else
             {
-                AnimationSystem::FinalizePose(*outPose, skeletal.RootBone, parentTransform, skeletal);
+                AnimationSystem::FinalizePose(*outPose, skeletal.GetRootBone(), parentTransform, skeletal);
             }
         }
 
@@ -341,7 +343,7 @@ namespace Eagle
                 ragdoll->SynchronizeTransform(); // Update `LastPose`
 
             const auto& skeletalInfo = mesh->GetMeshAsset()->GetMesh()->GetSkeletalMeshInfo();
-            AnimationSystem::FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, ragdoll->GetBoneTransforms());
+            AnimationSystem::FinalizePoseRagdoll(mesh->LastPose, skeletalInfo.GetRootBone(), glm::mat4(1.f), skeletalInfo, ragdoll->GetBoneTransforms());
         }
 
         static void CopyRagdollTransforms(SkeletalMeshComponent* mesh, std::vector<glm::mat4>& transforms)
@@ -391,7 +393,7 @@ namespace Eagle
                 else
                 {
                     const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-                    AnimationSystem::FinalizePose(mesh->LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                    AnimationSystem::FinalizePose(mesh->LastPose, skeletalInfo.GetRootBone(), glm::mat4(1.f), skeletalInfo, transforms);
                 }
             }
         }
@@ -450,15 +452,16 @@ namespace Eagle
         outTransforms->clear();
         
         const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
+        const auto& rootBone = skeletalInfo.GetRootBone();
         outPose->Reset();
         if (animation)
         {
             outPose->Bones.reserve(animation->GetNumBones());
-            AnimationClip(skeletalInfo, animation, skeletalInfo.RootBone, currentTime, outPose);
+            AnimationClip(skeletalInfo, animation, rootBone, currentTime, outPose);
         }
 
         const glm::mat4 rootTransform = glm::mat4(1.f);
-        FinalizePose(*outPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
+        FinalizePose(*outPose, rootBone, rootTransform, skeletalInfo, *outTransforms);
     }
     
     float AnimationSystem::StepForwardAnimTime(const SkeletalMeshAnimation* animation, float currentTime, float ts, bool bLoop)
@@ -585,7 +588,7 @@ namespace Eagle
             mesh->LastPose.Reset();
 
             const glm::mat4 rootTransform = glm::mat4(1.f);
-            FinalizePose(mesh->LastPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
+            FinalizePose(mesh->LastPose, skeletalInfo.GetRootBone(), rootTransform, skeletalInfo, transforms);
         });
         s_ThreadPool->wait();
 
@@ -684,7 +687,7 @@ namespace Eagle
                         animData.LastPose.EventsToTrigger.clear();
 
                         const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
-                        FinalizePose(animData.LastPose, skeletalInfo.RootBone, glm::mat4(1.f), skeletalInfo, transforms);
+                        FinalizePose(animData.LastPose, skeletalInfo.GetRootBone(), glm::mat4(1.f), skeletalInfo, transforms);
 
                         animData.SrcOfLastPose = Entity::Null;
                     }
@@ -808,7 +811,7 @@ namespace Eagle
         glm::dvec3 buv;
         if (!FindBlendSpaceSampleTriangle(blendSpace, x, y, &tr, &buv))
         {
-            AnimationSystem::FinalizePose(*resultPose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
+            AnimationSystem::FinalizePose(*resultPose, skeletalInfo.GetRootBone(), glm::mat4(1), skeletalInfo);
             return nullptr;
         }
 
@@ -1004,17 +1007,17 @@ namespace Eagle
 
     void AnimationSystem::AnimationClip(const SkeletalMeshInfo& skeletal, const SkeletalMeshAnimation* animation, const BoneNode& node, float currentTime, SkeletalPose* outPose)
     {
-        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        EG_CORE_ASSERT(&node == &skeletal.GetRootBone());
 
         const BoneNode * inPlaceBone = nullptr;
         if (animation->Settings.bInPlace)
         {
             inPlaceBone = animation->FindRootMotionBone(skeletal);
             if (!inPlaceBone)
-                inPlaceBone = &skeletal.RootBone;
+                inPlaceBone = &skeletal.GetRootBone();
         }
 
-        for (const auto& entry : skeletal.FlattenedBones)
+        for (const auto& entry : skeletal.GetFlattenedBones())
         {
             const BoneNode& curNode = *entry.Node;
             const uint64_t nodeHash = curNode.GetNameHash();
@@ -1061,28 +1064,31 @@ namespace Eagle
 
     void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
     {
-        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        EG_CORE_ASSERT(&node == &skeletal.GetRootBone());
         Utils::FinalizePose_Internal(pose, parentTransform, skeletal, &outTransforms);
     }
 
     void AnimationSystem::FinalizePose(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal)
     {
-        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        EG_CORE_ASSERT(&node == &skeletal.GetRootBone());
         Utils::FinalizePose_Internal(pose, parentTransform, skeletal, nullptr);
     }
     
     void AnimationSystem::FinalizePoseRagdoll(SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)
     {
-        EG_CORE_ASSERT(&node == &skeletal.RootBone);
+        EG_CORE_ASSERT(&node == &skeletal.GetRootBone());
+
         thread_local std::vector<glm::mat4> globalTransforms;
-        globalTransforms.resize(skeletal.FlattenedBones.size());
+        const auto& bones = skeletal.GetFlattenedBones();
+
+        globalTransforms.resize(bones.size());
 
         if (outTransforms.size() < skeletal.GetNumBoneTransforms())
             outTransforms.resize(skeletal.GetNumBoneTransforms());
 
-        for (size_t i = 0; i < skeletal.FlattenedBones.size(); ++i)
+        for (size_t i = 0; i < bones.size(); ++i)
         {
-            const auto& entry = skeletal.FlattenedBones[i];
+            const auto& entry = bones[i];
             const BoneNode& curNode = *entry.Node;
             const uint64_t nodeHash = curNode.GetNameHash();
             const glm::mat4& parentTr = (entry.ParentIndex < 0) ? parentTransform : globalTransforms[entry.ParentIndex];

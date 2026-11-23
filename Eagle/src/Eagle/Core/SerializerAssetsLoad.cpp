@@ -854,7 +854,11 @@ namespace Eagle
 		skeletalInfo.InverseTransform = baseNode["InverseTransform"].as<glm::mat4>();
 		if (auto node = baseNode["CoordCorrection"])
 			skeletalInfo.CoordCorrection = node.as<glm::mat4>();
-		ReadBoneNode(baseNode["Skeletal"], skeletalInfo.RootBone);
+		{
+			BoneNode rootBone;
+			ReadBoneNode(baseNode["Skeletal"], rootBone);
+			skeletalInfo.SetRootBone(std::move(rootBone));
+		}
 
 		// BoneInfoMap
 		{

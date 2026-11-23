@@ -77,7 +77,7 @@ namespace Eagle
 
 		std::string m_SelectedBoneName;
 		std::string m_SelectedBoneParentName;
-		BoneNode* m_SelectedBone = nullptr;
+		const BoneNode* m_SelectedBone = nullptr;
 
 		std::string m_SelectedRagdollBoneName;
 		SkeletalRagdollBone* m_SelectedRagdollBone = nullptr;

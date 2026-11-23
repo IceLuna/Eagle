@@ -210,7 +210,7 @@ namespace Eagle
 				m_PrevTime = CurrentTime = 0.f;
 
 			const auto& skeletalInfo = skeletal->GetSkeletalMeshInfo();
-			AnimationSystem::AnimationClip(skeletalInfo, animation, skeletalInfo.RootBone, CurrentTime, &m_Pose);
+			AnimationSystem::AnimationClip(skeletalInfo, animation, skeletalInfo.GetRootBone(), CurrentTime, &m_Pose);
 			if (!animation->Settings.bInPlace && animation->HasRootMotion())
 			{
 				m_Pose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, CurrentTime, m_PrevTime, m_PrevSpeed, ts, &m_Pose.TotalRootMotion));
@@ -283,7 +283,7 @@ namespace Eagle
 			Utils::GetValue(m_Inputs[4], m_Variables[4], ts, &bIgnoreParentScale);
 
 			const auto& pose = input->Update(ts);
-			AnimationSystem::FilterPose(pose, skeletal->GetSkeletalMeshInfo().RootBone, boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, &m_Pose);
+			AnimationSystem::FilterPose(pose, skeletal->GetSkeletalMeshInfo().GetRootBone(), boneName, bIgnoreParentLocation, bIgnoreParentRotation, bIgnoreParentScale, &m_Pose);
 		}
 
 		m_CalculatedOnFrame = currentFrame;
@@ -1201,7 +1201,7 @@ namespace Eagle
 		else
 		{
 			const auto& skeletalInfo = m_BlendSpace->GetSkeletalMesh()->GetMesh()->GetSkeletalMeshInfo();
-			AnimationSystem::FinalizePose(m_Pose, skeletalInfo.RootBone, glm::mat4(1), skeletalInfo);
+			AnimationSystem::FinalizePose(m_Pose, skeletalInfo.GetRootBone(), glm::mat4(1), skeletalInfo);
 		}
 
 		m_CalculatedOnFrame = currentFrame;

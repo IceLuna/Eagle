@@ -236,7 +236,7 @@ namespace Eagle
 		const auto& meshInfo = mesh->GetSkeletalMeshInfo();
         const float twist = mesh->GetRagdollMaxTwist();
         const float swing = mesh->GetRagdollMaxSwing();
-		auto& rootNode = meshInfo.RootBone;
+		auto& rootNode = meshInfo.GetRootBone();
         void* userData = this;
         const physx::PxFilterData filterData = PhysXUtils::GetPxFilterData(mesh->GetCollisionGroup(), mesh->GetInteractingCollisionGroup(), mesh->GetCollisionDetectionType());
 
@@ -255,7 +255,7 @@ namespace Eagle
         }
 
         std::unordered_map<std::string_view, glm::mat4> boneTransforms;
-        GatherTransforms(skeletalComp.LastPose, meshInfo.RootBone, worldTransform, boneTransforms);
+        GatherTransforms(skeletalComp.LastPose, meshInfo.GetRootBone(), worldTransform, boneTransforms);
 		CreateArticulationChain(mesh->GetRagdollRoot(), boneTransforms, meshInfo.GetBoneInfoMap(), m_Scene, m_Root, userData, worldTransform, worldTransformInv,
             glm::radians(twist), glm::radians(swing), filterData, linearVelocity, angularVelocity, m_BonesMap);
         m_RigidActor = m_Root.Body;

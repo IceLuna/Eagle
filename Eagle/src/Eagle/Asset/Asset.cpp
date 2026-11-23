@@ -434,13 +434,11 @@ namespace Eagle
 
 				// Restore virtual bones
 				{
-					auto& dstRoot = reloadedMesh->GetMesh()->GetSkeletalMeshInfo().RootBone;
-					const auto& root = oldMesh->GetMesh()->GetSkeletalMeshInfo().RootBone;
-					Utils::RestoreVirtualBones(root, dstRoot);
-
-					// Restoring virtual bones adds children to the tree (possibly reallocating `Children` vectors),
-					// so the animation system's cached bone pointers must be rebuilt
-					reloadedMesh->GetMesh()->GetSkeletalMeshInfo().BuildFlattenedBones();
+					const auto& root = oldMesh->GetMesh()->GetSkeletalMeshInfo().GetRootBone();
+					reloadedMesh->GetMesh()->GetSkeletalMeshInfo().EditBones([&root](BoneNode& dstRoot)
+					{
+						Utils::RestoreVirtualBones(root, dstRoot);
+					});
 				}
 				PhysXCookingFactory::DeleteCached(oldMesh);
 			}

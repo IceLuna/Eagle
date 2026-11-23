@@ -156,7 +156,7 @@ namespace Eagle
 
 			const auto& skeletalInfo = m_Skeletal->GetMesh()->GetSkeletalMeshInfo();
 			constexpr glm::mat4 rootTransform = glm::mat4(1.f);
-			AnimationSystem::FinalizePose(m_Pose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
+			AnimationSystem::FinalizePose(m_Pose, skeletalInfo.GetRootBone(), rootTransform, skeletalInfo, *outTransforms);
 		}
 	}
 

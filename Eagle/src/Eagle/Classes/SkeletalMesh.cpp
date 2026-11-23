@@ -125,10 +125,9 @@ namespace Eagle
         , m_CollisionGroup(collisionGroup)
         , m_InteractingCollisionGroup(interactingCollisionGroup)
     {
-        m_RagdollRoot = Utils::MergeBones(m_RagdollSettings.MinBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
+        m_RagdollRoot = Utils::MergeBones(m_RagdollSettings.MinBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.GetRootBone());
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
-        m_Skeletal.BuildFlattenedBones();
     }
 
     SkeletalMesh::SkeletalMesh(const SkeletalMesh& other)
@@ -145,8 +144,6 @@ namespace Eagle
         , m_CollisionGroup(other.m_CollisionGroup)
         , m_InteractingCollisionGroup(other.m_InteractingCollisionGroup)
     {
-        m_Skeletal.BuildFlattenedBones();
-
         for (uint32_t i = 0; i < m_MaterialSlots; ++i)
         {
             SetMaterialAsset(i, other.m_Materials[i]);
@@ -238,7 +235,7 @@ namespace Eagle
     {
         SkeletalMeshSettings settings;
         settings.Materials = m_Materials;
-        settings.RootBone = m_Skeletal.RootBone;
+        settings.RootBone = m_Skeletal.GetRootBone();
         settings.RagdollRoot = m_RagdollRoot;
         settings.Ragdoll = m_RagdollSettings;
         settings.CollisionDetection = m_CollisionDetection;
@@ -257,11 +254,8 @@ namespace Eagle
                 SetMaterialAsset(i, settings.Materials[i]);
         }
 
-        if (m_Skeletal.RootBone != settings.RootBone)
-        {
-            m_Skeletal.RootBone = settings.RootBone;
-            m_Skeletal.BuildFlattenedBones(); // It caches pointers to the nodes
-        }
+        if (m_Skeletal.GetRootBone() != settings.RootBone)
+            m_Skeletal.SetRootBone(settings.RootBone);
 
         // The groups that were removed since the settings were captured (in the project settings) aren't restored
         const ProjectInfo& projectInfo = Project::GetProjectInfo();
@@ -294,7 +288,7 @@ namespace Eagle
         std::unordered_map<std::string, SkeletalRagdollBone::UserSettings> ragdollPerBoneSettings;
         Utils::GetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
 
-        m_RagdollRoot = Utils::MergeBones(m_RagdollSettings.MinBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.RootBone);
+        m_RagdollRoot = Utils::MergeBones(m_RagdollSettings.MinBoneSize, m_Skeletal.GetBoneInfoMap(), m_Skeletal.GetRootBone());
         Utils::PrepareAABB(m_RagdollRoot);
         Utils::SetUserSettings(m_RagdollRoot, ragdollPerBoneSettings);
     }
@@ -356,6 +350,20 @@ namespace Eagle
     }
     
     bool BoneNode::FindNode(const std::string& name, BoneNode** outNode)
+    {
+        const uint64_t nameHash = Utils::CalculateBoneNameHash(name);
+        return FindNode(nameHash, outNode);
+    }
+
+    bool BoneNode::FindNode(uint64_t nameHash, const BoneNode** outNode) const
+    {
+        BoneNode* found = nullptr;
+        const bool bFound = FindNode_Internal((BoneNode&)(*this), nameHash, &found);
+        *outNode = found;
+        return bFound;
+    }
+
+    bool BoneNode::FindNode(const std::string& name, const BoneNode** outNode) const
     {
         const uint64_t nameHash = Utils::CalculateBoneNameHash(name);
         return FindNode(nameHash, outNode);

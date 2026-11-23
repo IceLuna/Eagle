@@ -37,7 +37,7 @@ namespace Eagle
 		uint32_t i = 0;
 
 		std::string name = defaultName;
-		while (HasBoneWithName(skeletalInfo.RootBone, name))
+		while (HasBoneWithName(skeletalInfo.GetRootBone(), name))
 			name = defaultName + '_' + std::to_string(i++);
 
 		return name;
@@ -256,7 +256,7 @@ namespace Eagle
 			return;
 
 		auto& skeletalInfo = m_Asset->GetMesh()->GetSkeletalMeshInfo();
-		if (!skeletalInfo.RootBone.FindNode(m_SelectedBoneName, &m_SelectedBone))
+		if (!skeletalInfo.GetRootBone().FindNode(m_SelectedBoneName, &m_SelectedBone))
 		{
 			m_SelectedBone = nullptr;
 			m_SelectedBoneName.clear();
@@ -722,30 +722,30 @@ namespace Eagle
 		ResolveSelectedBone();
 		if (m_SelectedBone)
 		{
-			BoneNode* parent = nullptr;
-			auto findParent = [this](auto& self, BoneNode& node) -> BoneNode*
+			const BoneNode* parent = nullptr;
+			auto findParent = [this](auto& self, const BoneNode& node) -> const BoneNode*
 			{
-				for (BoneNode& child : node.Children)
+				for (const BoneNode& child : node.Children)
 				{
 					if (child.GetName() == m_SelectedBoneName)
 						return &node;
-					if (BoneNode* found = self(self, child))
+					if (const BoneNode* found = self(self, child))
 						return found;
 				}
 				return nullptr;
 			};
-			parent = findParent(findParent, mesh->GetSkeletalMeshInfo().RootBone);
+			parent = findParent(findParent, mesh->GetSkeletalMeshInfo().GetRootBone());
 			m_SelectedBoneParentName = parent ? parent->GetName() : std::string();
 		}
 		ResolveSelectedRagdollBone();
 
 		// Preview meshes & primitives attached to bones that no longer exist (for example, an added virtual bone was undone)
-		auto& rootBone = mesh->GetSkeletalMeshInfo().RootBone;
+		const auto& rootBone = mesh->GetSkeletalMeshInfo().GetRootBone();
 		auto removeMissing = [this, &rootBone](auto& attachments)
 		{
 			for (auto it = attachments.begin(); it != attachments.end();)
 			{
-				BoneNode* bone = nullptr;
+				const BoneNode* bone = nullptr;
 				if (rootBone.FindNode(it->first, &bone))
 				{
 					++it;
@@ -793,12 +793,16 @@ namespace Eagle
 		if (bOpened)
 		{
 			auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
-			auto& root = GetRootBone(skeletalInfo.RootBone, skeletalInfo.GetBoneInfoMap());
-			if (DrawSkeletalTree(skeletalInfo, root, assetHash))
+
+			// The tree UI can add/remove bones, so it's drawn inside `EditBones`, which rebuilds the cached bone data afterwards
+			const bool bTreeChanged = skeletalInfo.EditBones([&](BoneNode& rootBone)
 			{
-				skeletalInfo.BuildFlattenedBones();
+				auto& root = GetRootBone(rootBone, skeletalInfo.GetBoneInfoMap());
+				return DrawSkeletalTree(skeletalInfo, root, assetHash);
+			});
+
+			if (bTreeChanged)
 				bChanged = true;
-			}
 
 			if (m_SelectedBone)
 			{
@@ -826,7 +830,7 @@ namespace Eagle
 
 					if (bStoppedEditing && m_SelectedBoneName != m_SelectedBone->GetName())
 					{
-						if (HasBoneWithName(skeletalInfo.RootBone, m_SelectedBoneName))
+						if (HasBoneWithName(skeletalInfo.GetRootBone(), m_SelectedBoneName))
 						{
 							Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the bone. The name is already taken!");
 							m_SelectedBoneName = m_SelectedBone->GetName();
@@ -834,9 +838,8 @@ namespace Eagle
 						else
 						{
 							const std::string oldName = m_SelectedBone->GetName();
-							m_SelectedBone->SetName(m_SelectedBoneName);
+							skeletalInfo.EditBone(*m_SelectedBone, [this](BoneNode& bone) { bone.SetName(m_SelectedBoneName); });
 							OnBoneRenamed(oldName, m_SelectedBoneName);
-							skeletalInfo.BuildFlattenedBones();
 							bChanged = true;
 						}
 					}
@@ -864,7 +867,7 @@ namespace Eagle
 
 					if (bTransformChanged)
 					{
-						m_SelectedBone->Transformation = Math::ToTransformMatrix(boneTransform);
+						skeletalInfo.EditBone(*m_SelectedBone, [&boneTransform](BoneNode& bone) { bone.Transformation = Math::ToTransformMatrix(boneTransform); });
 						bChanged = true;
 					}
 
@@ -1068,7 +1071,10 @@ namespace Eagle
 			{
 				// We need to remove parent's transform
 				const glm::mat4 parentTr = Math::ToTransformMatrix(GetBoneWorldTransform(m_SelectedBoneParentName));
-				m_SelectedBone->Transformation = glm::inverse(parentTr) * Math::ToTransformMatrix(boneTransform);
+				m_Asset->GetMesh()->GetSkeletalMeshInfo().EditBone(*m_SelectedBone, [&](BoneNode& bone)
+				{
+					bone.Transformation = glm::inverse(parentTr) * Math::ToTransformMatrix(boneTransform);
+				});
 				bGuizmoChanged = true;
 			}
 		}

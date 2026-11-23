@@ -1441,7 +1441,7 @@ namespace Eagle
 		if (!asset)
 			return false;
 
-		return Utils::HasBone(asset->GetMesh()->GetSkeletalMeshInfo().RootBone, boneName);
+		return Utils::HasBone(asset->GetMesh()->GetSkeletalMeshInfo().GetRootBone(), boneName);
 	}
 
 	Transform SkeletalMeshComponent::GetBoneWorldTransform(const std::string_view boneName) const
@@ -1457,11 +1457,11 @@ namespace Eagle
 			if (m_RagdollActor && m_RagdollActor->DoesNeedSync())
 				m_RagdollActor->SynchronizeTransform();
 
-			Utils::GetBoneWorldTransform_Ragdoll(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, worldTr, worldTr, boneName, &result);
+			Utils::GetBoneWorldTransform_Ragdoll(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().GetRootBone(), worldTr, worldTr, boneName, &result);
 		}
 		else
 		{
-			Utils::GetBoneWorldTransform(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, worldTr, boneName, &result);
+			Utils::GetBoneWorldTransform(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().GetRootBone(), worldTr, boneName, &result);
 		}
 		return result;
 	}
