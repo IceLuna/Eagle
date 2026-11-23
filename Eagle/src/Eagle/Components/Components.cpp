@@ -2449,4 +2449,39 @@ namespace Eagle
 
 		SceneSequencePlayer::ReleaseScene(Parent.GetScene(), Parent.GetGUID());
 	}
+
+	AIPerceptionComponent& AIPerceptionComponent::operator=(const AIPerceptionComponent& other)
+	{
+		if (this == &other)
+			return *this;
+
+		SceneComponent::operator=(other);
+		m_Settings = other.m_Settings;
+		m_EyeBone = other.m_EyeBone;
+		return *this;
+	}
+
+	void AIPerceptionComponent::SetSettings(const AIPerception::Settings& settings)
+	{
+		m_Settings = settings;
+		m_Settings.Clamp();
+	}
+
+	Transform AIPerceptionComponent::GetEyeTransform() const
+	{
+		if (!m_EyeBone.empty() && Parent.HasComponent<SkeletalMeshComponent>())
+		{
+			const auto& mesh = Parent.GetComponent<SkeletalMeshComponent>();
+			if (mesh.HasBone(m_EyeBone))
+				return mesh.GetBoneWorldTransform(m_EyeBone);
+		}
+
+		return GetWorldTransform();
+	}
+
+	glm::vec3 AIPerceptionSourceComponent::GetSightPoint() const
+	{
+		const Transform& world = Parent.GetWorldTransform();
+		return world.Location + world.Rotation.GetQuat() * m_Settings.SightOffset;
+	}
 }

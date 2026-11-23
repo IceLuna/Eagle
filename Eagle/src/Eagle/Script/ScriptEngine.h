@@ -11,6 +11,11 @@ namespace Eagle
 	class Entity;
 	struct CollisionInfo;
 
+	namespace AIPerception
+	{
+		struct Stimulus;
+	}
+
 	struct EntityInstance
 	{
 		EntityScriptMethods Methods;
@@ -68,6 +73,9 @@ namespace Eagle
 		static void OnCollisionEnd(const Entity& entity, const Entity& other, const CollisionInfo& collisionInfo);
 		static void OnTriggerBegin(const Entity& entity, const Entity& other);
 		static void OnTriggerEnd(const Entity& entity, const Entity& other);
+
+		static void OnPerceptionUpdated(const Entity& entity, const Entity& target, const AIPerception::Stimulus& stimulus);
+		static void OnPerceptionForgotten(const Entity& entity, const Entity& target);
 
 		static bool HasUIMouseEvent(const Entity& entity, UIMouseEvent event);
 		static void OnUIMouseEvent(const Entity& entity, UIMouseEvent event, Mouse button = Mouse::ButtonLeft);

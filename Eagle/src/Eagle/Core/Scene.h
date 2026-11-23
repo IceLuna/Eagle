@@ -10,6 +10,7 @@
 #include "Eagle/Animation/Animation.h"
 #include "Eagle/SceneSequence/SequenceTrack.h"
 #include "Eagle/AI/NavigationMesh.h"
+#include "Eagle/AI/Perception.h"
 #include "GUID.h"
 #include "Notifications.h"
 
@@ -358,6 +359,14 @@ namespace Eagle
 
 		void RebuildCrowd(NavigationMeshComponent& navMesh); // Recreates the crowd of a built nav mesh with the component's crowd settings
 
+		// AI perception
+		// @instigator. Can be null. Then AIs remember the noise as the unknown source
+		void ReportNoise(const glm::vec3& location, float loudness, Entity instigator);
+
+		// @instigator. Can be null. Then the victim remembers the damage as the unknown source.
+		// @cameFrom. Where the damage came from. If it's not set, it's the instigator's location, or the victim's own if there's no instigator
+		void ReportDamage(Entity victim, Entity instigator, float amount, const std::optional<glm::vec3>& cameFrom = {});
+
 		// Returns null if the scene doesn't have a built nav mesh of the agent type
 		const Ref<AINavigation::Mesh>& GetNavMesh(uint32_t agentTypeID) const;
 
@@ -522,6 +531,8 @@ namespace Eagle
 		void UpdateSceneSequences(Timestep ts, bool bPerEntityTime);
 		void MoveCrowdAgentEntities(Timestep ts);
 		void SyncCrowdAgentsFromEntities();
+		void UpdatePerception(Timestep ts);
+		void SendPerceptionEvents();
 		void SetupOnAppAssemblyReloadedCallback();
 
 		void DestroyNavMesh_Internal(NavigationMeshComponent& navMesh);
@@ -802,6 +813,8 @@ namespace Eagle
 		GUID NavMeshDebugSelectedEntity = GUID(0, 0);
 		bool bDrawMeshAABBs = false;
 		bool bDrawBones = false;
+		AIPerception::DebugDrawMode PerceptionDebugDraw = AIPerception::DebugDrawMode::Selected;
+		GUID PerceptionDebugSelectedEntity = GUID(0, 0);
 
 		GUID TextUIDebugSelectedEntity = GUID(0, 0);
 		bool bDrawAllTextUIBounds = false;
@@ -944,6 +957,7 @@ namespace Eagle
 		std::vector<RendererTriangle> m_UserDebugTriangles;
 		std::vector<std::pair<AABB, Transform>> m_UserBoxes; // Box and its world transform
 		std::vector<std::pair<AABB, Transform>> m_UserAABBs; // AABB and its world transform
+		std::vector<AIPerception::DebugNoise> m_PerceptionDebugNoises;
 
 		// entt::entity. Can't store Entity (forward declaration)
 		std::unordered_set<uint32_t> m_PointLightsDebugRadii;

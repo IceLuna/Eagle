@@ -47,6 +47,8 @@ namespace Eagle
 		MonoMethod* OnCollisionEndMethod = nullptr;
 		MonoMethod* OnTriggerBeginMethod = nullptr;
 		MonoMethod* OnTriggerEndMethod = nullptr;
+		MonoMethod* OnPerceptionUpdatedMethod = nullptr;
+		MonoMethod* OnPerceptionForgottenMethod = nullptr;
 	};
 
 	class MonoInstance

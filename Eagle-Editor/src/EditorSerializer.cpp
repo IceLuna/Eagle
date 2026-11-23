@@ -48,6 +48,8 @@ namespace Eagle
 		out << YAML::Key << "NavMeshOpacity" << YAML::Value << editor->NavMeshOpacity;
 		out << YAML::Key << "ColorNavMeshByArea" << YAML::Value << editor->bColorNavMeshByArea;
 		out << YAML::Key << "DrawMeshAABBs" << YAML::Value << editor->bDrawMeshAABBs;
+		out << YAML::Key << "PerceptionDebugDraw" << YAML::Value << Utils::GetEnumName(editor->PerceptionDebugDraw);
+		out << YAML::Key << "PerceptionDebugDrawWhenOn" << YAML::Value << Utils::GetEnumName(editor->PerceptionDebugDrawWhenOn);
 		out << YAML::Key << "DrawAllTextUIBounds" << YAML::Value << editor->bDrawAllTextUIBounds;
 		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
@@ -177,6 +179,14 @@ namespace Eagle
 			editor->bColorNavMeshByArea = node.as<bool>();
 		if (auto node = data["DrawMeshAABBs"])
 			bDrawMeshAABBs = node.as<bool>();
+		if (auto node = data["PerceptionDebugDraw"])
+			editor->PerceptionDebugDraw = Utils::GetEnumFromName<AIPerception::DebugDrawMode>(node.as<std::string>());
+		if (auto node = data["PerceptionDebugDrawWhenOn"])
+		{
+			editor->PerceptionDebugDrawWhenOn = Utils::GetEnumFromName<AIPerception::DebugDrawMode>(node.as<std::string>());
+			if (editor->PerceptionDebugDrawWhenOn == AIPerception::DebugDrawMode::Off)
+				editor->PerceptionDebugDrawWhenOn = AIPerception::DebugDrawMode::Selected;
+		}
 		if (auto node = data["DrawAllTextUIBounds"])
 			editor->bDrawAllTextUIBounds = node.as<bool>();
 		if (auto node = data["StopSimulationKey"])

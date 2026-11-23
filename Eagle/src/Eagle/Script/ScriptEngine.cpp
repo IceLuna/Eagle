@@ -972,6 +972,31 @@ namespace Eagle
 		}
 	}
 
+	void ScriptEngine::OnPerceptionUpdated(const Entity& entity, const Entity& target, const AIPerception::Stimulus& stimulus)
+	{
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && !entityInstance->bDestroyed && entityInstance->Methods.OnPerceptionUpdatedMethod)
+		{
+			uint32_t sense = uint32_t(stimulus.Type);
+			MonoBoolean bSensed = stimulus.bSensed;
+			glm::vec3 location = stimulus.Location;
+			float strength = stimulus.Strength;
+
+			void* params[] = { target ? GetEntityMonoObject(target) : nullptr, &sense, &bSensed, &location, &strength };
+			CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.OnPerceptionUpdatedMethod, params);
+		}
+	}
+
+	void ScriptEngine::OnPerceptionForgotten(const Entity& entity, const Entity& target)
+	{
+		EntityInstance* entityInstance = GetEntityInstance(entity);
+		if (entityInstance && !entityInstance->bDestroyed && entityInstance->Methods.OnPerceptionForgottenMethod)
+		{
+			void* params[] = { target ? GetEntityMonoObject(target) : nullptr };
+			CallMethod(entityInstance->GetMonoInstance(), entityInstance->Methods.OnPerceptionForgottenMethod, params);
+		}
+	}
+
 	void ScriptEngine::TryToRestoreOldValues(std::vector<PublicField>& publicFields, const std::vector<PublicField>& oldValues)
 	{
 		for (auto& field : publicFields)
@@ -1861,9 +1886,11 @@ namespace Eagle
 		Methods.OnMouseUpMethod         = GetEntityCallback(ClassData, ":OnMouseUp(MouseButton)");
 		Methods.OnMouseClickMethod      = GetEntityCallback(ClassData, ":OnMouseClick(MouseButton)");
 
-		Methods.OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(Entity,Vector3,Vector3,Vector3,Vector3)");
-		Methods.OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(Entity,Vector3,Vector3,Vector3,Vector3)");
-		Methods.OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(Entity)");
-		Methods.OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(Entity)");
+		Methods.OnCollisionBeginMethod	    = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(Entity,Vector3,Vector3,Vector3,Vector3)");
+		Methods.OnCollisionEndMethod	    = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(Entity,Vector3,Vector3,Vector3,Vector3)");
+		Methods.OnTriggerBeginMethod	    = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(Entity)");
+		Methods.OnTriggerEndMethod		    = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(Entity)");
+		Methods.OnPerceptionUpdatedMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnPerceptionUpdated_Internal(Entity,AISense,bool,Vector3,single)");
+		Methods.OnPerceptionForgottenMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnPerceptionForgotten_Internal(Entity)");
 	}
 }

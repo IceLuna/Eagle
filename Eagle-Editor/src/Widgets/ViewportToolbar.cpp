@@ -432,10 +432,11 @@ namespace Eagle
 				if (bPopupOpen)
 				{
 					bOpen = true;
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, style.PopupPadding);
 					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, style.PopupItemSpacing);
 					if (item.PopupContent)
 						item.PopupContent();
-					ImGui::PopStyleVar();
+					ImGui::PopStyleVar(2);
 					ImGui::EndPopup();
 				}
 			}

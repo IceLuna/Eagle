@@ -661,6 +661,27 @@ namespace Eagle::Script
 	void Eagle_NavigationAreaVolumeComponent_SetAgentTypeIDs(GUID entityID, MonoArray* agentTypeIDs);
 	MonoArray* Eagle_NavigationAreaVolumeComponent_GetAgentTypeIDs(GUID entityID);
 
+	// AIPerceptionComponent
+	void Eagle_AIPerceptionComponent_GetSettings(GUID entityID, AIPerception::Settings* outSettings);
+	void Eagle_AIPerceptionComponent_SetSettings(GUID entityID, const AIPerception::Settings* settings);
+	MonoString* Eagle_AIPerceptionComponent_GetEyeBone(GUID entityID);
+	void Eagle_AIPerceptionComponent_SetEyeBone(GUID entityID, MonoString* bone);
+	MonoArray* Eagle_AIPerceptionComponent_GetKnownTargets(GUID entityID);
+	bool Eagle_AIPerceptionComponent_IsSeen(GUID entityID, GUID targetID);
+	bool Eagle_AIPerceptionComponent_IsKnown(GUID entityID, GUID targetID, uint32_t senses);
+	bool Eagle_AIPerceptionComponent_GetLastKnownLocation(GUID entityID, GUID targetID, glm::vec3* outLocation);
+	bool Eagle_AIPerceptionComponent_GetStimulus(GUID entityID, GUID targetID, uint32_t sense, bool* outSensed, glm::vec3* outLocation, float* outStrength, float* outAge);
+	bool Eagle_AIPerceptionComponent_Forget(GUID entityID, GUID targetID);
+	void Eagle_AIPerceptionComponent_ForgetAll(GUID entityID);
+
+	// AIPerceptionSourceComponent
+	void Eagle_AIPerceptionSourceComponent_GetSettings(GUID entityID, AIPerception::SourceSettings* outSettings);
+	void Eagle_AIPerceptionSourceComponent_SetSettings(GUID entityID, const AIPerception::SourceSettings* settings);
+
+	// AIPerception
+	void Eagle_AIPerception_ReportNoise(const glm::vec3* location, float loudness, GUID instigatorID);
+	void Eagle_AIPerception_ReportDamage(GUID victimID, GUID instigatorID, float amount, const glm::vec3* cameFrom, bool bCameFrom);
+
 	// Renderer
 	uint64_t Eagle_Renderer_GetFrameNumber();
 	void Eagle_Renderer_GetGPUInfo(MonoString** vendor, MonoString** device, MonoString** driverVersion, MonoString** apiVersion, uint64_t* deviceVRAM, float* maxAnisotropy,

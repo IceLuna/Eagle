@@ -294,10 +294,12 @@ namespace Eagle
 		m_CurrentScene->bColorNavMeshByArea = bColorNavMeshByArea;
 		m_CurrentScene->NavMeshOpacity = NavMeshOpacity;
 		m_CurrentScene->bDrawMeshAABBs = bDrawMeshAABBs;
+		m_CurrentScene->PerceptionDebugDraw = PerceptionDebugDraw;
 		{
 			const Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 			const bool bSelectedInScene = selectedEntity && selectedEntity.GetScene() == m_CurrentScene.get();
 			m_CurrentScene->NavMeshDebugSelectedEntity = bSelectedInScene ? selectedEntity.GetGUID() : GUID(0, 0);
+			m_CurrentScene->PerceptionDebugSelectedEntity = bSelectedInScene ? selectedEntity.GetGUID() : GUID(0, 0);
 		}
 
 		{
@@ -525,6 +527,14 @@ namespace Eagle
 				if (leftAlt)
 				{
 					HandleOnSimulationButton();
+					bHandled = true;
+				}
+				break;
+
+			case Key::Apostrophe:
+				if (leftAlt)
+				{
+					TogglePerceptionDebugDraw();
 					bHandled = true;
 				}
 				break;
@@ -3077,8 +3087,31 @@ namespace Eagle
 		ImGui::MenuItem("Axis Gizmo", nullptr, &bDrawAxisGuizmo);
 		ImGui::Separator();
 		ImGui::MenuItem("Navigation Mesh", nullptr, &bDrawNavMesh);
+		if (ImGui::BeginMenu("AI Perception"))
+		{
+			using Mode = AIPerception::DebugDrawMode;
+
+			if (ImGui::MenuItem("Off", "Alt+'", PerceptionDebugDraw == Mode::Off))
+				PerceptionDebugDraw = Mode::Off;
+			UI::Tooltip("Nothing is drawn");
+
+			if (ImGui::MenuItem("Selected", nullptr, PerceptionDebugDraw == Mode::Selected))
+				PerceptionDebugDraw = PerceptionDebugDrawWhenOn = Mode::Selected;
+			UI::Tooltip("The selected AI (its entity, a parent, or a child), and AIs with Draw Debug");
+
+			if (ImGui::MenuItem("All", nullptr, PerceptionDebugDraw == Mode::All))
+				PerceptionDebugDraw = PerceptionDebugDrawWhenOn = Mode::All;
+
+			ImGui::EndMenu();
+		}
 		ImGui::MenuItem("Mesh Bounds", nullptr, &bDrawMeshAABBs);
 		ImGui::MenuItem("Text UI Bounds", nullptr, &bDrawAllTextUIBounds);
+	}
+
+	void EditorLayer::TogglePerceptionDebugDraw()
+	{
+		using Mode = AIPerception::DebugDrawMode;
+		PerceptionDebugDraw = PerceptionDebugDraw == Mode::Off ? PerceptionDebugDrawWhenOn : Mode::Off;
 	}
 
 	void EditorLayer::DrawLevelEditorTab()
@@ -3110,6 +3143,7 @@ namespace Eagle
 		ImGui::BulletText("Ctrl+Shift+S. Opens up a dialogue to choose where to save the scene.");
 		ImGui::BulletText("G. Toggles visibility of editor specific rendered elements (such as grid).");
 		ImGui::BulletText("Alt+P. Toggles the simulation button.");
+		ImGui::BulletText("Alt+'. Toggles AI perception debug drawing (see Show > AI Perception in the viewport).");
 		ImGui::BulletText("Esc. Stops the simulation.");
 		ImGui::BulletText("F11. Toggles viewport fullscreen mode.");
 		ImGui::BulletText("Shift+F11. Toggles window fullscreen mode.");

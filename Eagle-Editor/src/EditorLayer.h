@@ -112,6 +112,7 @@ namespace Eagle
 		void DrawDebugWindows();
 		void DrawViewModeMenuItems();
 		void DrawShowFlagsMenuItems();
+		void TogglePerceptionDebugDraw();
 		void DrawSceneSettings();
 		void DrawRendererSettings();
 		void DrawEditorPreferences();
@@ -206,6 +207,8 @@ namespace Eagle
 		bool bForceDrawGuizmo = false;
 		bool bDrawSelectionOutline = true;
 		bool bDrawAllTextUIBounds = false;
+		AIPerception::DebugDrawMode PerceptionDebugDraw = AIPerception::DebugDrawMode::Selected;
+		AIPerception::DebugDrawMode PerceptionDebugDrawWhenOn = AIPerception::DebugDrawMode::Selected;
 		Key m_StopSimulationKey = Key::Escape;
 		OutlineSettings m_SelectionOutline{};
 

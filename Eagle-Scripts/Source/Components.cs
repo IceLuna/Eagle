@@ -3886,4 +3886,129 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint[] GetAgentTypeIDs_Native(in GUID entityID);
     }
+
+    // Perception for NPCs.
+    // This component is used as a location source for perception checks (or a bone of the entity's skeletal mesh).
+    // Note: it only sees entities with `AIPerceptionSourceComponent`.
+    // Noises and damage are reported through (`AIPerception.ReportNoise()` and `AIPerception.ReportDamage()`).
+    // C# events are triggered for perception events (`Entity.OnPerceptionUpdated` and `Entity.OnPerceptionForgotten`).
+    public class AIPerceptionComponent : SceneComponent
+    {
+        public AIPerceptionSettings GetSettings()
+        {
+            GetSettings_Native(Parent.ID, out AIPerceptionSettings settings);
+            return settings;
+        }
+
+        public void SetSettings(AIPerceptionSettings settings)
+        {
+            SetSettings_Native(Parent.ID, ref settings);
+        }
+
+        // These don't trigger `OnPerception*` events
+        public bool Forget(Entity target) { return target != null && Forget_Native(Parent.ID, target.ID); }
+        public void ForgetAll() { ForgetAll_Native(Parent.ID); }
+
+        public string GetEyeBone() { return GetEyeBone_Native(Parent.ID); } // A bone of the entity's skeletal mesh to look from (for example, the head)
+        public void SetEyeBone(string bone) { SetEyeBone_Native(Parent.ID, bone); }
+
+        // What it remembers by any sense (doesn't include an unknown source)
+        public Entity[] GetKnownTargets() { return GetKnownTargets_Native(Parent.ID); }
+
+        // Whether it sees the target right now
+        public bool IsSeen(Entity target) { return target != null && IsSeen_Native(Parent.ID, target.ID); }
+
+        // Whether it remembers the target by any of `senses`
+        public bool IsKnown(Entity target, AISense senses = AISense.All) { return target != null && IsKnown_Native(Parent.ID, target.ID, (uint)senses); }
+
+        // Where it sensed the target last by any sense. Returns false if it doesn't remember it
+        public bool GetLastKnownLocation(Entity target, out Vector3 location)
+        {
+            if (target == null)
+            {
+                location = new Vector3(0f);
+                return false;
+            }
+
+            return GetLastKnownLocation_Native(Parent.ID, target.ID, out location);
+        }
+
+        // What it last sensed of the target by one sense, and how many seconds ago.
+        // Returns false if it doesn't remember it by that sense
+        public bool GetStimulus(Entity target, AISense sense, out AIStimulus stimulus, out float age)
+        {
+            stimulus = new AIStimulus();
+            stimulus.Sense = sense;
+            if (target == null)
+            {
+                age = 0f;
+                return false;
+            }
+
+            return GetStimulus_Native(Parent.ID, target.ID, (uint)sense, out stimulus.bSensed, out stimulus.Location, out stimulus.Strength, out age);
+        }
+
+        // What it last sensed by one sense from noises and damage reported without an instigator, and how many seconds ago.
+        // Returns false if it doesn't remember any by that sense
+        public bool GetUnknownStimulus(AISense sense, out AIStimulus stimulus, out float age)
+        {
+            stimulus = new AIStimulus();
+            stimulus.Sense = sense;
+            return GetStimulus_Native(Parent.ID, GUID.Null(), (uint)sense, out stimulus.bSensed, out stimulus.Location, out stimulus.Strength, out age);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSettings_Native(in GUID entityID, out AIPerceptionSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSettings_Native(in GUID entityID, ref AIPerceptionSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string GetEyeBone_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetEyeBone_Native(in GUID entityID, string bone);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Entity[] GetKnownTargets_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsSeen_Native(in GUID entityID, in GUID targetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsKnown_Native(in GUID entityID, in GUID targetID, uint senses);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetLastKnownLocation_Native(in GUID entityID, in GUID targetID, out Vector3 location);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetStimulus_Native(in GUID entityID, in GUID targetID, uint sense, out bool bSensed, out Vector3 location, out float strength, out float age);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Forget_Native(in GUID entityID, in GUID targetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ForgetAll_Native(in GUID entityID);
+    }
+
+	// Something that AIs can see. Hearing and damage don't need it
+    public class AIPerceptionSourceComponent : Component
+    {
+        public AIPerceptionSourceSettings GetSettings()
+        {
+            GetSettings_Native(Parent.ID, out AIPerceptionSourceSettings settings);
+            return settings;
+        }
+
+        public void SetSettings(AIPerceptionSourceSettings settings)
+        {
+            SetSettings_Native(Parent.ID, ref settings);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSettings_Native(in GUID entityID, out AIPerceptionSourceSettings settings);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSettings_Native(in GUID entityID, ref AIPerceptionSourceSettings settings);
+    }
 }

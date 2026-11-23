@@ -2628,4 +2628,168 @@ namespace Eagle
 
 		return result;
 	}
+
+	//-------------- AI Perception Components --------------
+	template<typename T>
+	static T* GetPerceptionComponent(GUID entityID, std::string_view componentName, std::string_view function)
+	{
+		Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `{}` of {}. Entity is null", function, componentName);
+			return nullptr;
+		}
+
+		if (!entity.HasComponent<T>())
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `{}` of {}. The entity doesn't have it", function, componentName);
+			return nullptr;
+		}
+
+		return &entity.GetComponent<T>();
+	}
+
+	static AIPerceptionComponent* GetPerception(GUID entityID, std::string_view function)
+	{
+		return GetPerceptionComponent<AIPerceptionComponent>(entityID, "AI Perception Component", function);
+	}
+
+	void Script::Eagle_AIPerceptionComponent_GetSettings(GUID entityID, AIPerception::Settings* outSettings)
+	{
+		if (auto* perception = GetPerception(entityID, "GetSettings"))
+			*outSettings = perception->GetSettings();
+		else
+			*outSettings = AIPerception::Settings{};
+	}
+
+	void Script::Eagle_AIPerceptionComponent_SetSettings(GUID entityID, const AIPerception::Settings* settings)
+	{
+		if (auto* perception = GetPerception(entityID, "SetSettings"))
+			perception->SetSettings(*settings);
+	}
+
+	MonoString* Script::Eagle_AIPerceptionComponent_GetEyeBone(GUID entityID)
+	{
+		auto* perception = GetPerception(entityID, "GetEyeBone");
+		return mono_string_new(mono_domain_get(), perception ? perception->GetEyeBone().c_str() : "");
+	}
+
+	void Script::Eagle_AIPerceptionComponent_SetEyeBone(GUID entityID, MonoString* bone)
+	{
+		if (auto* perception = GetPerception(entityID, "SetEyeBone"))
+			perception->SetEyeBone(bone ? MonoStringHandler(bone).c_str() : "");
+	}
+
+	MonoArray* Script::Eagle_AIPerceptionComponent_GetKnownTargets(GUID entityID)
+	{
+		std::vector<GUID> targets;
+		if (auto* perception = GetPerception(entityID, "GetKnownTargets"))
+		{
+			const Scene* scene = perception->Parent.GetScene();
+			for (const AIPerception::KnownTarget& known : perception->Memory.GetTargets())
+			{
+				if (scene->GetEntityByGUID(known.Target))
+					targets.push_back(known.Target);
+			}
+		}
+
+		MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), targets.size());
+		for (size_t i = 0; i < targets.size(); ++i)
+			mono_array_setref(result, i, ScriptEngine::GetEntityMonoObject(targets[i]));
+
+		return result;
+	}
+
+	bool Script::Eagle_AIPerceptionComponent_IsSeen(GUID entityID, GUID targetID)
+	{
+		auto* perception = GetPerception(entityID, "IsSeen");
+		const AIPerception::KnownTarget* known = perception ? perception->Memory.Find(targetID) : nullptr;
+		return known && known->IsSeen();
+	}
+
+	bool Script::Eagle_AIPerceptionComponent_IsKnown(GUID entityID, GUID targetID, uint32_t senses)
+	{
+		auto* perception = GetPerception(entityID, "IsKnown");
+		const AIPerception::KnownTarget* known = perception ? perception->Memory.Find(targetID) : nullptr;
+		return known && known->IsKnown(senses);
+	}
+
+	bool Script::Eagle_AIPerceptionComponent_GetLastKnownLocation(GUID entityID, GUID targetID, glm::vec3* outLocation)
+	{
+		auto* perception = GetPerception(entityID, "GetLastKnownLocation");
+		const AIPerception::KnownTarget* known = perception ? perception->Memory.Find(targetID) : nullptr;
+		*outLocation = known ? known->GetLastKnownLocation() : glm::vec3(0.f);
+		return known != nullptr;
+	}
+
+	bool Script::Eagle_AIPerceptionComponent_GetStimulus(GUID entityID, GUID targetID, uint32_t sense, bool* outSensed, glm::vec3* outLocation, float* outStrength, float* outAge)
+	{
+		*outSensed = false;
+		*outLocation = glm::vec3(0.f);
+		*outStrength = 0.f;
+		*outAge = 0.f;
+
+		auto* perception = GetPerception(entityID, "GetStimulus");
+		if (!perception)
+			return false;
+
+		if (sense == 0u || (sense & (sense - 1u)) != 0u || sense > AIPerception::AllSenses)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetStimulus` of AI Perception Component. Pass one sense, not {}", sense);
+			return false;
+		}
+
+		const AIPerception::KnownTarget* known = perception->Memory.Find(targetID);
+		if (!known)
+			return false;
+
+		const AIPerception::SenseState& state = known->GetSense(AIPerception::Sense(sense));
+		if (!state.bKnown)
+			return false;
+
+		*outSensed = state.bSensed;
+		*outLocation = state.Location;
+		*outStrength = state.Strength;
+		*outAge = state.Age;
+		return true;
+	}
+
+	bool Script::Eagle_AIPerceptionComponent_Forget(GUID entityID, GUID targetID)
+	{
+		auto* perception = GetPerception(entityID, "Forget");
+		return perception && perception->Forget(targetID);
+	}
+
+	void Script::Eagle_AIPerceptionComponent_ForgetAll(GUID entityID)
+	{
+		if (auto* perception = GetPerception(entityID, "ForgetAll"))
+			perception->ForgetAll();
+	}
+
+	void Script::Eagle_AIPerceptionSourceComponent_GetSettings(GUID entityID, AIPerception::SourceSettings* outSettings)
+	{
+		if (auto* source = GetPerceptionComponent<AIPerceptionSourceComponent>(entityID, "AI Perception Source Component", "GetSettings"))
+			*outSettings = source->GetSettings();
+		else
+			*outSettings = AIPerception::SourceSettings{};
+	}
+
+	void Script::Eagle_AIPerceptionSourceComponent_SetSettings(GUID entityID, const AIPerception::SourceSettings* settings)
+	{
+		if (auto* source = GetPerceptionComponent<AIPerceptionSourceComponent>(entityID, "AI Perception Source Component", "SetSettings"))
+			source->SetSettings(*settings);
+	}
+
+	void Script::Eagle_AIPerception_ReportNoise(const glm::vec3* location, float loudness, GUID instigatorID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		scene->ReportNoise(*location, loudness, scene->GetEntityByGUID(instigatorID));
+	}
+
+	void Script::Eagle_AIPerception_ReportDamage(GUID victimID, GUID instigatorID, float amount, const glm::vec3* cameFrom, bool bCameFrom)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const std::optional<glm::vec3> location = bCameFrom ? std::optional<glm::vec3>(*cameFrom) : std::nullopt;
+		scene->ReportDamage(scene->GetEntityByGUID(victimID), scene->GetEntityByGUID(instigatorID), amount, location);
+	}
 }

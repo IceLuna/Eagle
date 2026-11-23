@@ -71,6 +71,8 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(NavigationMeshComponent);
 		REGISTER_COMPONENT_TYPE(NavigationCrowdAgentComponent);
 		REGISTER_COMPONENT_TYPE(NavigationAreaVolumeComponent);
+		REGISTER_COMPONENT_TYPE(AIPerceptionComponent);
+		REGISTER_COMPONENT_TYPE(AIPerceptionSourceComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()

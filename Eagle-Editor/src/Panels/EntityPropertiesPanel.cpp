@@ -99,6 +99,18 @@ namespace Eagle
 		"Ignore - it isn't applied (for example, a pause menu or a HUD that run at the same speed in slow motion)";
 	static const char* s_EntityTimeScaleHelpMsg = "Multiplies its time step, and its children's (theirs are multiplied by it too, unless they don't inherit it). 0 - it's frozen.\n"
 		"It doesn't apply to the physics and the nav mesh crowd, they use the scene's time scale";
+	static const char* s_PerceptionIgnoreOwnBodyHelpMsg = "The AI's own body so that it doesn't block its sight, it doesn't see it, and it doesn't hear or feel what it causes.\n"
+		"Self - only this entity.\n"
+		"Self And Children - this entity and everything under it.\n"
+		"Physics Body - the nearest entity from this one up with a Rigid Body or a Character Controller, and everything under it. "
+		"It works when this component is on a child entity (for example, the head), and when AIs are grouped under a parent entity. If there's none, the same as `Self And Children`";
+	static const char* s_PerceptionSeenWhenRayHitsHelpMsg = "What AI's sight rays can hit for this entity to be seen.\n"
+		"Self - only this entity.\n"
+		"Self And Children - this entity and everything under it.\n"
+		"Physics Body - the nearest entity from this one up with a Rigid Body or a Character Controller, and everything under it. "
+		"Use it when this component is on a child entity (for example, the chest), so that hitting the character's capsule counts";
+	static const char* s_PerceptionEyeBoneHelpMsg = "A bone of the entity's skeletal mesh to look from (for example, the head). It looks forward from it.\n"
+		"If it's empty, or the mesh doesn't have it, it looks from this component";
 	static const char* s_InheritTimeScaleHelpMsg = "If it's off, its time scale isn't multiplied by its parent's. "
 		"For example, an effect that runs at its own speed while its parent is slowed or frozen.\n"
 		"It doesn't change whether the scene's time scale applies, see `Scene Time Scale`";
@@ -150,6 +162,7 @@ namespace Eagle
 		case SelectedComponent::DecalComponent: return &m_Entity.GetComponent<DecalComponent>();
 		case SelectedComponent::NavigationMeshComponent: return &m_Entity.GetComponent<NavigationMeshComponent>();
 		case SelectedComponent::NavigationAreaVolumeComponent: return &m_Entity.GetComponent<NavigationAreaVolumeComponent>();
+		case SelectedComponent::AIPerceptionComponent: return &m_Entity.GetComponent<AIPerceptionComponent>();
 		case SelectedComponent::SceneSequenceComponent: return &m_Entity.GetComponent<SceneSequenceComponent>();
 		}
 		return nullptr;
@@ -188,6 +201,8 @@ namespace Eagle
 			case SelectedComponent::NavigationMeshComponent: return m_Entity.HasComponent<NavigationMeshComponent>();
 			case SelectedComponent::NavigationCrowdAgentComponent: return m_Entity.HasComponent<NavigationCrowdAgentComponent>();
 			case SelectedComponent::NavigationAreaVolumeComponent: return m_Entity.HasComponent<NavigationAreaVolumeComponent>();
+			case SelectedComponent::AIPerceptionComponent: return m_Entity.HasComponent<AIPerceptionComponent>();
+			case SelectedComponent::AIPerceptionSourceComponent: return m_Entity.HasComponent<AIPerceptionSourceComponent>();
 			case SelectedComponent::SceneSequenceComponent: return m_Entity.HasComponent<SceneSequenceComponent>();
 			case SelectedComponent::EntityAssetComponent: return m_Entity.HasComponent<EntityAssetComponent>();
 		}
@@ -259,6 +274,10 @@ namespace Eagle
 			EG_ADD_COMPONENT_MENU_ITEM(NavigationCrowdAgentComponent, "Navigation Crowd Agent");
 			EG_ADD_COMPONENT_MENU_ITEM(NavigationAreaVolumeComponent, "Navigation Area Volume");
 
+			UI::TextWithSeparator("AI");
+			EG_ADD_COMPONENT_MENU_ITEM(AIPerceptionComponent, "AI Perception");
+			EG_ADD_COMPONENT_MENU_ITEM(AIPerceptionSourceComponent, "AI Perception Source");
+
 			UI::TextWithSeparator("Lights");
 			EG_ADD_COMPONENT_MENU_ITEM(PointLightComponent, "Point Light");
 			EG_ADD_COMPONENT_MENU_ITEM(DirectionalLightComponent, "Directional Light");
@@ -317,6 +336,8 @@ namespace Eagle
 				EG_DRAW_COMPONENT_LINE("Navigation Mesh", NavigationMeshComponent, SelectedComponent::NavigationMeshComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Crowd Agent", NavigationCrowdAgentComponent, SelectedComponent::NavigationCrowdAgentComponent);
 				EG_DRAW_COMPONENT_LINE("Navigation Area Volume", NavigationAreaVolumeComponent, SelectedComponent::NavigationAreaVolumeComponent);
+				EG_DRAW_COMPONENT_LINE("AI Perception", AIPerceptionComponent, SelectedComponent::AIPerceptionComponent);
+				EG_DRAW_COMPONENT_LINE("AI Perception Source", AIPerceptionSourceComponent, SelectedComponent::AIPerceptionSourceComponent);
 #undef EG_DRAW_COMPONENT_LINE
 #undef EG_DRAW_COMPONENT_LINE_EX
 				ImGui::TreePop();
@@ -2719,6 +2740,174 @@ namespace Eagle
 						UI::PopItemDisabled();
 
 					UI::EndPropertyGrid();
+				});
+				break;
+			}
+
+			case SelectedComponent::AIPerceptionComponent:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<AIPerceptionComponent>());
+				DrawComponent<AIPerceptionComponent>("AI Perception", entity, [this](AIPerceptionComponent& component)
+				{
+					AIPerception::Settings settings = component.GetSettings();
+					bool bChanged = false;
+
+					UI::BeginPropertyGrid("AIPerceptionComponent");
+					std::string eyeBone = component.GetEyeBone();
+					if (UI::PropertyText("Eye Bone", eyeBone, s_PerceptionEyeBoneHelpMsg))
+					{
+						component.SetEyeBone(eyeBone);
+						bEntityChanged = true;
+					}
+					bChanged |= UI::ComboEnum("Ignore Own Body", settings.IgnoreOwnBody, s_PerceptionIgnoreOwnBodyHelpMsg);
+					bChanged |= UI::Property("Draw Debug", settings.bDrawDebug, "Drawn: what it can see (yellow) and hear (blue), what it sees (green), where it last sensed what it remembers, "
+						"and rings where it sensed something in the last few seconds (green - seen, orange - lost sight, blue - heard, red - damaged by). Grey rings are reported noises");
+					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Sight"))
+					{
+						UI::BeginPropertyGrid("AIPerceptionSight");
+						bChanged |= UI::Property("Enabled", settings.bSight, "It sees entities with `AI Perception Source` components");
+
+						if (!settings.bSight)
+							UI::PushItemDisabled();
+						bChanged |= UI::PropertyDrag("Range", settings.SightRange, 0.1f, 0.f, 0.f);
+						bChanged |= UI::PropertyDrag("Lose Sight Range", settings.LoseSightRange, 0.1f, 0.f, 0.f, "What it sees is lost further than this. At least `Range`, so that a target at the edge isn't seen and lost repeatedly");
+						bChanged |= UI::PropertyDrag("Half Angle", settings.SightHalfAngle, 0.5f, 0.f, 180.f, "Degrees from the forward direction of the eyes. 180 - all around");
+						bChanged |= UI::PropertyDrag("Interval", settings.SightInterval, 0.01f, 0.f, 0.f, "Seconds between checks. Checks of different AIs are spread over it. 0 - every frame");
+						bChanged |= UI::Property("Remember Forever", settings.bRememberSightForever, "It never forgets what it lost sight of. Max Age isn't used then");
+						if (settings.bRememberSightForever)
+							UI::PushItemDisabled();
+						bChanged |= UI::PropertyDrag("Max Age", settings.SightMaxAge, 0.1f, 0.f, 0.f, "Seconds it remembers what it lost sight of. 0 - it's forgotten immediately");
+						if (settings.bRememberSightForever)
+							UI::PopItemDisabled();
+
+						UI::EndPropertyGrid();
+
+						if (UI::PushTreeNode("Blocked By Collision Groups", false, true, "Collision groups that block the sight"))
+						{
+							UI::BeginPropertyGrid("AIPerceptionSightBlockedBy");
+							uint32_t blockedBy = uint32_t(settings.SightBlockedBy);
+							if (UI::PropertyBitMask("Blocked By Collision Groups", blockedBy, Project::GetAllCollisionGroups()))
+							{
+								settings.SightBlockedBy = CollisionGroup(blockedBy);
+								bChanged = true;
+							}
+							UI::EndPropertyGrid();
+							UI::PopTreeNode();
+						}
+
+						if (!settings.bSight)
+							UI::PopItemDisabled();
+						UI::PopTreeNode();
+					}
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Hearing"))
+					{
+						UI::BeginPropertyGrid("AIPerceptionHearing");
+
+						bChanged |= UI::Property("Enabled", settings.bHearing, "It hears noises that scripts report (see `AIPerception.ReportNoise()`)");
+						if (!settings.bHearing)
+							UI::PushItemDisabled();
+						bChanged |= UI::PropertyDrag("Range", settings.HearingRange, 0.1f, 0.f, 0.f, "A noise is heard within this range multiplied by its loudness");
+						bChanged |= UI::Property("Remember Forever", settings.bRememberHearingForever, "It never forgets what it heard. Max Age isn't used then");
+						if (settings.bRememberHearingForever)
+							UI::PushItemDisabled();
+						bChanged |= UI::PropertyDrag("Max Age", settings.HearingMaxAge, 0.1f, 0.f, 0.f, "Seconds it remembers what it heard. 0 - it's forgotten immediately");
+						if (settings.bRememberHearingForever)
+							UI::PopItemDisabled();
+						if (!settings.bHearing)
+							UI::PopItemDisabled();
+
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
+					}
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Damage"))
+					{
+						UI::BeginPropertyGrid("AIPerceptionDamage");
+						bChanged |= UI::Property("Enabled", settings.bDamage, "It senses who damaged it (see `Entity.TakeDamage()`, or `AIPerception.ReportDamage()`)");
+						if (!settings.bDamage)
+							UI::PushItemDisabled();
+						bChanged |= UI::Property("Remember Forever", settings.bRememberDamageForever, "It never forgets who damaged it. Max Age isn't used then");
+						if (settings.bRememberDamageForever)
+							UI::PushItemDisabled();
+						bChanged |= UI::PropertyDrag("Max Age", settings.DamageMaxAge, 0.1f, 0.f, 0.f, "Seconds it remembers who damaged it. 0 - it's forgotten immediately");
+						if (settings.bRememberDamageForever)
+							UI::PopItemDisabled();
+						if (!settings.bDamage)
+							UI::PopItemDisabled();
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
+					}
+
+					if (bChanged)
+					{
+						component.SetSettings(settings);
+						bEntityChanged = true;
+					}
+
+					// What it perceives while the game runs
+					ImGui::Separator();
+					if (UI::PushTreeNode("Perceived"))
+					{
+						const Scene* scene = component.Parent.GetScene();
+						const auto& targets = component.Memory.GetTargets();
+						if (!scene->IsPlaying())
+							ImGui::TextDisabled("While the game runs, what it perceives is listed here");
+						else if (targets.empty())
+							ImGui::TextDisabled("Nothing");
+
+						UI::BeginPropertyGrid("AIPerceptionPerceived");
+						for (const AIPerception::KnownTarget& known : targets)
+						{
+							const Entity target = scene->GetEntityByGUID(known.Target);
+							std::string senses;
+							for (uint32_t i = 0; i < AIPerception::SenseCount; ++i)
+							{
+								const AIPerception::SenseState& state = known.Senses[i];
+								if (!state.bKnown)
+									continue;
+
+								if (!senses.empty())
+									senses += ", ";
+								const AIPerception::Sense sense = AIPerception::GetSenseByIndex(i);
+								senses += (sense == AIPerception::Sense::Sight) ? "Sight" : (sense == AIPerception::Sense::Hearing) ? "Hearing" : "Damage";
+								senses += state.bSensed ? " (now)" : std::format(" ({:.1f} s ago)", state.Age);
+							}
+							ImGui::PushID((void*)known.Target.GetHash());
+							const std::string name = target ? target.GetName() : known.Target.IsNull() ? "<Unknown source>" : "<Destroyed>";
+							UI::Text(name, senses);
+							ImGui::PopID();
+						}
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
+					}
+				});
+				break;
+			}
+
+			case SelectedComponent::AIPerceptionSourceComponent:
+			{
+				DrawComponent<AIPerceptionSourceComponent>("AI Perception Source", entity, [this](AIPerceptionSourceComponent& component)
+				{
+					AIPerception::SourceSettings settings = component.GetSettings();
+					bool bChanged = false;
+
+					UI::BeginPropertyGrid("AIPerceptionSourceComponent");
+					bChanged |= UI::Property("Sight", settings.bSight, "AIs can see it (see `AI Perception` component)");
+					bChanged |= UI::PropertyDrag("Sight Offset", settings.SightOffset, 0.05f, 0.f, 0.f, "The point AIs look at, relative to the entity (for example, the chest). It's rotated with the entity");
+					bChanged |= UI::ComboEnum("Seen When Ray Hits", settings.SeenWhenRayHits, s_PerceptionSeenWhenRayHitsHelpMsg);
+					UI::EndPropertyGrid();
+
+					if (bChanged)
+					{
+						component.SetSettings(settings);
+						bEntityChanged = true;
+					}
 				});
 				break;
 			}

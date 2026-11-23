@@ -35,6 +35,8 @@ namespace Eagle
 		NavigationMeshComponent,
 		NavigationCrowdAgentComponent,
 		NavigationAreaVolumeComponent,
+		AIPerceptionComponent,
+		AIPerceptionSourceComponent,
 		SceneSequenceComponent,
 		EntityAssetComponent,
 	};

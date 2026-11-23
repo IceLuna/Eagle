@@ -182,6 +182,8 @@ namespace Eagle
 		SceneAddAndCopyComponent<DecalComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationCrowdAgentComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<NavigationAreaVolumeComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<AIPerceptionComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<AIPerceptionSourceComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		// Last, since copying a built nav mesh builds it. Colliders and area volumes must be there by then
 		// because signals aren't connected yet, so nothing that's copied after it would request a rebuild
@@ -713,6 +715,8 @@ namespace Eagle
 		MoveCrowdAgentEntities(gameTs);
 		m_PhysicsScene->Simulate(gameTs, true);
 		SyncCrowdAgentsFromEntities();
+		UpdatePerception(ts);
+		SendPerceptionEvents();
 		UpdateScripts(ts);
 		AnimationSystem::UpdateRagdolls(*this, m_Ragdolls, m_AnimationTransforms);
 		UpdateSceneSequences(ts, true);
@@ -2378,6 +2382,8 @@ namespace Eagle
 		EntityCopyComponent<DecalComponent>(source, dest);
 		EntityCopyComponent<NavigationCrowdAgentComponent>(source, dest);
 		EntityCopyComponent<NavigationAreaVolumeComponent>(source, dest);
+		EntityCopyComponent<AIPerceptionComponent>(source, dest);
+		EntityCopyComponent<AIPerceptionSourceComponent>(source, dest);
 		EntityCopyComponent<NavigationMeshComponent>(source, dest); // Last, since copying a built nav mesh builds it
 
 		if (bIsPlaying)

@@ -637,6 +637,70 @@ namespace Eagle
 				line3.End.Location = tr * glm::vec4(vertices[indices[i + 2]], 1.f);
 			}
 		}
+
+		void AddLine(std::vector<RendererLine>& buffer, const glm::vec3& start, const glm::vec3& end, const glm::vec3& color)
+		{
+			auto& line = buffer.emplace_back();
+			line.Start.Location = start;
+			line.Start.Color = color;
+			line.End.Location = end;
+			line.End.Color = color;
+		}
+
+		// What an AI can see: a part of a sphere around its forward direction, drawn as two arcs (horizontal & vertical) and the rim
+		// @edgesStart. Where the edges to the rim start. For a larger shape drawn around a smaller one, the smaller one's range,
+		// so that their edges don't overlap (overlapping lines of different colors flicker)
+		void DrawSightShape(std::vector<RendererLine>& buffer, const Transform& eye, float range, float halfAngleDegrees, const glm::vec3& color, float edgesStart = 0.f)
+		{
+			if (range <= 0.f)
+				return;
+
+			const glm::quat rotation = eye.Rotation.GetQuat();
+			const float halfAngle = glm::radians(glm::clamp(halfAngleDegrees, 0.f, 180.f));
+			auto point = [&](const glm::vec3& localDir) { return eye.Location + glm::rotate(rotation, localDir * range); };
+
+			// Arcs, from one side of the cone to the other
+			constexpr uint32_t arcSegments = 16u;
+			for (uint32_t i = 0; i < arcSegments; ++i)
+			{
+				const float a0 = glm::mix(-halfAngle, halfAngle, float(i) / arcSegments);
+				const float a1 = glm::mix(-halfAngle, halfAngle, float(i + 1) / arcSegments);
+				AddLine(buffer, point(glm::vec3(glm::sin(a0), 0.f, -glm::cos(a0))), point(glm::vec3(glm::sin(a1), 0.f, -glm::cos(a1))), color);
+				AddLine(buffer, point(glm::vec3(0.f, glm::sin(a0), -glm::cos(a0))), point(glm::vec3(0.f, glm::sin(a1), -glm::cos(a1))), color);
+			}
+
+			if (halfAngleDegrees >= 180.f)
+				return;
+
+			// The rim, and the edges from the eye (or `edgesStart`) to it
+			const float edgesStartFraction = glm::clamp(edgesStart / range, 0.f, 1.f);
+			const float rimDistance = glm::cos(halfAngle);
+			const float rimRadius = glm::sin(halfAngle);
+			constexpr uint32_t rimSegments = 24u;
+			for (uint32_t i = 0; i < rimSegments; ++i)
+			{
+				const float a0 = Utils::s_2PI * float(i) / rimSegments;
+				const float a1 = Utils::s_2PI * float(i + 1) / rimSegments;
+				const glm::vec3 p0 = point(glm::vec3(glm::cos(a0) * rimRadius, glm::sin(a0) * rimRadius, -rimDistance));
+				AddLine(buffer, p0, point(glm::vec3(glm::cos(a1) * rimRadius, glm::sin(a1) * rimRadius, -rimDistance)), color);
+				if (i % (rimSegments / 4u) == 0u)
+					AddLine(buffer, glm::mix(eye.Location, p0, edgesStartFraction), p0, color);
+			}
+		}
+
+		void DrawHorizontalCircle(std::vector<RendererLine>& buffer, const glm::vec3& center, float radius, const glm::vec3& color)
+		{
+			if (radius <= 0.f)
+				return;
+
+			constexpr uint32_t segments = 32u;
+			for (uint32_t i = 0; i < segments; ++i)
+			{
+				const float a0 = Utils::s_2PI * float(i) / segments;
+				const float a1 = Utils::s_2PI * float(i + 1) / segments;
+				AddLine(buffer, center + glm::vec3(glm::cos(a0), 0.f, glm::sin(a0)) * radius, center + glm::vec3(glm::cos(a1), 0.f, glm::sin(a1)) * radius, color);
+			}
+		}
 	}
 
 	void Scene::GatherDebugDrawData()
@@ -981,6 +1045,115 @@ namespace Eagle
 					Utils::DrawBox(m_DebugLinesToDraw, aabb, {}, glm::vec3(0, 0, 1));
 				}
 			}
+
+			// AI perception.
+			// - What it can see (yellow, fainter for the lose sight range) and hear (blue), and lines to what it sees (green).
+			// - Where it last sensed what it remembers, by the sense that sensed it last: lost sight (orange), heard (blue), damaged by (red). Darker when older.
+			// - Rings where it sensed something in the last few seconds, with lines to them: seen (green), lost sight (orange), heard (blue), damaged by (red).
+			// - Rings where noises were reported (grey), heard or not
+			if (PerceptionDebugDraw != AIPerception::DebugDrawMode::Off)
+			{
+				constexpr glm::vec3 sightColor = glm::vec3(1.f, 0.85f, 0.2f);
+				constexpr glm::vec3 hearingColor = glm::vec3(0.3f, 0.6f, 1.f);
+				constexpr glm::vec3 seenColor = glm::vec3(0.2f, 1.f, 0.2f);
+				constexpr glm::vec3 lostSightColor = glm::vec3(1.f, 0.5f, 0.1f);
+				constexpr glm::vec3 damageColor = glm::vec3(1.f, 0.2f, 0.2f);
+				constexpr glm::vec3 noiseColor = glm::vec3(0.6f);
+				constexpr float rememberedSize = 0.1f;
+				constexpr float markerRadius = 0.35f;
+				constexpr float noiseRadius = 0.25f;
+
+				auto senseColor = [&](AIPerception::Sense sense, bool bSensed)
+				{
+					switch (sense)
+					{
+						case AIPerception::Sense::Sight: return bSensed ? seenColor : lostSightColor;
+						case AIPerception::Sense::Hearing: return hearingColor;
+						case AIPerception::Sense::Damage: return damageColor;
+					}
+					return lostSightColor;
+				};
+
+				// The selected entity, its children or its parents
+				const Entity selected = PerceptionDebugDraw == AIPerception::DebugDrawMode::Selected ? GetEntityByGUID(PerceptionDebugSelectedEntity) : Entity::Null;
+				auto isSelfOrChildOf = [](Entity entity, const Entity& ancestor)
+				{
+					for (; entity; entity = entity.GetParent())
+					{
+						if (entity == ancestor)
+							return true;
+					}
+					return false;
+				};
+
+				auto view = m_Registry.view<AIPerceptionComponent>();
+				for (auto entity : view)
+				{
+					const auto& perception = view.get<AIPerceptionComponent>(entity);
+					const AIPerception::Settings& settings = perception.GetSettings();
+					const bool bDraw = settings.bDrawDebug || PerceptionDebugDraw == AIPerception::DebugDrawMode::All
+						|| (selected && (isSelfOrChildOf(perception.Parent, selected) || isSelfOrChildOf(selected, perception.Parent)));
+					if (!bDraw)
+						continue;
+
+					const Transform eye = perception.GetEyeTransform();
+					if (settings.bSight)
+					{
+						Utils::DrawSightShape(m_DebugLinesToDraw, eye, settings.SightRange, settings.SightHalfAngle, sightColor);
+						if (settings.LoseSightRange > settings.SightRange)
+							Utils::DrawSightShape(m_DebugLinesToDraw, eye, settings.LoseSightRange, settings.SightHalfAngle, sightColor * 0.4f, settings.SightRange);
+					}
+					if (settings.bHearing)
+						Utils::DrawHorizontalCircle(m_DebugLinesToDraw, perception.GetWorldTransform().Location, settings.HearingRange, hearingColor);
+
+					for (const AIPerception::KnownTarget& known : perception.Memory.GetTargets())
+					{
+						const Entity target = GetEntityByGUID(known.Target);
+						if (known.IsSeen() && target)
+						{
+							const glm::vec3 point = target.HasComponent<AIPerceptionSourceComponent>() ? target.GetComponent<AIPerceptionSourceComponent>().GetSightPoint() : target.GetWorldLocation();
+							Utils::AddLine(m_DebugLinesToDraw, eye.Location, point, seenColor);
+							continue;
+						}
+
+						// The sense that sensed it last
+						const AIPerception::SenseState* latest = nullptr;
+						AIPerception::Sense latestSense = AIPerception::Sense::Sight;
+						for (uint32_t i = 0; i < AIPerception::SenseCount; ++i)
+						{
+							const AIPerception::SenseState& state = known.Senses[i];
+							if (state.bKnown && (!latest || state.Age < latest->Age))
+							{
+								latest = &state;
+								latestSense = AIPerception::GetSenseByIndex(i);
+							}
+						}
+						if (!latest)
+							continue;
+
+						const float maxAge = settings.GetMaxAge(latestSense);
+						const bool bFades = !settings.DoesRememberForever(latestSense) && maxAge > 0.f;
+						const float fade = bFades ? 1.f - 0.7f * glm::clamp(latest->Age / maxAge, 0.f, 1.f) : 1.f;
+						const glm::vec3& location = latest->Location;
+						Utils::DrawAABB(m_DebugLinesToDraw, AABB(location - glm::vec3(rememberedSize), location + glm::vec3(rememberedSize)), Transform{}, senseColor(latestSense, false) * fade);
+					}
+
+					for (const AIPerception::DebugMarker& marker : perception.DebugMarkers)
+					{
+						const float fade = glm::max(1.f - marker.Age / AIPerception::DebugMarkerLifetime, 0.15f);
+						const glm::vec3 color = senseColor(marker.Type, marker.bSensed) * fade;
+						Utils::DrawHorizontalCircle(m_DebugLinesToDraw, marker.Location, markerRadius, color);
+						Utils::AddLine(m_DebugLinesToDraw, eye.Location, marker.Location, color);
+					}
+				}
+
+				for (const AIPerception::DebugNoise& noise : m_PerceptionDebugNoises)
+				{
+					const float fade = glm::max(1.f - noise.Age / AIPerception::DebugMarkerLifetime, 0.15f);
+					Utils::DrawHorizontalCircle(m_DebugLinesToDraw, noise.Location, noiseRadius, noiseColor * fade);
+				}
+			}
+
 			for (const auto& [aabb, transform] : m_UserAABBs)
 			{
 				Utils::DrawAABB(m_DebugLinesToDraw, aabb, transform);

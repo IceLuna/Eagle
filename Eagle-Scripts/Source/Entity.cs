@@ -153,6 +153,15 @@ namespace Eagle
         public virtual void OnMouseUp(MouseButton button) { } // Note: `Up` is called for the entity that got `Down`, even if the mouse has left it
         public virtual void OnMouseClick(MouseButton button) { } // Pressed and released over this entity
 
+        // Called when a target is sensed (seen, heard, or it damaged this entity), or it's lost from sight (`stimulus.bSensed` is false).
+        // `target` can be null if it was reported without an instigator
+        // Note: Called before `OnUpdate`.
+        public virtual void OnPerceptionUpdated(Entity target, AIStimulus stimulus) { }
+
+        // Called when the target is forgotten by every sense. `target` is null for the unknown source
+        // Note: Called before `OnUpdate`.
+        public virtual void OnPerceptionForgotten(Entity target) { }
+
         // C++ calls the callbacks above through these, so that the debugger stops on exceptions that scripts don't handle and shows the whole call stack
         [DebuggerHidden] internal void Invoke_OnCreate() { try { OnCreate(); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
         [DebuggerHidden] internal void Invoke_OnDestroy() { try { OnDestroy(); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
@@ -167,9 +176,10 @@ namespace Eagle
         [DebuggerHidden] internal void Invoke_OnMouseUp(MouseButton button) { try { OnMouseUp(button); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
         [DebuggerHidden] internal void Invoke_OnMouseClick(MouseButton button) { try { OnMouseClick(button); } catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; } }
 
-        // Returns actual damage that was taken
+        // Returns actual damage that was taken. If this entity has `AIPerceptionComponent`, it senses `source`
         public virtual float TakeDamage(Entity source, float damage)
         {
+            AIPerception.ReportDamage(this, source, damage);
             if (m_OnTookDamageCallbacks != null)
                 m_OnTookDamageCallbacks.Invoke(this, source, damage);
             return damage;
@@ -544,6 +554,23 @@ namespace Eagle
                 try { m_CollisionEndCallbacks.Invoke(this, otherEntity, collisionInfo); }
                 catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; }
             }
+        }
+
+        private void OnPerceptionUpdated_Internal(Entity target, AISense sense, bool bSensed, Vector3 location, float strength)
+        {
+            AIStimulus stimulus = new AIStimulus();
+            stimulus.Sense = sense;
+            stimulus.bSensed = bSensed;
+            stimulus.Location = location;
+            stimulus.Strength = strength;
+            try { OnPerceptionUpdated(target, stimulus); }
+            catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; }
+        }
+
+        private void OnPerceptionForgotten_Internal(Entity target)
+        {
+            try { OnPerceptionForgotten(target); }
+            catch (Exception e) when (RuntimeException.BreakOnUnhandled(e)) { throw; }
         }
 
         private void OnTriggerBegin(Entity otherEntity)

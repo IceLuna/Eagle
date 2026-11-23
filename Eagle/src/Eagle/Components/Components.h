@@ -18,6 +18,7 @@
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/ParticleEmitter.h"
 #include "Eagle/AI/NavigationMesh.h"
+#include "Eagle/AI/Perception.h"
 #include "Eagle/SceneSequence/SceneSequencePlayer.h"
 
 // If new component class is created, other changes are required:
@@ -2786,5 +2787,61 @@ namespace Eagle
 		int m_AgentIndex = -1;
 		uint32_t m_NavMeshSlot = ~0u;
 		uint32_t m_AgentTypeID = AINavigation::AutoAgentTypeID;
+	};
+
+	// Perception for NPCs.
+	// This component is used as a location source for perception checks (or a bone of the entity's skeletal mesh).
+	// Note: it only sees entities with `AIPerceptionSourceComponent`.
+	// Noises and damage are reported through C# API (AIPerception.ReportNoise and AIPerception.ReportDamage).
+	// C# events are triggered for perception events (`Entity.OnPerceptionUpdated` and `Entity.OnPerceptionForgotten`).
+	class AIPerceptionComponent : public SceneComponent
+	{
+	public:
+		AIPerceptionComponent(const Entity& entity) : SceneComponent(entity) {}
+
+		AIPerceptionComponent& operator=(const AIPerceptionComponent& other);
+		AIPerceptionComponent(const AIPerceptionComponent&) = delete;
+		AIPerceptionComponent(AIPerceptionComponent&&) noexcept = default;
+		AIPerceptionComponent& operator=(AIPerceptionComponent&&) noexcept = default;
+
+		const AIPerception::Settings& GetSettings() const { return m_Settings; }
+		void SetSettings(const AIPerception::Settings& settings);
+
+		// A bone of the entity's skeletal mesh to look from (for example, the head)
+		const std::string& GetEyeBone() const { return m_EyeBone; }
+		void SetEyeBone(const std::string& bone) { m_EyeBone = bone; }
+
+		Transform GetEyeTransform() const;
+
+		// Without events
+		bool Forget(const GUID& target) { return Memory.Forget(target); }
+		void ForgetAll() { Memory.ForgetAll(); }
+
+	public:
+		AIPerception::Memory Memory;
+		std::vector<AIPerception::Event> PendingEvents;
+		float SightTimer = -1.f; // Negative before the first one, which is at a random time, so that AIs don't check at the same time
+		std::vector<AIPerception::DebugMarker> DebugMarkers;
+
+	private:
+		AIPerception::Settings m_Settings{};
+		std::string m_EyeBone;
+	};
+
+	// Something that AIs can see. Hearing and damage don't need it
+	class AIPerceptionSourceComponent : public Component
+	{
+	public:
+		AIPerceptionSourceComponent(const Entity& entity) : Component(entity) {}
+		COMPONENT_DEFAULTS(AIPerceptionSourceComponent);
+
+		const AIPerception::SourceSettings& GetSettings() const { return m_Settings; }
+		void SetSettings(const AIPerception::SourceSettings& settings) { m_Settings = settings; }
+
+		// The point that AIs look at
+		glm::vec3 GetSightPoint() const;
+
+	private:
+		AIPerception::SourceSettings m_Settings{};
 	};
 }

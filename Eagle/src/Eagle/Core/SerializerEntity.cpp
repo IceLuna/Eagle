@@ -1502,6 +1502,122 @@ namespace Eagle
 				component.SetAgentTypeIDs(node.as<std::vector<uint32_t>>());
 		}
 
+		void SerializeAIPerceptionComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			auto& component = entity.GetComponent<AIPerceptionComponent>();
+			const AIPerception::Settings& settings = component.GetSettings();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap;
+
+			Serializer::SerializeRelativeTransform(out, component.GetRelativeTransform());
+			out << YAML::Key << "EyeBone" << YAML::Value << component.GetEyeBone();
+
+			out << YAML::Key << "bSight" << YAML::Value << settings.bSight;
+			out << YAML::Key << "SightRange" << YAML::Value << settings.SightRange;
+			out << YAML::Key << "LoseSightRange" << YAML::Value << settings.LoseSightRange;
+			out << YAML::Key << "SightHalfAngle" << YAML::Value << settings.SightHalfAngle;
+			out << YAML::Key << "SightInterval" << YAML::Value << settings.SightInterval;
+			out << YAML::Key << "SightMaxAge" << YAML::Value << settings.SightMaxAge;
+			out << YAML::Key << "SightBlockedBy" << YAML::Value << uint32_t(settings.SightBlockedBy);
+			out << YAML::Key << "bRememberSightForever" << YAML::Value << settings.bRememberSightForever;
+
+			out << YAML::Key << "bHearing" << YAML::Value << settings.bHearing;
+			out << YAML::Key << "HearingRange" << YAML::Value << settings.HearingRange;
+			out << YAML::Key << "HearingMaxAge" << YAML::Value << settings.HearingMaxAge;
+			out << YAML::Key << "bRememberHearingForever" << YAML::Value << settings.bRememberHearingForever;
+
+			out << YAML::Key << "bDamage" << YAML::Value << settings.bDamage;
+			out << YAML::Key << "DamageMaxAge" << YAML::Value << settings.DamageMaxAge;
+			out << YAML::Key << "bRememberDamageForever" << YAML::Value << settings.bRememberDamageForever;
+
+			out << YAML::Key << "IgnoreOwnBody" << YAML::Value << Utils::GetEnumName(settings.IgnoreOwnBody);
+			out << YAML::Key << "bDrawDebug" << YAML::Value << settings.bDrawDebug;
+
+			out << YAML::EndMap;
+		}
+
+		void DeserializeAIPerceptionComponent(Entity deserializedEntity, YAML::Node componentNode)
+		{
+			auto& component = deserializedEntity.AddComponent<AIPerceptionComponent>();
+
+			Transform relativeTransform;
+			Serializer::DeserializeRelativeTransform(componentNode, relativeTransform);
+			component.SetRelativeTransform(relativeTransform);
+
+			if (auto node = componentNode["EyeBone"])
+				component.SetEyeBone(node.as<std::string>());
+
+			AIPerception::Settings settings{};
+
+			if (auto node = componentNode["bSight"])
+				settings.bSight = node.as<bool>();
+			if (auto node = componentNode["SightRange"])
+				settings.SightRange = node.as<float>();
+			if (auto node = componentNode["LoseSightRange"])
+				settings.LoseSightRange = node.as<float>();
+			if (auto node = componentNode["SightHalfAngle"])
+				settings.SightHalfAngle = node.as<float>();
+			if (auto node = componentNode["SightInterval"])
+				settings.SightInterval = node.as<float>();
+			if (auto node = componentNode["SightMaxAge"])
+				settings.SightMaxAge = node.as<float>();
+			if (auto node = componentNode["SightBlockedBy"])
+				settings.SightBlockedBy = CollisionGroup(node.as<uint32_t>());
+			if (auto node = componentNode["bRememberSightForever"])
+				settings.bRememberSightForever = node.as<bool>();
+
+			if (auto node = componentNode["bHearing"])
+				settings.bHearing = node.as<bool>();
+			if (auto node = componentNode["HearingRange"])
+				settings.HearingRange = node.as<float>();
+			if (auto node = componentNode["HearingMaxAge"])
+				settings.HearingMaxAge = node.as<float>();
+			if (auto node = componentNode["bRememberHearingForever"])
+				settings.bRememberHearingForever = node.as<bool>();
+
+			if (auto node = componentNode["bDamage"])
+				settings.bDamage = node.as<bool>();
+			if (auto node = componentNode["DamageMaxAge"])
+				settings.DamageMaxAge = node.as<float>();
+			if (auto node = componentNode["bRememberDamageForever"])
+				settings.bRememberDamageForever = node.as<bool>();
+
+			if (auto node = componentNode["IgnoreOwnBody"])
+				settings.IgnoreOwnBody = Utils::GetEnumFromName<AIPerception::HierarchyScope>(node.as<std::string>());
+			if (auto node = componentNode["bDrawDebug"])
+				settings.bDrawDebug = node.as<bool>();
+
+			component.SetSettings(settings);
+		}
+
+		void SerializeAIPerceptionSourceComponent(YAML::Emitter& out, Entity entity, const char* key)
+		{
+			const AIPerception::SourceSettings& settings = entity.GetComponent<AIPerceptionSourceComponent>().GetSettings();
+
+			out << YAML::Key << key;
+			out << YAML::BeginMap;
+			out << YAML::Key << "bSight" << YAML::Value << settings.bSight;
+			out << YAML::Key << "SightOffset" << YAML::Value << settings.SightOffset;
+			out << YAML::Key << "SeenWhenRayHits" << YAML::Value << Utils::GetEnumName(settings.SeenWhenRayHits);
+			out << YAML::EndMap;
+		}
+
+		void DeserializeAIPerceptionSourceComponent(Entity deserializedEntity, YAML::Node componentNode)
+		{
+			auto& component = deserializedEntity.AddComponent<AIPerceptionSourceComponent>();
+
+			AIPerception::SourceSettings settings;
+			if (auto node = componentNode["bSight"])
+				settings.bSight = node.as<bool>();
+			if (auto node = componentNode["SightOffset"])
+				settings.SightOffset = node.as<glm::vec3>();
+			if (auto node = componentNode["SeenWhenRayHits"])
+				settings.SeenWhenRayHits = Utils::GetEnumFromName<AIPerception::HierarchyScope>(node.as<std::string>());
+
+			component.SetSettings(settings);
+		}
+
 		// Calls a deserialize function. It takes the valid masks of collision groups only if it uses them
 		template<auto DeserializeFn>
 		void DeserializeComponent(Entity deserializedEntity, YAML::Node node, uint32_t collisionGroupValidMasks)
@@ -1592,6 +1708,8 @@ namespace Eagle
 			EG_SERIALIZED_COMPONENT(NavigationMeshComponent),
 			EG_SERIALIZED_COMPONENT(NavigationCrowdAgentComponent),
 			EG_SERIALIZED_COMPONENT(NavigationAreaVolumeComponent),
+			EG_SERIALIZED_COMPONENT(AIPerceptionComponent),
+			EG_SERIALIZED_COMPONENT(AIPerceptionSourceComponent),
 		};
 
 		#undef EG_SERIALIZED_COMPONENT

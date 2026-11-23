@@ -731,6 +731,27 @@ namespace Eagle
 		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::SetAgentTypeIDs_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_SetAgentTypeIDs);
 		mono_add_internal_call("Eagle.NavigationAreaVolumeComponent::GetAgentTypeIDs_Native", Eagle::Script::Eagle_NavigationAreaVolumeComponent_GetAgentTypeIDs);
 
+		// AIPerceptionComponent
+		mono_add_internal_call("Eagle.AIPerceptionComponent::GetSettings_Native", Eagle::Script::Eagle_AIPerceptionComponent_GetSettings);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::SetSettings_Native", Eagle::Script::Eagle_AIPerceptionComponent_SetSettings);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::GetEyeBone_Native", Eagle::Script::Eagle_AIPerceptionComponent_GetEyeBone);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::SetEyeBone_Native", Eagle::Script::Eagle_AIPerceptionComponent_SetEyeBone);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::GetKnownTargets_Native", Eagle::Script::Eagle_AIPerceptionComponent_GetKnownTargets);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::IsSeen_Native", Eagle::Script::Eagle_AIPerceptionComponent_IsSeen);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::IsKnown_Native", Eagle::Script::Eagle_AIPerceptionComponent_IsKnown);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::GetLastKnownLocation_Native", Eagle::Script::Eagle_AIPerceptionComponent_GetLastKnownLocation);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::GetStimulus_Native", Eagle::Script::Eagle_AIPerceptionComponent_GetStimulus);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::Forget_Native", Eagle::Script::Eagle_AIPerceptionComponent_Forget);
+		mono_add_internal_call("Eagle.AIPerceptionComponent::ForgetAll_Native", Eagle::Script::Eagle_AIPerceptionComponent_ForgetAll);
+
+		// AIPerceptionSourceComponent
+		mono_add_internal_call("Eagle.AIPerceptionSourceComponent::GetSettings_Native", Eagle::Script::Eagle_AIPerceptionSourceComponent_GetSettings);
+		mono_add_internal_call("Eagle.AIPerceptionSourceComponent::SetSettings_Native", Eagle::Script::Eagle_AIPerceptionSourceComponent_SetSettings);
+
+		// AIPerception
+		mono_add_internal_call("Eagle.AIPerception::ReportNoise_Native", Eagle::Script::Eagle_AIPerception_ReportNoise);
+		mono_add_internal_call("Eagle.AIPerception::ReportDamage_Native", Eagle::Script::Eagle_AIPerception_ReportDamage);
+
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
 		mono_add_internal_call("Eagle.SpriteComponent::SetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_SetMaterial);
