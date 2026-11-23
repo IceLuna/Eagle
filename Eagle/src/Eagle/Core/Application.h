@@ -21,13 +21,14 @@ namespace Eagle
 	class RendererContext;
 	class ThreadPool;
 
+#ifdef EG_CPU_TIMINGS
 	// Key - Thread id; value - timings
 	using CPUTimingsContainer = std::unordered_map<std::thread::id, std::vector<CPUTiming::Data>>;
+#endif
 
 	struct ApplicationProperties
 	{
 		WindowProperties WindowProps;
-		bool bGame = false;
 
 		// The splash screen is shown while the application starts up, until it renders its first frames. Relative paths are relative to the executable's folder.
 		// A game build uses the splash screen it was built with (the project's settings, see `Project::LoadGameBuildSplashScreen()`), these are ignored then
@@ -61,8 +62,16 @@ namespace Eagle
 		inline bool IsMinimized() const { return m_Minimized; }
 		void SetShouldClose(bool close);
 
-		// Returns true if it's a game build
-		bool IsGame() const { return m_Game; }
+		// Note: AssetManager.cpp uses `#ifdef EG_GAME` manually.
+		// Because using `Application::IsGame()` crashes MSVC for some reason
+		static constexpr bool IsGame()
+		{
+#ifdef EG_GAME
+			return true;
+#else
+			return false;
+#endif
+		}
 
 		void ShowSplashScreen(const SplashScreenDesc& desc);
 		const SplashScreenDesc& GetSplashScreenDesc() const { return m_SplashScreenDesc; }
@@ -88,8 +97,10 @@ namespace Eagle
 			return "";
 		}
 
+#ifdef EG_CPU_TIMINGS
 		void AddCPUTiming(const CPUTiming* timing);
 		CPUTimingsContainer GetCPUTimings() const;
+#endif
 
 		const WindowProperties& GetWindowProps() const { return m_WindowProps; }
 
@@ -110,7 +121,9 @@ namespace Eagle
 		void BeginWindowReveal();
 		void UpdateWindowReveal();
 
+#ifdef EG_CPU_TIMINGS
 		void AverageCPUTimings();
+#endif
 
 	protected:
 		Ref<Window> m_Window;
@@ -121,6 +134,7 @@ namespace Eagle
 
 		std::unordered_map<std::thread::id, std::string_view> m_Threads;
 
+#ifdef EG_CPU_TIMINGS
 		struct AveragedCPUTiming
 		{
 			std::string_view Name;
@@ -131,6 +145,7 @@ namespace Eagle
 
 		std::unordered_map<std::thread::id, std::vector<CPUTiming::Data>> m_CPUTimingsThisFrame;
 		std::unordered_map<std::thread::id, std::vector<AveragedCPUTiming>> m_CPUTimings;
+#endif
 
 		std::vector<std::function<void()>> m_NextFrameFuncs;
 		bool bProcessingNextFrameFuncs = false; // Used to prevent pushes to `m_NextFrameFuncs` from inside `m_NextFrameFuncs`. Instead, they're called immediately
@@ -158,7 +173,6 @@ namespace Eagle
 
 		bool m_Running = true;
 		bool m_Minimized = false;
-		bool m_Game = false;
 
 		static Application* s_Instance;
 	};

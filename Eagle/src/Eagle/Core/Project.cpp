@@ -967,7 +967,7 @@ namespace Eagle
 			return false;
 		}
 
-		if (!Application::Get().IsGame())
+		if (!Application::IsGame())
 			Save();
 
 		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath);

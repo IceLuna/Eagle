@@ -12,7 +12,6 @@ namespace Eagle
 	std::vector<Ref<Shader>>    ShaderManager::m_Shaders;
 	std::unordered_map<Path, Ref<Shader>>	ShaderManager::m_ShadersByPath;
 	std::unordered_map<Path, std::string>	ShaderManager::m_ShadersSourceCode;
-	static bool s_bGame = false;
 
 	namespace Utils
 	{
@@ -95,8 +94,7 @@ namespace Eagle
 
 	void ShaderManager::Init()
 	{
-		s_bGame = Application::Get().IsGame();
-		if (s_bGame)
+		if (Application::IsGame())
 			return;
 
 		m_ShadersSourceCode = Utils::LoadShadersSourceCode();
@@ -104,8 +102,7 @@ namespace Eagle
 
 	void ShaderManager::InitGame(const YAML::Node& shadersNode)
 	{
-		s_bGame = Application::Get().IsGame();
-		if (!s_bGame)
+		if (!Application::IsGame())
 			return;
 
 		if (!shadersNode)
@@ -169,7 +166,7 @@ namespace Eagle
 
 	void ShaderManager::ReloadAllShaders()
 	{
-		if (s_bGame)
+		if (Application::IsGame())
 			return;
 
 		m_ShadersSourceCode = Utils::LoadShadersSourceCode();

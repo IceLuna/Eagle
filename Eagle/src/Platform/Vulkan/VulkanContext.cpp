@@ -134,7 +134,7 @@ namespace Eagle
 			appInfo.engineVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
 			appInfo.pEngineName = "Eagle Engine";
 
-			if (Application::Get().IsGame())
+			if (Application::IsGame())
 			{
 				const auto& info = Project::GetProjectInfo();
 				const auto& version = info.Version;

@@ -38,7 +38,6 @@ namespace Eagle
 	static ankerl::unordered_dense::map<Path, Ref<ScopedDataBuffer>> s_AssetPackAssets;
 	static ankerl::unordered_dense::map<GUID, std::pair<Path, Ref<ScopedDataBuffer>>> s_AssetPackAssetsByGUID;
 	static std::mutex s_Mutex;
-	static bool s_bGame = false;
 
 	// Guards `s_Callbacks`. Kept separate from `s_Mutex` so asset lookups don't contend with callback bookkeeping.
 	// Never held while a callback is being called
@@ -73,10 +72,7 @@ namespace Eagle
 
 	void AssetManager::Init()
 	{
-		s_bGame = Application::Get().IsGame();
-		if (s_bGame)
-			return;
-		
+#ifndef EG_GAME
 		AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
 
 		struct AssetsQueue
@@ -233,12 +229,13 @@ namespace Eagle
 		s_Skybox = Cast<AssetTextureCube>(Asset::Create(Application::GetCorePath() / "assets/textures/IBL.egasset"));
 		s_Sphere = Cast<AssetStaticMesh>(Asset::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset"));
 		s_Cube = Cast<AssetStaticMesh>(Asset::Create(Application::GetCorePath() / "assets/meshes/Cube.egasset"));
+#endif
 	}
 
 	void AssetManager::InitGame(const DataBuffer& assetPack)
 	{
-		s_bGame = Application::Get().IsGame();
-		if (!s_bGame || assetPack.Size == 0)
+#ifdef EG_GAME
+		if (assetPack.Size == 0)
 			return;
 
 		AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
@@ -261,6 +258,7 @@ namespace Eagle
 			s_AssetPackAssets.emplace(path, assetData);
 			s_AssetPackAssetsByGUID.emplace(assetGUID, std::pair{ std::move(path), std::move(assetData) });
 		}
+#endif
 	}
 
 	void AssetManager::Reset()
@@ -472,7 +470,7 @@ namespace Eagle
 
 		// Try to load it.
 		// Note: `s_AssetPackAssets` is only written by `InitGame` / `Reset`, so it can be read without the lock here
-		if (s_bGame)
+		if (Application::IsGame())
 		{
 			auto it = s_AssetPackAssets.find(path);
 			if (it != s_AssetPackAssets.end())
@@ -522,7 +520,7 @@ namespace Eagle
 		}
 
 		// Try to load it
-		if (s_bGame)
+		if (Application::IsGame())
 		{
 			auto it = s_AssetPackAssetsByGUID.find(guid);
 			if (it != s_AssetPackAssetsByGUID.end())
@@ -561,7 +559,7 @@ namespace Eagle
 		}
 
 		// Check asset pack
-		if (s_bGame)
+		if (Application::IsGame())
 		{
 			auto it = s_AssetPackAssets.find(path);
 			if (it != s_AssetPackAssets.end())
@@ -624,9 +622,7 @@ namespace Eagle
 
 	std::vector<AssetManager::AssetPackDependency> AssetManager::GatherAssetPackDependencies(const YAML::Node& node)
 	{
-		if (!s_bGame)
-			return {};
-
+#ifdef EG_GAME
 		std::vector<AssetManager::AssetPackDependency> result;
 		ankerl::unordered_dense::set<GUID> visited;
 
@@ -670,13 +666,14 @@ namespace Eagle
 			visitAsset(reference);
 
 		return std::move(result);
+#else
+		return {};
+#endif
 	}
 
 	bool AssetManager::GetRuntimeAssetData(const Path& path, Ref<ScopedDataBuffer>* outData)
 	{
-		if (!s_bGame)
-			return false;
-
+#ifdef EG_GAME
 		std::scoped_lock lock(s_Mutex);
 
 		auto it = s_AssetPackAssets.find(path);
@@ -687,6 +684,9 @@ namespace Eagle
 		}
 
 		return false;
+#else
+		return false;
+#endif
 	}
 
 	std::vector<Ref<Asset>> AssetManager::GetDirtyAssets()

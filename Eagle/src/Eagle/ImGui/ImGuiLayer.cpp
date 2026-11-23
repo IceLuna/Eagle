@@ -121,7 +121,7 @@ namespace Eagle
 
 	void ImGuiLayer::OnImGuiRender()
 	{
-		if (Application::Get().IsGame())
+		if (Application::IsGame())
 			return;
 
 		AsyncTaskManager::OnImGuiRender();
@@ -163,13 +163,13 @@ namespace Eagle
 
 	void ImGuiLayer::AddMessage(const std::string& message)
 	{
-		if (Application::Get().IsGame() == false)
+		if (Application::IsGame() == false)
 			m_PopupMessages.push_back(message);
 	}
 
 	void ImGuiLayer::AddMessage(std::string&& message)
 	{
-		if (Application::Get().IsGame() == false)
+		if (Application::IsGame() == false)
 			m_PopupMessages.push_back(std::move(message));
 	}
 

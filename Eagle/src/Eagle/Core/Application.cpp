@@ -32,9 +32,9 @@ namespace Eagle
 		SplashScreen::SetProgress(-1.f);
 	}
 
+#ifdef EG_CPU_TIMINGS
 	static std::mutex s_TimingsMutex;
 
-#ifdef EG_CPU_TIMINGS
 	struct {
 		bool operator()(const CPUTiming::Data& a, const CPUTiming::Data& b) const
 		{
@@ -125,7 +125,6 @@ namespace Eagle
 		s_Instance = this;
 		MainThread::Init();
 
-		m_Game = props.bGame;
 		m_CorePath = props.argv[0];
 		m_CorePath = m_CorePath.parent_path();
 		std::filesystem::current_path(m_CorePath);
@@ -143,7 +142,7 @@ namespace Eagle
 		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
 
 		SetSplashStatus("Loading shaders");
-		if (m_Game)
+		if (IsGame())
 		{
 			const Path shaderPackPath = Project::GetShaderPackRelativePath();
 			ScopedDataBuffer compressedData = FileSystem::Read(shaderPackPath);
@@ -172,7 +171,7 @@ namespace Eagle
 			// The PhysX Visual Debugger is available in the editor, and in games but their Release builds,
 			// which link PhysX without its support for performance
 #ifdef EG_RELEASE
-			const bool bVisualDebugger = !m_Game;
+			const bool bVisualDebugger = !IsGame();
 #else
 			const bool bVisualDebugger = true;
 #endif
@@ -183,7 +182,7 @@ namespace Eagle
 		SetSplashStatus("Initializing scripting");
 		ScriptEngine::Init(m_CorePath / "Eagle-Scripts.dll");
 
-		if (m_Game)
+		if (IsGame())
 		{
 			SetSplashStatus("Loading game data");
 			const Path dataPath = "Data/";
@@ -225,7 +224,7 @@ namespace Eagle
 		}
 
 		SplashScreenDesc desc = m_SplashScreenDesc;
-		if (m_Game)
+		if (IsGame())
 		{
 			SplashScreenDesc gameSplash;
 			if (Project::LoadGameBuildSplashScreen(&gameSplash))
@@ -340,7 +339,7 @@ namespace Eagle
 			return;
 		}
 
-		if (!m_Game && program.is_used("--project"))
+		if (!IsGame() && program.is_used("--project"))
 		{
 			Path projectPath = program.get("--project");
 			if (std::filesystem::exists(projectPath))
@@ -349,7 +348,7 @@ namespace Eagle
 				EG_CORE_ERROR("The project passed with `--project` doesn't exist: {}", projectPath);
 		}
 
-		if (m_Game)
+		if (IsGame())
 			m_bCmdWaitForDebugger = program.get<bool>("--wait-for-debugger");
 	}
 
@@ -370,7 +369,7 @@ namespace Eagle
 
 	void Application::OnProjectChanged(bool bOpened)
 	{
-		Get().CallNextFrame([bOpened, bGame = Get().m_Game, corePath = Get().m_CorePath, imguiLayer = Get().m_ImGuiLayer]()
+		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath, imguiLayer = Get().m_ImGuiLayer]()
 		{
 			AsyncSceneLoader::CancelAll(true);
 
@@ -387,7 +386,7 @@ namespace Eagle
 				ThumbnailCache::Init();
 				if (!imguiLayer->SetIniFilepath(Project::GetConfigPath() / "imgui.ini"))
 				{
-					if (!bGame)
+					if (!IsGame())
 					{
 						EG_CORE_WARN("Copying the default imgui layout to the project and trying again...");
 						std::filesystem::copy(Application::GetCorePath() / "default_imgui_layout.ini", Project::GetConfigPath() / "imgui.ini");
@@ -440,8 +439,10 @@ namespace Eagle
 		}
 
 		// A frame run from within `ProcessEvents()` is nested in the outer one, so its timings are added to the outer frame's
+#ifdef EG_CPU_TIMINGS
 		if (bProcessEvents)
 			AverageCPUTimings();
+#endif
 
 		EG_CPU_TIMING_SCOPED("Whole frame");
 		UpdateTime();
@@ -608,6 +609,7 @@ namespace Eagle
 		}
 	}
 
+#ifdef EG_CPU_TIMINGS
 	void Application::AddCPUTiming(const CPUTiming* timing)
 	{
 		std::scoped_lock lock(s_TimingsMutex);
@@ -616,7 +618,6 @@ namespace Eagle
 
 	void Application::AverageCPUTimings()
 	{
-#ifdef EG_CPU_TIMINGS
 		std::scoped_lock lock(s_TimingsMutex);
 
 		const double now = glfwGetTime();
@@ -634,7 +635,6 @@ namespace Eagle
 			else
 				++it;
 		}
-#endif
 	}
 
 	CPUTimingsContainer Application::GetCPUTimings() const
@@ -653,6 +653,7 @@ namespace Eagle
 		}
 		return result;
 	}
+#endif
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)
 	{

@@ -122,222 +122,252 @@ group "Dependecies"
 	group "Dependecies"
 group ""
 
-project "Eagle"
-	location "Eagle"
-	kind "StaticLib"
-	language "C++"
-	cppdialect "C++23"
-	staticruntime "off"
+-- Defines of Eagle-Game's own build of Eagle (the Eagle-Runtime project)
+GameEagleDefines =
+{
+	Debug = { "EG_GAME" },
+	ReleaseWithDebug = { "EG_GAME" },
+	Release = { "EG_GAME", "EG_NO_CPU_TIMINGS", "EG_NO_GPU_TIMINGS" },
+}
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+-- Adds `GameEagleDefines` to the current project
+local function AddGameEagleDefines()
+	for config, configDefines in pairs(GameEagleDefines) do
+		filter("configurations:" .. config)
+			defines(configDefines)
+	end
+	filter {}
+end
 
-	pchheader "egpch.h"
-	pchsource "Eagle/src/egpch.cpp"
+-- Eagle is built twice from the same sources: `Eagle` for the editor, and `Eagle-Runtime` for Eagle-Game, with `GameEagleDefines`
+local function EagleProject(name)
+	project(name)
+		location "Eagle"
+		kind "StaticLib"
+		language "C++"
+		cppdialect "C++23"
+		staticruntime "off"
 
-	fatalwarnings("All")
+		targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+		objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
-	files
-	{
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
+		pchheader "egpch.h"
+		pchsource "Eagle/src/egpch.cpp"
 
-		"%{prj.name}/vendor/glm/glm/**.hpp",
-		"%{prj.name}/vendor/glm/glm/**.inl",
+		fatalwarnings("All")
 
-		"%{prj.name}/vendor/stb_image/**.h",
-		"%{prj.name}/vendor/stb_image/**.cpp",
+		files
+		{
+			"Eagle/src/**.h",
+			"Eagle/src/**.cpp",
 
-		"%{prj.name}/vendor/ImGuizmo/src/ImGuizmo.h",
-		"%{prj.name}/vendor/ImGuizmo/src/ImGuizmo.cpp",
+			"Eagle/vendor/glm/glm/**.hpp",
+			"Eagle/vendor/glm/glm/**.inl",
 
-		"%{prj.name}/vendor/imoguizmo/imoguizmo.hpp",
+			"Eagle/vendor/stb_image/**.h",
+			"Eagle/vendor/stb_image/**.cpp",
 
-        "%{prj.name}/vendor/imgui/imgui_impl_vulkan.h",
-		"%{prj.name}/vendor/imgui/imgui_impl_vulkan.cpp",
+			"Eagle/vendor/ImGuizmo/src/ImGuizmo.h",
+			"Eagle/vendor/ImGuizmo/src/ImGuizmo.cpp",
 
-		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.h",
-		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.cpp"
-	}
+			"Eagle/vendor/imoguizmo/imoguizmo.hpp",
 
-	includedirs
-	{
-		"%{prj.name}/src",
-		"%{prj.name}/vendor/spdlog/include",
-		"%{prj.name}/vendor/argparse/include",
-		"%{IncludeDir.GLFW}",
-		"%{IncludeDir.ImGui}",
-		"%{IncludeDir.ImPlot}",
-		"%{IncludeDir.ImGuiNodeEditor}",
-		"%{IncludeDir.glm}",
-		"%{IncludeDir.stb_image}",
-		"%{IncludeDir.entt}",
-		"%{IncludeDir.yaml_cpp}",
-		"%{IncludeDir.ImGuizmo}",
-		"%{IncludeDir.imoguizmo}",
-		"%{IncludeDir.assimp}",
-		"%{IncludeDir.mono}",
-		"%{IncludeDir.PhysX}",
-		"%{IncludeDir.fmod}",
-		"%{IncludeDir.VulkanSDK}",
-		"%{IncludeDir.VulkanMemAlloc}",
-		"%{IncludeDir.ThreadPool}",
-		"%{IncludeDir.MSDF}",
-		"%{IncludeDir.MSDFGen}",
-		"%{IncludeDir.MagicEnum}",
-		"%{IncludeDir.zstd}",
-		"%{IncludeDir.RecastNavigation}/Detour/Include",
-		"%{IncludeDir.RecastNavigation}/DetourCrowd/Include",
-		"%{IncludeDir.RecastNavigation}/DetourTileCache/Include",
-		"%{IncludeDir.RecastNavigation}/Recast/Include",
-		"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
-		"%{IncludeDir.compressonator}",
-		"%{IncludeDir.FFX_SSSR}",
-		"%{IncludeDir.unordered_dense}",
-	}
+	        "Eagle/vendor/imgui/imgui_impl_vulkan.h",
+			"Eagle/vendor/imgui/imgui_impl_vulkan.cpp",
 
-	defines
-	{
-		"_CRT_SECURE_NO_WARNINGS",
-		"GLFW_INCLUDE_NONE",
-		"PX_PHYSX_STATIC_LIB",
-		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
-		"MSDF_ATLAS_PUBLIC=",
-		"IMGUI_DEFINE_MATH_OPERATORS",
-		"_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING",
-		"KHRONOS_STATIC",
-		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
-		"SPDLOG_COMPILED_LIB",
-	}
+			"Eagle/vendor/VulkanMemoryAllocator/vk_mem_alloc.h",
+			"Eagle/vendor/VulkanMemoryAllocator/vk_mem_alloc.cpp"
+		}
 
-	libdirs
-	{
-		"%{LibDir.assimp}",
-		"%{LibDir.VulkanSDK}",
-	}
+		includedirs
+		{
+			"Eagle/src",
+			"Eagle/vendor/spdlog/include",
+			"Eagle/vendor/argparse/include",
+			"%{IncludeDir.GLFW}",
+			"%{IncludeDir.ImGui}",
+			"%{IncludeDir.ImPlot}",
+			"%{IncludeDir.ImGuiNodeEditor}",
+			"%{IncludeDir.glm}",
+			"%{IncludeDir.stb_image}",
+			"%{IncludeDir.entt}",
+			"%{IncludeDir.yaml_cpp}",
+			"%{IncludeDir.ImGuizmo}",
+			"%{IncludeDir.imoguizmo}",
+			"%{IncludeDir.assimp}",
+			"%{IncludeDir.mono}",
+			"%{IncludeDir.PhysX}",
+			"%{IncludeDir.fmod}",
+			"%{IncludeDir.VulkanSDK}",
+			"%{IncludeDir.VulkanMemAlloc}",
+			"%{IncludeDir.ThreadPool}",
+			"%{IncludeDir.MSDF}",
+			"%{IncludeDir.MSDFGen}",
+			"%{IncludeDir.MagicEnum}",
+			"%{IncludeDir.zstd}",
+			"%{IncludeDir.RecastNavigation}/Detour/Include",
+			"%{IncludeDir.RecastNavigation}/DetourCrowd/Include",
+			"%{IncludeDir.RecastNavigation}/DetourTileCache/Include",
+			"%{IncludeDir.RecastNavigation}/Recast/Include",
+			"%{IncludeDir.RecastNavigation}/DebugUtils/Include",
+			"%{IncludeDir.compressonator}",
+			"%{IncludeDir.FFX_SSSR}",
+			"%{IncludeDir.unordered_dense}",
+		}
 
-	links
-	{
-		"spdlog",
-		"GLFW",
-		"ImGui",
-		"ImPlot",
-		"ImGuiNodeEditor",
-		"yaml-cpp",
-		"MSDF-Atlas",
-		"assimp-vc143-mt.lib",
-		"%{LibFiles.Vulkan}",
+		defines
+		{
+			"_CRT_SECURE_NO_WARNINGS",
+			"GLFW_INCLUDE_NONE",
+			"PX_PHYSX_STATIC_LIB",
+			"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+			"MSDF_ATLAS_PUBLIC=",
+			"IMGUI_DEFINE_MATH_OPERATORS",
+			"_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING",
+			"KHRONOS_STATIC",
+			"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
+			"SPDLOG_COMPILED_LIB",
+		}
 
-		-- Recast navigation
-		"DebugUtils",
-		"Detour",
-		"DetourCrowd",
-		"DetourTileCache",
-		"Recast",
-	}
-
-	linkoptions
-	{
-		"/ignore:4099", -- Disable 'PDB was not found' warnings 
-		"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
-	}
-
-	buildoptions
-	{
-		"/utf-8"
-	}
-
-	filter "files:Eagle/vendor/ImGuizmo/src/**.cpp"
-		enablepch "Off"
-
-	filter "system:windows"
-		systemversion "latest"
-
-	filter "configurations:Debug"
-		defines "EG_DEBUG"
-		runtime "Debug"
-		symbols "on"
 		libdirs
 		{
-			"%{LibDir.fmodDebug}"
+			"%{LibDir.assimp}",
+			"%{LibDir.VulkanSDK}",
 		}
+
 		links
 		{
-			"%{LibFiles.fmodDebug}",
-			"%{LibFiles.monoDebug}",
-			"%{LibFiles.zstdDebug}",
-			"%{LibFiles.compressonatorDebug}",
+			"spdlog",
+			"GLFW",
+			"ImGui",
+			"ImPlot",
+			"ImGuiNodeEditor",
+			"yaml-cpp",
+			"MSDF-Atlas",
+			"assimp-vc143-mt.lib",
+			"%{LibFiles.Vulkan}",
 
-			"%{LibFiles.ShaderC_Debug}",
-			"%{LibFiles.SPIRV_Cross_Debug}",
-
-			"%{LibFiles.FFX_SSSR_Backend_VK_Debug}",
-			"%{LibFiles.FFX_SSSR_Denoiser_Debug}",
-			"%{LibFiles.FFX_SSSR_Debug}",
+			-- Recast navigation
+			"DebugUtils",
+			"Detour",
+			"DetourCrowd",
+			"DetourTileCache",
+			"Recast",
 		}
 
-	filter "configurations:ReleaseWithDebug"
-		defines 
+		linkoptions
 		{
-			"EG_RELEASE_WITH_DEBUG",
-			"NDEBUG"
+			"/ignore:4099", -- Disable 'PDB was not found' warnings 
+			"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
 		}
-		libdirs
-		{
-			"%{LibDir.fmodRelease}"
-		}
-		links
-		{
-			"%{LibFiles.fmodRelease}",
-			"%{LibFiles.monoRelease}",
-			"%{LibFiles.zstdRelease}",
-			"%{LibFiles.compressonatorRelease}",
 
-			"%{LibFiles.ShaderC_Release}",
-			"%{LibFiles.SPIRV_Cross_Release}",
-
-			"%{LibFiles.FFX_SSSR_Backend_VK_Release}",
-			"%{LibFiles.FFX_SSSR_Denoiser_Release}",
-			"%{LibFiles.FFX_SSSR_Release}",
-		}
 		buildoptions
 		{
-			"/Ob2"
+			"/utf-8"
 		}
-		runtime "Release"
-		optimize "Speed"
-		symbols "on"
 
-	filter "configurations:Release"
-		defines 
-		{
-			"EG_RELEASE",
-			"NDEBUG"
-		}
-		libdirs
-		{
-			"%{LibDir.fmodRelease}"
-		}
-		links
-		{
-			"%{LibFiles.fmodRelease}",
-			"%{LibFiles.monoRelease}",
-			"%{LibFiles.zstdRelease}",
-			"%{LibFiles.compressonatorRelease}",
+		filter "files:Eagle/vendor/ImGuizmo/src/**.cpp"
+			enablepch "Off"
 
-			"%{LibFiles.ShaderC_Release}",
-			"%{LibFiles.SPIRV_Cross_Release}",
+		filter "files:Eagle/src/Eagle/Core/Scene.cpp"
+			buildoptions { "/bigobj" }
 
-			"%{LibFiles.FFX_SSSR_Backend_VK_Release}",
-			"%{LibFiles.FFX_SSSR_Denoiser_Release}",
-			"%{LibFiles.FFX_SSSR_Release}",
-		}
-		buildoptions
-		{
-			"/Ob2"
-		}
-		runtime "Release"
-		optimize "Speed"
+		filter "system:windows"
+			systemversion "latest"
+
+		filter "configurations:Debug"
+			defines "EG_DEBUG"
+			runtime "Debug"
+			symbols "on"
+			libdirs
+			{
+				"%{LibDir.fmodDebug}"
+			}
+			links
+			{
+				"%{LibFiles.fmodDebug}",
+				"%{LibFiles.monoDebug}",
+				"%{LibFiles.zstdDebug}",
+				"%{LibFiles.compressonatorDebug}",
+
+				"%{LibFiles.ShaderC_Debug}",
+				"%{LibFiles.SPIRV_Cross_Debug}",
+
+				"%{LibFiles.FFX_SSSR_Backend_VK_Debug}",
+				"%{LibFiles.FFX_SSSR_Denoiser_Debug}",
+				"%{LibFiles.FFX_SSSR_Debug}",
+			}
+
+		filter "configurations:ReleaseWithDebug"
+			defines 
+			{
+				"EG_RELEASE_WITH_DEBUG",
+				"NDEBUG"
+			}
+			libdirs
+			{
+				"%{LibDir.fmodRelease}"
+			}
+			links
+			{
+				"%{LibFiles.fmodRelease}",
+				"%{LibFiles.monoRelease}",
+				"%{LibFiles.zstdRelease}",
+				"%{LibFiles.compressonatorRelease}",
+
+				"%{LibFiles.ShaderC_Release}",
+				"%{LibFiles.SPIRV_Cross_Release}",
+
+				"%{LibFiles.FFX_SSSR_Backend_VK_Release}",
+				"%{LibFiles.FFX_SSSR_Denoiser_Release}",
+				"%{LibFiles.FFX_SSSR_Release}",
+			}
+			buildoptions
+			{
+				"/Ob2"
+			}
+			runtime "Release"
+			optimize "Speed"
+			symbols "on"
+
+		filter "configurations:Release"
+			defines 
+			{
+				"EG_RELEASE",
+				"NDEBUG"
+			}
+			libdirs
+			{
+				"%{LibDir.fmodRelease}"
+			}
+			links
+			{
+				"%{LibFiles.fmodRelease}",
+				"%{LibFiles.monoRelease}",
+				"%{LibFiles.zstdRelease}",
+				"%{LibFiles.compressonatorRelease}",
+
+				"%{LibFiles.ShaderC_Release}",
+				"%{LibFiles.SPIRV_Cross_Release}",
+
+				"%{LibFiles.FFX_SSSR_Backend_VK_Release}",
+				"%{LibFiles.FFX_SSSR_Denoiser_Release}",
+				"%{LibFiles.FFX_SSSR_Release}",
+			}
+			buildoptions
+			{
+				"/Ob2"
+			}
+			runtime "Release"
+			optimize "Speed"
+
+	filter {}
+end
+
+EagleProject("Eagle")
+
+EagleProject("Eagle-Runtime")
+	AddGameEagleDefines()
 
 project "Eagle-Editor"
 	location "Eagle-Editor"
@@ -554,7 +584,7 @@ project "Eagle-Game"
 
 	links
 	{
-		"Eagle",
+		"Eagle-Runtime",
 		"Eagle-Scripts"
 	}
 
@@ -566,6 +596,7 @@ project "Eagle-Game"
 		"_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
 		"SPDLOG_COMPILED_LIB",
 	}
+	AddGameEagleDefines()
 
 	linkoptions
 	{

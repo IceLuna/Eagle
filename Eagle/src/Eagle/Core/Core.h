@@ -12,8 +12,12 @@
 #define EG_VERSION_PATCH 0
 
 // These can be commented out to disable generating debug info
-#define EG_CPU_TIMINGS
-#define EG_GPU_TIMINGS
+#ifndef EG_NO_CPU_TIMINGS
+	#define EG_CPU_TIMINGS
+#endif
+#ifndef EG_NO_GPU_TIMINGS
+	#define EG_GPU_TIMINGS
+#endif
 #define EG_GPU_MARKERS
 
 // One level of macro indirection is required in order to resolve, for example __COUNTER__,

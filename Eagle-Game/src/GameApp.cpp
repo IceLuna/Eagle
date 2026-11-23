@@ -20,7 +20,6 @@ namespace Eagle
 		props.WindowProps.VSync = true;
 		props.WindowProps.Fullscreen = false;
 
-		props.bGame = true;
 		props.argc = argc;
 		props.argv = argv;
 

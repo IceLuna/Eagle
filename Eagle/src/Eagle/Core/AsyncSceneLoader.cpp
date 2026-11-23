@@ -309,7 +309,7 @@ namespace Eagle
 
 		req.m_State = SceneLoadState::Loading;
 		const Path path = req.GetSceneAsset()->GetPath();
-		const bool bGame = Application::Get().IsGame();
+		const bool bGame = Application::IsGame();
 		EG_CORE_INFO("Loading the scene in background: {}", path);
 		Timer timer;
 

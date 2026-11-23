@@ -496,7 +496,7 @@ namespace Eagle
 			scene->SetSkybox(nullptr);
 			scene->SetSkyboxIntensity(1.f);
 
-			if (Application::Get().IsGame())
+			if (Application::IsGame())
 			{
 				Ref<ScopedDataBuffer> sceneData;
 				if (AssetManager::GetRuntimeAssetData(path, &sceneData))

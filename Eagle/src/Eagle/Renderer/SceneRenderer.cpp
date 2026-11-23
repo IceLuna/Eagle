@@ -64,7 +64,6 @@ namespace Eagle
 	SceneRenderer::SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options)
 		: m_Size(size)
 	{
-		m_bIsGame = Application::Get().IsGame();
 		SetOptions(options);
 
 		m_PickRequests.reserve(s_MaxPickRequests - 1);
@@ -385,7 +384,7 @@ namespace Eagle
 				cmd->TransitionLayout(objectID, ImageReadAccess::CopySource, objectIDLayout);
 			}
 
-			if (renderer->m_bIsGame)
+			if (Application::IsGame())
 				RenderManager::SetPresentImage(renderer->m_FinalImage);
 
 			renderer->m_Stats_MT = renderer->m_Stats[renderer->m_FrameIndex];

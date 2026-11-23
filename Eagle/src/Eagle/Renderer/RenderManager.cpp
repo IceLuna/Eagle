@@ -144,6 +144,7 @@ namespace Eagle
 		uint32_t FlipY = 0;
 	};
 
+#ifdef EG_GPU_TIMINGS
 	// Timings that weren't used for this long are removed
 	static constexpr std::chrono::seconds s_GPUTimingLifetime(1);
 
@@ -196,6 +197,7 @@ namespace Eagle
 
 		return data;
 	}
+#endif
 
 	static GPUTimingsContainer SortGPUTimings()
 	{
@@ -387,7 +389,7 @@ namespace Eagle
 		s_MainThreadID = std::this_thread::get_id();
 
 		Application& app = Application::Get();
-		const bool bGame = app.IsGame();
+		const bool bGame = Application::IsGame();
 		s_RendererData = new RendererData();
 		s_RendererData->Swapchain = app.GetWindow().GetSwapchain();
 		s_RendererData->PresentFunc = bGame ? &RenderManager::PresentGame : &RenderManager::PresentEditor;
@@ -804,7 +806,9 @@ namespace Eagle
 			Ref<Semaphore> imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(frameIndex, &swapchainImageIndex);
 			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid() && imageAcquireSemaphore;
 
+#ifdef EG_GPU_TIMINGS
 			UpdateGPUTimings();
+#endif
 
 			// Part 1: everything that doesn't touch the swapchain image.
 			// It doesn't wait on the acquire semaphore, so the GPU starts on it right away, while we wait for the swapchain image below

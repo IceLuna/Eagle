@@ -63,6 +63,7 @@ namespace Eagle
 	static void DrawShortcutsWindow(bool* p_open = nullptr);
 	static void DrawAboutWindow(bool* p_open = nullptr);
 
+#ifdef EG_GPU_TIMINGS
 	static void DisplayTiming(const GPUTimingData& data, size_t i = 0)
 	{
 		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
@@ -108,7 +109,9 @@ namespace Eagle
 			ImGui::TreePop();
 		}
 	};
+#endif
 
+#ifdef EG_CPU_TIMINGS
 	static void DisplayTiming(const CPUTiming::Data& data, size_t i = 0)
 	{
 		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
@@ -155,6 +158,7 @@ namespace Eagle
 			ImGui::TreePop();
 		}
 	};
+#endif
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")

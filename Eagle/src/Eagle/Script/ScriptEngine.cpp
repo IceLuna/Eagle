@@ -598,7 +598,7 @@ namespace Eagle
 
 	void ScriptEngine::Init(const Path& assemblyPath)
 	{
-		s_EnableDebugging = !Application::Get().IsGame() || Project::IsGameBuildScriptDebuggingEnabled();
+		s_EnableDebugging = !Application::IsGame() || Project::IsGameBuildScriptDebuggingEnabled();
 		if (s_EnableDebugging)
 		{
 			// Each editor and game uses its own port, so that several of them can run at the same time.
@@ -662,7 +662,7 @@ namespace Eagle
 		if (!s_EnableDebugging || !Project::IsOpened())
 			return;
 
-		const bool bGame = Application::Get().IsGame();
+		const bool bGame = Application::IsGame();
 		const Path filepath = bGame ? ScriptDebuggerInfo::GetTempFilePath() : Project::GetScriptsDebuggerCachePath() / "Debugger.yaml";
 		ScriptDebuggerInfo::Publish(filepath, Project::GetProjectInfo().Name, s_DebuggerPort, bGame);
 	}
@@ -672,7 +672,7 @@ namespace Eagle
 		if (!s_EnableDebugging)
 		{
 			EG_CORE_WARN("[ScriptEngine] `Wait for Debugger` calls is ignored: script debugging isn't enabled{}",
-				Application::Get().IsGame() ? " (the game wasn't built with the \"Script debugging\" option)" : "");
+				Application::IsGame() ? " (the game wasn't built with the \"Script debugging\" option)" : "");
 			return;
 		}
 

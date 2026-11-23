@@ -32,7 +32,6 @@ namespace Eagle
 		props.SplashScreen.Title = "Eagle Editor";
 		props.SplashScreen.IconPath = "assets/textures/Editor/icon.png";
 
-		props.bGame = false;
 		props.argc = argc;
 		props.argv = argv;
 

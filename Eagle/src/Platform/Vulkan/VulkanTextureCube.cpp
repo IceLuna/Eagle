@@ -227,7 +227,7 @@ namespace Eagle
 
 			texture->m_Loaded = true;
 
-			if (Application::Get().IsGame())
+			if (Application::IsGame())
 				texture->m_Texture2D.reset(); // Reset in game builds since it's not needed anymore.
 		});
 	}
