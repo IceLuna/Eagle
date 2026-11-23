@@ -41,10 +41,14 @@ namespace Eagle
 		s_BehaviorGraphIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/behaviorgraphicon.png");
 		s_SceneSequenceIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/scenesequenceicon.png");
 		s_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
+
+		UI::SetOpenAssetCallback([](const Ref<Asset>& asset) { OpenAssetEditor(asset); });
 	}
 
 	void EditorResources::Release()
 	{
+		UI::SetOpenAssetCallback({});
+
 		s_TextureIcon.reset();
 		s_MeshIcon.reset();
 		s_AudioIcon.reset();

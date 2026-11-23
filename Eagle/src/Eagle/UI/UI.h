@@ -40,6 +40,10 @@ namespace Eagle::UI
 
 	const Ref<Eagle::Image> GetAssetPreview(const Ref<Asset>& asset);
 
+	// Called when the preview/thumbnail of an asset is clicked in a C# field drawn by `Property(PublicField&, ...)`
+	using OpenAssetCallback = std::function<void(const Ref<Asset>&)>;
+	void SetOpenAssetCallback(OpenAssetCallback callback);
+
 	// Fonts
 	void LoadFonts();
 	void PushFontRegular(float overrideFontSize = 0.0f);

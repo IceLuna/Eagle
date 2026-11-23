@@ -76,6 +76,7 @@ namespace Eagle::UI
 	static FontContext s_Fonts;
 	static const char* s_FloatFormat = "%.4f";
 	static std::vector<float> s_PropertyMaxValueWidths;
+	static OpenAssetCallback s_OpenAssetCallback;
 
 	namespace
 	{
@@ -415,12 +416,15 @@ namespace Eagle::UI
 						Ref<type> castedAsset;\
 						if (AssetManager::Get(value, &asset))\
 							castedAsset = Cast<type>(asset);\
-						if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset), nullptr, customLabelCallback))\
+						bool bPreviewClicked = false;\
+						if (UI::DrawAssetSelection(label.data(), castedAsset, field.Tooltip, -1.f, GetAssetPreview(castedAsset), &bPreviewClicked, customLabelCallback))\
 						{\
 							value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
 							bRuntime ? field.SetRuntimeValue(instance, value, fieldIndex) : field.SetStoredValue(value, fieldIndex);\
 							bChanged = true;\
 						}\
+						if (bPreviewClicked && castedAsset && s_OpenAssetCallback)\
+							s_OpenAssetCallback(castedAsset);\
 						break;\
 					}
 
@@ -608,6 +612,11 @@ namespace Eagle::UI
 	const char* GetIDBuffer()
 	{
 		return s_IDBuffer;
+	}
+
+	void SetOpenAssetCallback(OpenAssetCallback callback)
+	{
+		s_OpenAssetCallback = std::move(callback);
 	}
 
 	const Ref<Eagle::Image> GetAssetPreview(const Ref<Asset>& asset)
