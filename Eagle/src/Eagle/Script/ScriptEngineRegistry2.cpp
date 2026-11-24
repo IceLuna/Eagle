@@ -282,6 +282,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRootMotionLockFlagBool_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRootMotionLockFlagBool);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetRootMotionLockFlag_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetRootMotionLockFlag);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRootMotionLockFlags_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRootMotionLockFlags);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetApplyRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetApplyRootMotion);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetApplyRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetApplyRootMotion);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRootMotion);
 
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCurrentClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetClipPlaybackSpeed_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed);
@@ -490,6 +493,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.CharacterControllerComponent::GetMoveWholeEntity_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetMoveWholeEntity);
 		mono_add_internal_call("Eagle.CharacterControllerComponent::SetUseFootLocation_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetUseFootLocation);
 		mono_add_internal_call("Eagle.CharacterControllerComponent::GetUseFootLocation_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetUseFootLocation);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetApplyGravity_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetApplyGravity);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetApplyGravity_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetApplyGravity);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::SetVerticalVelocity_Native", Eagle::Script::Eagle_CharacterControllerComponent_SetVerticalVelocity);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::GetVerticalVelocity_Native", Eagle::Script::Eagle_CharacterControllerComponent_GetVerticalVelocity);
+		mono_add_internal_call("Eagle.CharacterControllerComponent::IsGrounded_Native", Eagle::Script::Eagle_CharacterControllerComponent_IsGrounded);
 
 		//BaseColliderComponent
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetCollisionGroup_Native", Eagle::Script::Eagle_BaseColliderComponent_SetCollisionGroup);

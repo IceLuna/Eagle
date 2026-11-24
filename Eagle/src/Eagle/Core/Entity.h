@@ -26,6 +26,14 @@ namespace Eagle
 		Skip      // Internal. The physics isn't touched (used when the physics moved the entity)
 	};
 
+	// How an entity is moved so that its physics is respected
+	enum class EntityMovement
+	{
+		CharacterController, // `CharacterControllerComponent::Move`, so it collides and slides
+		DynamicRigidBody,    // Its velocity is set. Physics does the rest
+		Location             // `PhysicsMove::Move`
+	};
+
 	class Entity
 	{
 	public:
@@ -126,6 +134,8 @@ namespace Eagle
 		Ref<PhysicsActor>& GetPhysicsActor() { return m_Scene->GetPhysicsActor(*this); }
 
 		void OnNotify(Notification notification);
+
+		EntityMovement GetMovement();
 
 	private:
 		void UpdatePhysicsTransform(const Transform& oldWorldTransform, PhysicsMove physicsMove);

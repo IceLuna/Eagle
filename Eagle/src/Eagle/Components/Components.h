@@ -802,6 +802,8 @@ namespace Eagle
 		Rotator GetBoneWorldRotation(const std::string_view boneName) const;
 		glm::vec3 GetBoneWorldScale(const std::string_view boneName) const;
 
+		Transform GetRootMotion() const;
+
 		bool IsRootMotionLockFlagSet(RootMotionLockFlag flag) const { return HasFlags(m_RootMotionLockFlags, flag); }
 		void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value) { SetFlag(m_RootMotionLockFlags, flag, value); }
 		void SetRootMotionLockFlag(RootMotionLockFlag flag) { m_RootMotionLockFlags = flag; }
@@ -840,6 +842,7 @@ namespace Eagle
 		bool bClipLooping = true;
 
 		AnimationType AnimType = AnimationType::Clip;
+		bool bApplyRootMotion = true;
 
 	private:
 		SkeletalPose m_PreRagdollLastPose; // Pose the mesh had before ragdoll was enabled
@@ -1549,20 +1552,43 @@ namespace Eagle
 		void SetControllerUpDirection(const glm::vec3& upDir);
 		const glm::vec3& GetControllerUpDirection() const;
 
+		// Along the controller's up direction.
+		// Note: updated only if `bApplyGravity` is set.
+		float GetVerticalVelocity() const { return m_VerticalVelocity; }
+		void SetVerticalVelocity(float velocity) { m_VerticalVelocity = velocity; }
+
+		// Note: updated only if `bApplyGravity` is set.
+		bool IsGrounded() const { return m_bGrounded; }
+
+		// Gravity isn't applied during the next gravity update, and the vertical velocity is reset.
+		// For example, root motion does it while it moves the controller vertically
+		void SuspendGravity() { m_bGravitySuspended = true; }
+
+		void ApplyGravity(const glm::vec3& gravity, Timestep ts);
+
 	private:
 		void UpdateTransform(bool bUseFoot);
+
+		void SyncEntityFromController();
+
+		// Returns true if it found ground within that distance. Otherwise, it's put back where it was
+		bool SnapToGround(Timestep ts);
 
 	public:
 		bool bMoveWholeEntity = true; // If enabled, the result of `Move` call will be applied to the parent entity. Otherwise, to this component only
 		bool bUseFootLocation = false; // If enabled, foot location (i.e.the position of the bottom of the shape, takes the contact offset into account) will be used as a result of the move operation. Otherwise, shape's center.
+		bool bApplyGravity = true;
 
 	private:
 		Ref<PhysicsCharacterController> m_Controller;
 		glm::vec3 m_Size = glm::vec3(1);
+		float m_VerticalVelocity = 0.f;
 		float m_Radius = 0.35f;
 		float m_Height = 1.0f;
 		bool bShowCollision = false;
 		bool bCurrentlyMoving = false;
+		bool m_bGrounded = false;
+		bool m_bGravitySuspended = false;
 	};
 
 	class BaseColliderComponent : public SceneComponent
@@ -2766,24 +2792,16 @@ namespace Eagle
 		void RemoveAgent();
 		friend class Scene;
 
-		// Used to respect physics when an agent moves
-		enum class Movement
-		{
-			CharacterController, // `Move` with the agent's velocity and gravity
-			DynamicRigidBody,    // The agent's velocity, horizontally. Physics does the rest
-			Location             // The agent's location with `PhysicsMove::Move`. A kinematic body pushes what's in its way
-		};
-		Movement GetMovement() const;
-
-		// Called before the physics update
-		void MoveEntity(Timestep ts, const glm::vec3& gravity);
+		// Called before the physics update.
+		// A character controller is moved with the agent's velocity, a dynamic rigid body gets its horizontal velocity,
+		// and anything else is moved to the agent's location
+		void MoveEntity(Timestep ts);
 
 		// Called after the physics update. Syncs the agent with the physics
 		void SyncFromEntity();
 
 	private:
 		AINavigation::AgentSettings m_Settings{};
-		glm::vec3 m_FallVelocity = glm::vec3(0.f); // Used for a character controller
 		int m_AgentIndex = -1;
 		uint32_t m_NavMeshSlot = ~0u;
 		uint32_t m_AgentTypeID = AINavigation::AutoAgentTypeID;

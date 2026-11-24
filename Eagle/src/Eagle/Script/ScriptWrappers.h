@@ -187,6 +187,9 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetRootMotionLockFlagBool(GUID entityID, RootMotionLockFlag flag, bool value);
 	void Eagle_SkeletalMeshComponent_SetRootMotionLockFlag(GUID entityID, RootMotionLockFlag value);
 	RootMotionLockFlag Eagle_SkeletalMeshComponent_GetRootMotionLockFlags(GUID entityID);
+	void Eagle_SkeletalMeshComponent_SetApplyRootMotion(GUID entityID, bool value);
+	bool Eagle_SkeletalMeshComponent_GetApplyRootMotion(GUID entityID);
+	void Eagle_SkeletalMeshComponent_GetRootMotion(GUID entityID, Transform* outRootMotion);
 
 	void Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime(GUID entityID, float value);
 	void Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed(GUID entityID, float value);
@@ -395,6 +398,11 @@ namespace Eagle::Script
 	bool Eagle_CharacterControllerComponent_GetMoveWholeEntity(GUID id);
 	void Eagle_CharacterControllerComponent_SetUseFootLocation(GUID id, bool value);
 	bool Eagle_CharacterControllerComponent_GetUseFootLocation(GUID id);
+	void Eagle_CharacterControllerComponent_SetApplyGravity(GUID id, bool value);
+	bool Eagle_CharacterControllerComponent_GetApplyGravity(GUID id);
+	void Eagle_CharacterControllerComponent_SetVerticalVelocity(GUID id, float value);
+	float Eagle_CharacterControllerComponent_GetVerticalVelocity(GUID id);
+	bool Eagle_CharacterControllerComponent_IsGrounded(GUID id);
 
 	// BaseColliderComponent
 	void Eagle_BaseColliderComponent_SetCollisionGroup(GUID entityID, void* type, CollisionGroup groups);

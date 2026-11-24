@@ -1131,6 +1131,22 @@ namespace Eagle
             return GetRootMotionLockFlags_Native(Parent.ID);
         }
 
+        // If false, root motion isn't applied to the entity. It's still calculated, so a script can apply it itself (see `GetRootMotion()`)
+        public bool bApplyRootMotion
+        {
+            get { return GetApplyRootMotion_Native(Parent.ID); }
+            set { SetApplyRootMotion_Native(Parent.ID, value); }
+        }
+
+        // The root motion of the last animation update in world space, with the lock flags applied (basically what the entity is moved by if `bApplyRootMotion` is enabled).
+        // If `bApplyRootMotion` is disabled, this still returns a valid root motion for you to apply manually, if required.
+        // Note: it's the change since the previous update, so a script that applies it itself should do it every update. Returns identity if there's none
+        public Transform GetRootMotion()
+        {
+            GetRootMotion_Native(Parent.ID, out Transform result);
+            return result;
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetReceivesDecals_Native(in GUID entityID, bool value);
 
@@ -1322,6 +1338,15 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern RootMotionLockFlag GetRootMotionLockFlags_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetApplyRootMotion_Native(GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetApplyRootMotion_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRootMotion_Native(GUID entityID, out Transform result);
     }
 
     public class SpriteComponent : SceneComponent
@@ -2755,12 +2780,11 @@ namespace Eagle
     public class CharacterControllerComponent : SceneComponent
     {
         // Moves the character. To retrieve new position, use `GetWorldLocation()` or `GetFootWorldLocation()`
-		// @disp is the displacement vector for current frame. It is typically a combination of vertical motion due to gravity and lateral motion when your character is moving.
-		//		 Note that users are responsible for applying gravity to characters here.
-		// @minDist is a minimal length used to stop the recursive displacement algorithm early when remaining distance to travel goes below this limit.
-		// @elapsedTime is the amount of time that passed since the last call to the move function.
-		// @return Returns collision flags
-		public CharacterControllerCollisionFlags Move(Vector3 disp, float minDist, float elapsedTime)
+        // @disp is the displacement vector for current frame. if `bApplyGravity` is enabled, gravity is handled automatically
+        // @minDist is a minimal length used to stop the recursive displacement algorithm early when remaining distance to travel goes below this limit.
+        // @elapsedTime is the amount of time that passed since the last call to the move function.
+        // @return Returns collision flags
+        public CharacterControllerCollisionFlags Move(Vector3 disp, float minDist, float elapsedTime)
         {
             return Move_Native(Parent.ID, ref disp, minDist, elapsedTime);
         }
@@ -2944,6 +2968,27 @@ namespace Eagle
             set { SetUseFootLocation_Native(Parent.ID, value); }
         }
 
+        public bool bApplyGravity
+        {
+            get { return GetApplyGravity_Native(Parent.ID); }
+            set { SetApplyGravity_Native(Parent.ID, value); }
+        }
+
+        // Along the controller's up direction. For example, to jump, set it to the jump speed.
+        // Note: updated only if `bApplyGravity` is set.
+        public float VerticalVelocity
+        {
+            get { return GetVerticalVelocity_Native(Parent.ID); }
+            set { SetVerticalVelocity_Native(Parent.ID, value); }
+        }
+
+        // Whether it stood on something when gravity was last applied.
+        // Note: updated only if `bApplyGravity` is set.
+        public bool IsGrounded()
+        {
+            return IsGrounded_Native(Parent.ID);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern CharacterControllerCollisionFlags Move_Native(GUID id, ref Vector3 disp, float minDist, float elapsedTime);
 
@@ -3048,6 +3093,21 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetUseFootLocation_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetApplyGravity_Native(GUID id, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetApplyGravity_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVerticalVelocity_Native(GUID id, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetVerticalVelocity_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsGrounded_Native(GUID id);
     }
 
     abstract public class BaseColliderComponent : SceneComponent

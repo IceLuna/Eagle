@@ -30,7 +30,7 @@ namespace Eagle
 		// There's no issues for regular skeletal animation because they're stored in relative transforms, so they don't care about the current mesh world transform. Their transforms from the previous frame are used, and they're updated by `UpdateRagdolls`.
 		// @deltaTimes. The time step of each mesh (must be the same size as `meshes`)
 		// @outRagdolls. Entity IDs of the ragdolls, for `UpdateRagdolls`
-		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion,
+		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, Timestep ts, bool bApplyRootMotion,
 			std::vector<struct AnimationEventData>* outEventsToTrigger = nullptr, std::vector<uint32_t>* outRagdolls = nullptr);
 		static ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts, std::vector<uint32_t>* outRagdolls = nullptr);
 
@@ -46,7 +46,9 @@ namespace Eagle
 		static void Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose);
 
 		[[nodiscard]] static Transform CalculateRootMotion(const SkeletalMeshAnimation* animation, float currentTime, float prevTime, float playbackSpeed, Timestep ts, Transform* outTotalRootMotion);
-		static void ApplyRootMotion(SkeletalMeshComponent* mesh, const Transform& totalRootMotion, Transform rootMotion);
+
+		// Respects entity's physics
+		static void ApplyRootMotion(SkeletalMeshComponent* mesh, Timestep ts);
 
 		// Returns highest weighted vertex
 		static const BlendSpaceVertex* CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose);

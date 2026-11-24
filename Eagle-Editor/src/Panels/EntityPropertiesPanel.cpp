@@ -79,6 +79,9 @@ namespace Eagle
 	static const char* s_CollidesWithOtherControllersHelpMsg = "If enabled, controller vs controller collisions will be resolved using collision groups. "
 		"Otherwise, controllers won't collide with each other";
 	static const char* s_MoveWholeEntityHelpMsg = "If enabled, the result of `Move` call will be applied to the parent entity.Otherwise, to this component only";
+	static const char* s_ApplyGravityHelpMsg = "The scene's gravity is applied once a frame, before the physics & scripts update, whatever moves the controller (scripts, root motion, crowd agents). "
+		"While it's on the ground, it stays on it when the ground drops by up to the step offset (stairs, slopes, small ledges).\n"
+		"Turn it off if a script applies gravity itself";
 	static const char* s_UseFootLocationHelpMsg = "If enabled, foot location (i.e.the position of the bottom of the shape, takes the contact offset into account) will be used as a result of the move operation. "
 		"Otherwise, shape's center location will be used.";
 	static const char* s_CapsuleClimbModeHelpMsg = "Easy - let the capsule climb over surfaces according to impact normal.\n"
@@ -114,6 +117,10 @@ namespace Eagle
 	static const char* s_InheritTimeScaleHelpMsg = "If it's off, its time scale isn't multiplied by its parent's. "
 		"For example, an effect that runs at its own speed while its parent is slowed or frozen.\n"
 		"It doesn't change whether the scene's time scale applies, see `Scene Time Scale`";
+	static const char* s_RootMotionLockPosHelpMsg = "Locked axes of the root motion aren't applied.\n"
+		"With a character controller or a dynamic rigid body, locking Y lets gravity apply (for example, for walking). "
+		"If Y isn't locked, the animation's vertical motion is followed and gravity is suspended (for example, a climb)";
+	static const char* s_ApplyRootMotionHelpMsg = "If disabled, root motion isn't applied to the entity. It's still calculated, so a script can apply it itself (see `SkeletalMeshComponent.GetRootMotion()`)";
 
 
 	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, Entity* newEntitySelection)
@@ -597,10 +604,11 @@ namespace Eagle
 					}
 
 					bEntityChanged |= UI::ComboEnum("Animation Type", smComponent.AnimType);
+					bEntityChanged |= UI::Property("Apply Root Motion", smComponent.bApplyRootMotion, s_ApplyRootMotionHelpMsg);
 
 					const RootMotionLockFlag lockFlags = smComponent.GetRootMotionLockFlags();
 					bool bLockPositions[3] = { HasFlags(lockFlags, RootMotionLockFlag::PositionX), HasFlags(lockFlags, RootMotionLockFlag::PositionY), HasFlags(lockFlags, RootMotionLockFlag::PositionZ) };
-					if (UI::Property("Root Motion Lock Position", s_LockStrings, bLockPositions))
+					if (UI::Property("Root Motion Lock Position", s_LockStrings, bLockPositions, s_RootMotionLockPosHelpMsg))
 					{
 						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionX, bLockPositions[0]);
 						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionY, bLockPositions[1]);
@@ -1529,6 +1537,11 @@ namespace Eagle
 					}
 
 					if (UI::Property("Use Foot Location", component.bUseFootLocation, s_UseFootLocationHelpMsg))
+					{
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Apply Gravity", component.bApplyGravity, s_ApplyGravityHelpMsg))
 					{
 						bEntityChanged = true;
 					}

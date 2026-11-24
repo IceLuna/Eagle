@@ -7,6 +7,7 @@
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Physics/PhysicsActor.h"
 #include "Eagle/Physics/PhysicsRagdollActor.h"
 #include "Eagle/Utils/DelaunayTriangulation.h"
 
@@ -525,7 +526,7 @@ namespace Eagle
         }
     }
     
-    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, bool bApplyRootMotion,
+    ankerl::unordered_dense::map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, const std::vector<float>& deltaTimes, Timestep ts, bool bApplyRootMotion,
         std::vector<AnimationEventData>* outEventsToTrigger, std::vector<uint32_t>* outRagdolls)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
@@ -545,8 +546,8 @@ namespace Eagle
         for (const auto& job : s_Jobs)
         {
             SkeletalMeshComponent* mesh = job.Mesh;
-            if (bApplyRootMotion && mesh->LastPose.HasRootMotion())
-                ApplyRootMotion(mesh, mesh->LastPose.TotalRootMotion, mesh->LastPose.GetRootMotion());
+            if (bApplyRootMotion && mesh->bApplyRootMotion && mesh->LastPose.HasRootMotion())
+                ApplyRootMotion(mesh, ts);
 
             if (outEventsToTrigger)
             {
@@ -790,17 +791,46 @@ namespace Eagle
         return result;
     }
 
-    void AnimationSystem::ApplyRootMotion(SkeletalMeshComponent* mesh, const Transform& totalRootMotion, Transform rootMotion)
+    void AnimationSystem::ApplyRootMotion(SkeletalMeshComponent* mesh, Timestep ts)
     {
-        const glm::vec3 locationMask = glm::vec3(
-            mesh->IsRootMotionLockFlagSet(RootMotionLockFlag::PositionX) ? 0.f : 1.f,
-            mesh->IsRootMotionLockFlagSet(RootMotionLockFlag::PositionY) ? 0.f : 1.f,
-            mesh->IsRootMotionLockFlagSet(RootMotionLockFlag::PositionZ) ? 0.f : 1.f);
+        const bool bLockY = mesh->IsRootMotionLockFlagSet(RootMotionLockFlag::PositionY);
+        const Transform rootMotion = mesh->GetRootMotion();
 
-        rootMotion.Location *= locationMask;
-        rootMotion.Location = glm::rotate((totalRootMotion.Rotation.Conjugate() * mesh->GetWorldTransform().Rotation).GetQuat(), rootMotion.Location);
-        const auto& worldTransform = mesh->Parent.GetWorldTransform();
-        mesh->Parent.SetWorldTransform(worldTransform + rootMotion);
+        Entity& entity = mesh->Parent;
+        switch (entity.GetMovement())
+        {
+            case EntityMovement::CharacterController:
+            {
+                auto& controller = entity.GetComponent<CharacterControllerComponent>();
+                if (!bLockY)
+                    controller.SuspendGravity(); // Animation's vertical motion is used instead
+
+                controller.Move(rootMotion.Location, 0.001f, ts);
+                break;
+            }
+            case EntityMovement::DynamicRigidBody:
+            {
+                if (float(ts) <= 0.f)
+                    break;
+
+                auto& actor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+                glm::vec3 velocity = rootMotion.Location / float(ts);
+                if (bLockY)
+                    velocity.y = actor->GetLinearVelocity().y;
+
+                actor->SetLinearVelocity(velocity);
+                break;
+            }
+            case EntityMovement::Location:
+            {
+                entity.SetWorldTransform(entity.GetWorldTransform() + rootMotion, PhysicsMove::Move);
+                return;
+            }
+        }
+
+        // Handle rotation for physics driven movement (`Location` case returns)
+        if (rootMotion.Rotation != Rotator::Unit())
+            entity.SetWorldRotation(entity.GetWorldRotation() * rootMotion.Rotation, PhysicsMove::Teleport);
     }
 
     const BlendSpaceVertex* AnimationSystem::CalculateBlendSpacePose(const Ref<AssetAnimationBlendSpace>& blendSpace, float x, float y, double prevTimeSeconds, double currentTimeSeconds, SkeletalPose* resultPose)

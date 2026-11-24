@@ -2096,6 +2096,46 @@ namespace Eagle
 		return entity.GetComponent<SkeletalMeshComponent>().GetRootMotionLockFlags();
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_SetApplyRootMotion(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'bApplyRootMotion' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().bApplyRootMotion = value;
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_GetApplyRootMotion(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'bApplyRootMotion' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().bApplyRootMotion;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetRootMotion(GUID entityID, Transform* outRootMotion)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			*outRootMotion = Transform{};
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetRootMotion' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*outRootMotion = entity.GetComponent<SkeletalMeshComponent>().GetRootMotion();
+	}
+
 	AnimationType Script::Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID)
 	{
 		const auto& scene = Scene::GetCurrentScene();

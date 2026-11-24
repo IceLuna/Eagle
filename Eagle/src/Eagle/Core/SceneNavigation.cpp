@@ -657,13 +657,12 @@ namespace Eagle
 
 	void Scene::MoveCrowdAgentEntities(Timestep ts)
 	{
-		const glm::vec3 gravity = GetGravity();
 		auto view = m_Registry.view<NavigationCrowdAgentComponent>();
 		for (auto e : view)
 		{
 			auto& agent = view.get<NavigationCrowdAgentComponent>(e);
 			if (agent.IsValid())
-				agent.MoveEntity(ts, gravity);
+				agent.MoveEntity(ts);
 		}
 	}
 

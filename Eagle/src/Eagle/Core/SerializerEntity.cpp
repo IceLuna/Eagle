@@ -319,6 +319,7 @@ namespace Eagle
 			out << YAML::Key << "ClipPlaybackSpeed" << smComponent.ClipPlaybackSpeed;
 			out << YAML::Key << "ClipLooping" << smComponent.bClipLooping;
 			out << YAML::Key << "RootMotionLockFlags" << (uint32_t)smComponent.GetRootMotionLockFlags();
+			out << YAML::Key << "bApplyRootMotion" << YAML::Value << smComponent.bApplyRootMotion;
 			out << YAML::Key << "bRagdoll" << YAML::Value << smComponent.IsRagdollEnabled();
 
 			out << YAML::EndMap; //SkeletalMeshComponent
@@ -381,6 +382,8 @@ namespace Eagle
 				smComponent.bClipLooping = node.as<bool>();
 			if (auto node = skeletalMeshComponentNode["RootMotionLockFlags"])
 				smComponent.SetRootMotionLockFlag((RootMotionLockFlag)node.as<uint32_t>());
+			if (auto node = skeletalMeshComponentNode["bApplyRootMotion"])
+				smComponent.bApplyRootMotion = node.as<bool>();
 			if (auto node = skeletalMeshComponentNode["bRagdoll"])
 				smComponent.SetRagdollEnabled(node.as<bool>());
 		}
@@ -681,6 +684,7 @@ namespace Eagle
 			out << YAML::Key << "CollidesWithOtherControllers" << YAML::Value << component.DoesCollideWithOtherControllers();
 			out << YAML::Key << "bMoveWholeEntity" << YAML::Value << component.bMoveWholeEntity;
 			out << YAML::Key << "bUseFootLocation" << YAML::Value << component.bUseFootLocation;
+			out << YAML::Key << "bApplyGravity" << YAML::Value << component.bApplyGravity;
 
 			out << YAML::EndMap; //CharacterControllerComponent
 		}
@@ -710,6 +714,8 @@ namespace Eagle
 				component.bMoveWholeEntity = node.as<bool>();
 			if (auto node = ccNode["bUseFootLocation"])
 				component.bUseFootLocation = node.as<bool>();
+			if (auto node = ccNode["bApplyGravity"])
+				component.bApplyGravity = node.as<bool>();
 
 			// Above function calls can adjust the transform. But since we want to match exactly,
 			// we call it at the end of the deserialization

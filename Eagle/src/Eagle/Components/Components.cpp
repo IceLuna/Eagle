@@ -311,6 +311,7 @@ namespace Eagle
 		SetControllerUpDirection(other.GetControllerUpDirection());
 		bMoveWholeEntity = other.bMoveWholeEntity;
 		bUseFootLocation = other.bUseFootLocation;
+		bApplyGravity = other.bApplyGravity;
 
 		// Needs to be last because other function calls can adjust the location,
 		// but we want it to match exactly
@@ -322,9 +323,14 @@ namespace Eagle
 
 	CharacterControllerCollisionFlags CharacterControllerComponent::Move(const glm::vec3& disp, float minDist, float elapsedTime)
 	{
-		bCurrentlyMoving = true;
 		auto result = m_Controller->Move(disp, minDist, elapsedTime);
+		SyncEntityFromController();
+		return result;
+	}
 
+	void CharacterControllerComponent::SyncEntityFromController()
+	{
+		bCurrentlyMoving = true;
 		const glm::vec3 location = bUseFootLocation ? m_Controller->GetFootWorldLocation() : m_Controller->GetWorldLocation();
 		if (bMoveWholeEntity)
 		{
@@ -337,8 +343,6 @@ namespace Eagle
 			SetWorldTransform(tr);
 		}
 		bCurrentlyMoving = false;
-
-		return result;
 	}
 
 	void CharacterControllerComponent::SetSlopeLimit(float degrees)
@@ -563,6 +567,57 @@ namespace Eagle
 	const glm::vec3& CharacterControllerComponent::GetControllerUpDirection() const
 	{
 		return m_Controller->GetUpDirection();
+	}
+
+	void CharacterControllerComponent::ApplyGravity(const glm::vec3& gravity, Timestep ts)
+	{
+		const bool bSuspended = m_bGravitySuspended;
+		m_bGravitySuspended = false;
+		if (!bApplyGravity || float(ts) <= 0.f)
+			return;
+
+		if (bSuspended)
+		{
+			m_VerticalVelocity = 0.f;
+			m_bGrounded = false;
+			return;
+		}
+
+		// Along the controller's up direction
+		const glm::vec3& up = GetControllerUpDirection();
+		const bool bWasGrounded = m_bGrounded;
+		m_VerticalVelocity += glm::dot(gravity, up) * float(ts);
+		const auto flags = Move(up * (m_VerticalVelocity * float(ts)), 0.001f, ts);
+		m_bGrounded = HasFlags(flags, CharacterControllerCollisionFlags::Down);
+
+		// It stepped off something (stairs, a slope, a small ledge), unless it's moving up
+		const bool bMovingUp = m_VerticalVelocity > 0.f;
+		if (!m_bGrounded && bWasGrounded && !bMovingUp)
+			m_bGrounded = SnapToGround(ts);
+
+		// It landed, or it hit something above while moving up
+		if (m_bGrounded || (bMovingUp && HasFlags(flags, CharacterControllerCollisionFlags::Up)))
+			m_VerticalVelocity = 0.f;
+	}
+
+	bool CharacterControllerComponent::SnapToGround(Timestep ts)
+	{
+		const float distance = GetStepOffset() + GetContactOffset();
+		if (distance <= 0.f)
+			return false;
+
+		// The controller is moved first, and then the entity only if it found ground, so a failed attempt isn't visible
+		const glm::vec3 location = m_Controller->GetWorldLocation();
+		const auto flags = m_Controller->Move(-GetControllerUpDirection() * distance, 0.001f, ts);
+		if (HasFlags(flags, CharacterControllerCollisionFlags::Down))
+		{
+			SyncEntityFromController();
+			return true;
+		}
+
+		// No ground within the distance, so it's falling
+		m_Controller->SetWorldLocation(location);
+		return false;
 	}
 
 	void BaseColliderComponent::SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material)
@@ -1246,6 +1301,22 @@ namespace Eagle
 			m_AnimGraphAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
 	}
 
+	Transform SkeletalMeshComponent::GetRootMotion() const
+	{
+		if (!LastPose.HasRootMotion())
+			return Transform{};
+
+		const glm::vec3 locationMask = glm::vec3(
+			IsRootMotionLockFlagSet(RootMotionLockFlag::PositionX) ? 0.f : 1.f,
+			IsRootMotionLockFlagSet(RootMotionLockFlag::PositionY) ? 0.f : 1.f,
+			IsRootMotionLockFlagSet(RootMotionLockFlag::PositionZ) ? 0.f : 1.f);
+
+		Transform rootMotion = LastPose.GetRootMotion();
+		rootMotion.Location *= locationMask;
+		rootMotion.Location = glm::rotate((LastPose.TotalRootMotion.Rotation.Conjugate() * GetWorldTransform().Rotation).GetQuat(), rootMotion.Location);
+		return rootMotion;
+	}
+
 	SkeletalMeshComponent& SkeletalMeshComponent::operator=(const SkeletalMeshComponent& other)
 	{
 		if (this == &other)
@@ -1257,6 +1328,7 @@ namespace Eagle
 		m_MaterialAssets = other.m_MaterialAssets;
 		m_AnimAsset = other.m_AnimAsset;
 		m_RootMotionLockFlags = other.m_RootMotionLockFlags;
+		bApplyRootMotion = other.bApplyRootMotion;
 		if (other.m_Graph)
 		{
 			VariablesMap copiedVars;
@@ -2066,9 +2138,9 @@ namespace Eagle
 		CreateAgent(location);
 
 		// Otherwise the agent would be moved back to the entity. It's moved by the same amount to keep its offset from the agent
-		const Movement movement = GetMovement();
+		const EntityMovement movement = Parent.GetMovement();
 		glm::vec3 newLocation;
-		if (bHadLocation && (movement == Movement::CharacterController || movement == Movement::DynamicRigidBody) && GetLocation(&newLocation))
+		if (bHadLocation && (movement == EntityMovement::CharacterController || movement == EntityMovement::DynamicRigidBody) && GetLocation(&newLocation))
 			Parent.SetWorldLocation(Parent.GetWorldLocation() + (newLocation - oldLocation), PhysicsMove::Teleport);
 	}
 
@@ -2207,25 +2279,9 @@ namespace Eagle
 
 		m_AgentIndex = -1;
 		m_NavMeshSlot = Scene::InvalidNavMeshSlot;
-		m_FallVelocity = glm::vec3(0.f);
 	}
 
-	NavigationCrowdAgentComponent::Movement NavigationCrowdAgentComponent::GetMovement() const
-	{
-		if (Parent.HasComponent<CharacterControllerComponent>())
-			return Movement::CharacterController;
-
-		if (Parent.HasComponent<RigidBodyComponent>())
-		{
-			const auto& rigidBody = Parent.GetComponent<RigidBodyComponent>();
-			if (rigidBody.GetBodyType() == PhysicsBodyType::Dynamic && !rigidBody.IsKinematic() && rigidBody.GetPhysicsActor())
-				return Movement::DynamicRigidBody;
-		}
-
-		return Movement::Location;
-	}
-
-	void NavigationCrowdAgentComponent::MoveEntity(Timestep ts, const glm::vec3& gravity)
+	void NavigationCrowdAgentComponent::MoveEntity(Timestep ts)
 	{
 		glm::vec3 location;
 		glm::vec3 velocity;
@@ -2236,17 +2292,14 @@ namespace Eagle
 		velocity.y = 0.f;
 		ts = glm::max(0.0001f, float(ts)); // Guard against division by 0 if the game is paused
 
-		switch (GetMovement())
+		switch (Parent.GetMovement())
 		{
-			case Movement::CharacterController:
+			case EntityMovement::CharacterController:
 			{
 				auto& controller = Parent.GetComponent<CharacterControllerComponent>();
 				const glm::vec3 footLocation = controller.GetControllerFootWorldLocation();
 
-				m_FallVelocity += gravity * float(ts);
-				const auto flags = controller.Move((velocity + m_FallVelocity) * float(ts), 0.001f, ts);
-				if (HasFlags(flags, CharacterControllerCollisionFlags::Down))
-					m_FallVelocity = glm::vec3(0.f);
+				controller.Move(velocity * float(ts), 0.001f, ts);
 
 				const glm::vec3 newFootLocation = controller.GetControllerFootWorldLocation();
 				if (const auto& navMesh = GetNavMesh())
@@ -2254,7 +2307,7 @@ namespace Eagle
 
 				break;
 			}
-			case Movement::DynamicRigidBody:
+			case EntityMovement::DynamicRigidBody:
 			{
 				// Only while the crowd moves it, so that a standing agent can still be pushed around by physics
 				if (GetAgentTargetState() == MoveRequestState::DT_CROWDAGENT_TARGET_NONE && glm::dot(velocity, velocity) < 1e-6f)
@@ -2265,7 +2318,7 @@ namespace Eagle
 				actor->SetLinearVelocity(glm::vec3(velocity.x, bodyVelocity.y, velocity.z));
 				break;
 			}
-			case Movement::Location:
+			case EntityMovement::Location:
 				Parent.SetWorldLocation(location, PhysicsMove::Move);
 				break;
 		}
@@ -2273,7 +2326,7 @@ namespace Eagle
 
 	void NavigationCrowdAgentComponent::SyncFromEntity()
 	{
-		if (GetMovement() != Movement::DynamicRigidBody)
+		if (Parent.GetMovement() != EntityMovement::DynamicRigidBody)
 			return;
 
 		const auto& navMesh = GetNavMesh();

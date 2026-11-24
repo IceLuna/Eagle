@@ -368,4 +368,19 @@ namespace Eagle
 			SetRelativeTransform(GetRelativeTransform());
 		}
 	}
+
+	EntityMovement Entity::GetMovement()
+	{
+		if (HasComponent<CharacterControllerComponent>())
+			return EntityMovement::CharacterController;
+
+		if (HasComponent<RigidBodyComponent>())
+		{
+			const auto& rigidBody = GetComponent<RigidBodyComponent>();
+			if (rigidBody.GetBodyType() == PhysicsBodyType::Dynamic && !rigidBody.IsKinematic() && rigidBody.GetPhysicsActor())
+				return EntityMovement::DynamicRigidBody;
+		}
+
+		return EntityMovement::Location;
+	}
 }

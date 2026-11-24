@@ -682,6 +682,7 @@ namespace Eagle
 		UpdateAnimations(ts, !bForceAnimationsUpdate, false, false);
 		UpdateNavMesh(ts);
 		UpdateSceneSequences(ts, false);
+		ApplyCharacterControllerGravity(ts);
 		m_PhysicsScene->Simulate(ts, false);
 		AnimationSystem::UpdateRagdolls(*this, m_Ragdolls, m_AnimationTransforms);
 		if (bRender)
@@ -712,6 +713,7 @@ namespace Eagle
 		GatherSkeletalMeshes();
 		UpdateAnimations(ts, false, true, true);
 		UpdateNavMesh(gameTs);
+		ApplyCharacterControllerGravity(gameTs); // After root motion because it can suspend the gravity. And before the crowd because it syncs from where a controller ended up
 		MoveCrowdAgentEntities(gameTs);
 		m_PhysicsScene->Simulate(gameTs, true);
 		SyncCrowdAgentsFromEntities();
@@ -1052,6 +1054,14 @@ namespace Eagle
 		m_DirtyFlags.bSkeletalMeshesDirty = bDirtyBefore;
 	}
 
+	void Scene::ApplyCharacterControllerGravity(Timestep ts)
+	{
+		const glm::vec3 gravity = GetGravity();
+		auto view = m_Registry.view<CharacterControllerComponent>();
+		for (auto e : view)
+			view.get<CharacterControllerComponent>(e).ApplyGravity(gravity, ts);
+	}
+
 	void Scene::UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion, bool bPerEntityTime)
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Update animations");
@@ -1067,7 +1077,8 @@ namespace Eagle
 			for (size_t i = 0; i < m_SkeletalMeshes.size(); ++i)
 				m_SkeletalMeshDeltaTimes[i] = bPerEntityTime ? GetEntityDeltaTime(m_SkeletalMeshes[i]->Parent, ts) : float(ts);
 
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, m_SkeletalMeshDeltaTimes, bApplyRootMotion, &m_AnimationsToTrigger, &m_Ragdolls);
+			const Timestep gameTs = m_bPaused ? 0.f : float(ts) * m_TimeScale;
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, m_SkeletalMeshDeltaTimes, bApplyRootMotion, gameTs, &m_AnimationsToTrigger, &m_Ragdolls);
 		}
 
 		m_SystemsToUpdateAnims.clear();

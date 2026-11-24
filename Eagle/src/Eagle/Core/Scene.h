@@ -551,6 +551,7 @@ namespace Eagle
 		void GatherSkeletalMeshes();
 		void UpdateScripts(Timestep ts);
 		void UpdateAnimations(Timestep ts, bool bUseBasePose, bool bApplyRootMotion, bool bPerEntityTime);
+		void ApplyCharacterControllerGravity(Timestep ts);
 		void UpdateAudioProcessing(); // Pauses the sounds of the entities that aren't processing, and resumes them
 		
 		float GetParticleSystemTimeScale(const Entity& entity) const;

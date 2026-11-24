@@ -2117,6 +2117,79 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_CharacterControllerComponent_SetApplyGravity(GUID id, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().bApplyGravity = value;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `bApplyGravity`. Entity is null");
+		}
+	}
+
+	bool Script::Eagle_CharacterControllerComponent_GetApplyGravity(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().bApplyGravity;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `bApplyGravity`. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_CharacterControllerComponent_SetVerticalVelocity(GUID id, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			entity.GetComponent<CharacterControllerComponent>().SetVerticalVelocity(value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetVerticalVelocity`. Entity is null");
+		}
+	}
+
+	float Script::Eagle_CharacterControllerComponent_GetVerticalVelocity(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().GetVerticalVelocity();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetVerticalVelocity`. Entity is null");
+			return 0.f;
+		}
+	}
+
+	bool Script::Eagle_CharacterControllerComponent_IsGrounded(GUID id)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(id);
+		if (entity)
+		{
+			return entity.GetComponent<CharacterControllerComponent>().IsGrounded();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsGrounded`. Entity is null");
+			return false;
+		}
+	}
+
 	//--------------BaseColliderComponent--------------
 	void Script::Eagle_BaseColliderComponent_SetCollisionGroup(GUID entityID, void* type, CollisionGroup groups)
 	{
