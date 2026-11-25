@@ -1426,6 +1426,8 @@ namespace Eagle
 			out << YAML::BeginMap; // NavigationCrowdAgentComponent
 
 			out << YAML::Key << "AgentType" << YAML::Value << component.GetAgentTypeID();
+			out << YAML::Key << "bFaceMovementDirection" << YAML::Value << component.bFaceMovementDirection;
+			out << YAML::Key << "TurnRate" << YAML::Value << component.TurnRate;
 
 			// Settings
 			{
@@ -1456,6 +1458,10 @@ namespace Eagle
 
 			if (auto node = componentNode["AgentType"])
 				component.SetAgentTypeID(node.as<uint32_t>());
+			if (auto node = componentNode["bFaceMovementDirection"])
+				component.bFaceMovementDirection = node.as<bool>();
+			if (auto node = componentNode["TurnRate"])
+				component.TurnRate = node.as<float>();
 
 			AINavigation::AgentSettings settings{};
 			if (auto settingsNode = componentNode["Settings"])

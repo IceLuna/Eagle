@@ -2119,6 +2119,8 @@ namespace Eagle
 		Component::operator=(other);
 		m_Settings = other.m_Settings;
 		m_AgentTypeID = other.m_AgentTypeID;
+		bFaceMovementDirection = other.bFaceMovementDirection;
+		TurnRate = other.TurnRate;
 
 		RemoveAgent();
 		CreateAgent(Parent.GetWorldLocation());
@@ -2180,6 +2182,20 @@ namespace Eagle
 			return false;
 
 		return navMesh->GetCrowd().GetAgentVelocity(m_AgentIndex, outVelocity);
+	}
+
+	bool NavigationCrowdAgentComponent::GetDesiredVelocity(glm::vec3* outVelocity) const
+	{
+		const auto& navMesh = GetNavMesh();
+		if (!navMesh)
+			return false;
+
+		return navMesh->GetCrowd().GetAgentDesiredVelocity(m_AgentIndex, outVelocity);
+	}
+
+	bool NavigationCrowdAgentComponent::IsDrivenByRootMotion() const
+	{
+		return Parent.HasComponent<SkeletalMeshComponent>() && Parent.GetComponent<SkeletalMeshComponent>().bWasRootMotionApplied;
 	}
 
 	MoveRequestState NavigationCrowdAgentComponent::GetAgentTargetState() const
@@ -2265,6 +2281,7 @@ namespace Eagle
 
 		m_AgentIndex = navMesh->GetCrowd().AddAgent(location, m_Settings);
 		m_NavMeshSlot = m_AgentIndex != -1 ? slot : Scene::InvalidNavMeshSlot;
+		m_LastEntityLocation = location;
 
 		return IsValid();
 	}
@@ -2283,6 +2300,14 @@ namespace Eagle
 
 	void NavigationCrowdAgentComponent::MoveEntity(Timestep ts)
 	{
+		if (bFaceMovementDirection)
+			FaceMovementDirection(ts);
+
+		// Root motion moved it already.
+		// The agent is synced from where it ends up after the physics update
+		if (IsDrivenByRootMotion())
+			return;
+
 		glm::vec3 location;
 		glm::vec3 velocity;
 		if (!GetLocation(&location) || !GetVelocity(&velocity))
@@ -2324,18 +2349,56 @@ namespace Eagle
 		}
 	}
 
-	void NavigationCrowdAgentComponent::SyncFromEntity()
+	void NavigationCrowdAgentComponent::SyncFromEntity(Timestep ts)
 	{
-		if (Parent.GetMovement() != EntityMovement::DynamicRigidBody)
-			return;
+		const EntityMovement movement = Parent.GetMovement();
+		const glm::vec3 entityLocation = (movement == EntityMovement::CharacterController) ? Parent.GetComponent<CharacterControllerComponent>().GetControllerFootWorldLocation() : Parent.GetWorldLocation();
+		const glm::vec3 lastEntityLocation = m_LastEntityLocation;
+		m_LastEntityLocation = entityLocation;
 
 		const auto& navMesh = GetNavMesh();
 		if (!navMesh)
 			return;
 
-		// Physics doesn't step every frame, so its velocity is used instead of the distance moved
-		const auto& actor = Parent.GetComponent<RigidBodyComponent>().GetPhysicsActor();
-		navMesh->GetCrowd().SetAgentLocation(m_AgentIndex, Parent.GetWorldLocation(), actor->GetLinearVelocity());
+		if (movement == EntityMovement::DynamicRigidBody)
+		{
+			const auto& actor = Parent.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			navMesh->GetCrowd().SetAgentLocation(m_AgentIndex, entityLocation, actor->GetLinearVelocity());
+		}
+		else if (IsDrivenByRootMotion() && float(ts) > 0.f)
+		{
+			navMesh->GetCrowd().SetAgentLocation(m_AgentIndex, entityLocation, (entityLocation - lastEntityLocation) / float(ts));
+		}
+	}
+
+	void NavigationCrowdAgentComponent::FaceMovementDirection(Timestep ts)
+	{
+		glm::vec3 velocity;
+		if (float(ts) <= 0.f || !GetDesiredVelocity(&velocity))
+			return;
+
+		velocity.y = 0.f;
+		if (glm::dot(velocity, velocity) < 1e-4f)
+			return;
+
+		glm::vec3 forward = Parent.GetForwardVector();
+		forward.y = 0.f;
+		if (glm::dot(forward, forward) < 1e-6f)
+			return; // It faces straight up or down
+
+		// Around the world up, the shorter way
+		float delta = std::remainder(std::atan2(velocity.x, velocity.z) - std::atan2(forward.x, forward.z), glm::two_pi<float>());
+		if (TurnRate > 0.f)
+		{
+			const float maxStep = glm::radians(TurnRate) * float(ts);
+			delta = glm::clamp(delta, -maxStep, maxStep);
+		}
+		if (glm::abs(delta) < 1e-5f)
+			return;
+
+		// Physics bodies keep their velocity
+		const Rotator rotation = Rotator(glm::angleAxis(delta, glm::vec3(0.f, 1.f, 0.f))) * Parent.GetWorldRotation();
+		Parent.SetWorldRotation(rotation, Parent.GetMovement() == EntityMovement::Location ? PhysicsMove::Move : PhysicsMove::Teleport);
 	}
 	
 	void NativeScriptComponent::OnUpdate(Entity entity, Timestep ts)

@@ -200,6 +200,8 @@ namespace Eagle
         //   It moves on its agent's nav mesh, `fallbackAgentType` isn't used. If the agent isn't valid (for example, the scene doesn't have a nav mesh of its type),
         //   it doesn't move, and the result is `NoPath`.
         //   Pass a `MoveToTargetState` to follow a moving target. Without one, a new target is only requested when the agent has none.
+        //   If the agent has `bFaceMovementDirection` on, it turns the entity with its own `Turn Rate`, and `rotationSpeed` is ignored.
+        //   Otherwise, the entity is turned to where it moves (or, while root motion drives it, to where the crowd wants it to go).
         // - Other entities move on the nav mesh of `fallbackAgentType` (`Auto` means the default agent type). If the scene doesn't have it, they don't move, and the result is `NoPath`.
         // - An entity with a dynamic (non-kinematic) rigid body is moved by setting its horizontal velocity, so that physics keeps it on the ground.
         // - Other entities are teleported along the path.
@@ -263,7 +265,7 @@ namespace Eagle
             }
             horizontalDir /= horizontalLength;
 
-            Rotator rotation = Mathf.Slerp(entity.GetWorldRotation(), Mathf.LookAtY(horizontalDir), ts * rotationSpeed);
+            Rotator rotation = Mathf.Slerp(entity.GetWorldRotation(), Mathf.LookAtY(horizontalDir), Mathf.Clamp(ts * rotationSpeed, 0f, 1f));
             RigidBodyComponent rigidBody = GetDynamicRigidBody(entity);
             if (rigidBody != null)
             {
@@ -354,13 +356,20 @@ namespace Eagle
                 }
             }
 
-            // The crowd moves the entity, but doesn't rotate it. Face the direction of movement
-            if (agent.GetVelocity(out Vector3 velocity))
+            // The agent turns the entity itself
+            if (agent.bFaceMovementDirection)
+                return false;
+
+            // Root motion moves the entity where it faces, so it faces where the crowd wants it to go instead.
+            // Otherwise it would turn to where it already goes, and never follow the path
+            Vector3 velocity;
+            bool bHasVelocity = agent.IsDrivenByRootMotion() ? agent.GetDesiredVelocity(out velocity) : agent.GetVelocity(out velocity);
+            if (bHasVelocity)
             {
                 velocity.Y = 0f;
                 float speed = Mathf.Length(velocity);
                 if (speed > 0.01f)
-                    entity.SetWorldRotation(Mathf.Slerp(entity.GetWorldRotation(), Mathf.LookAtY(velocity / speed), ts * rotationSpeed), PhysicsMove.Move);
+                    entity.SetWorldRotation(Mathf.Slerp(entity.GetWorldRotation(), Mathf.LookAtY(velocity / speed), Mathf.Clamp(ts * rotationSpeed, 0f, 1f)), PhysicsMove.Move);
             }
 
             return false;

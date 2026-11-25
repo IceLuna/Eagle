@@ -843,6 +843,7 @@ namespace Eagle
 
 		AnimationType AnimType = AnimationType::Clip;
 		bool bApplyRootMotion = true;
+		bool bWasRootMotionApplied = false; // Whether root motion was applied to the entity during the last animation update
 
 	private:
 		SkeletalPose m_PreRagdollLastPose; // Pose the mesh had before ragdoll was enabled
@@ -2766,7 +2767,16 @@ namespace Eagle
 		void ResetMoveTarget();
 
 		bool GetLocation(glm::vec3* outLocation) const;
-		bool GetVelocity(glm::vec3* outVelocity) const;
+		bool GetVelocity(glm::vec3* outVelocity) const; // How it moved. While root motion drives it, it's the entity's actual velocity
+
+		// Where the crowd wants it to go, while `GetVelocity` reports the real movement.
+		// While root motion drives it, the animation should follow it (for example, as the speed and the direction of an animation graph).
+		// Use it for anything that should say "where to go".
+		bool GetDesiredVelocity(glm::vec3* outVelocity) const;
+
+		// True if the root motion of its entity's skeletal mesh moves it, instead of the crowd
+		bool IsDrivenByRootMotion() const;
+
 		MoveRequestState GetAgentTargetState() const;
 
 		const AINavigation::AgentSettings& GetSettings() const { return m_Settings; }
@@ -2787,6 +2797,12 @@ namespace Eagle
 		// Returns false if the agent isn't valid or isn't on the nav mesh
 		bool GetCurrentArea(uint32_t* outAreaID) const;
 
+	public:
+		// Turns the entity around the world up to where the crowd wants it to go.
+		// For example, so that root motion moves it along its path
+		bool bFaceMovementDirection = true;
+		float TurnRate = 360.f; // Degrees per second. 0 - it turns immediately
+
 	private:
 		bool CreateAgent(const glm::vec3& location);
 		void RemoveAgent();
@@ -2795,13 +2811,17 @@ namespace Eagle
 		// Called before the physics update.
 		// A character controller is moved with the agent's velocity, a dynamic rigid body gets its horizontal velocity,
 		// and anything else is moved to the agent's location
+		// Note: it isn't moved while root motion drives it
 		void MoveEntity(Timestep ts);
 
-		// Called after the physics update. Syncs the agent with the physics
-		void SyncFromEntity();
+		// Called after the physics update. Syncs the agent with the physics or with where root motion moved the entity
+		void SyncFromEntity(Timestep ts);
+
+		void FaceMovementDirection(Timestep ts);
 
 	private:
 		AINavigation::AgentSettings m_Settings{};
+		glm::vec3 m_LastEntityLocation = glm::vec3(0.f);
 		int m_AgentIndex = -1;
 		uint32_t m_NavMeshSlot = ~0u;
 		uint32_t m_AgentTypeID = AINavigation::AutoAgentTypeID;

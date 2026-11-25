@@ -2470,6 +2470,94 @@ namespace Eagle
 		}
 	}
 
+	bool Script::Eagle_NavigationCrowdAgentComponent_GetDesiredVelocity(GUID entityID, glm::vec3* velocity)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().GetDesiredVelocity(velocity);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetDesiredVelocity` of Navigation Crowd Agent Component. Entity is null");
+			return false;
+		}
+	}
+
+	bool Script::Eagle_NavigationCrowdAgentComponent_IsDrivenByRootMotion(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().IsDrivenByRootMotion();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsDrivenByRootMotion` of Navigation Crowd Agent Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_NavigationCrowdAgentComponent_SetFaceMovementDirection(GUID entityID, bool value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationCrowdAgentComponent>().bFaceMovementDirection = value;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetFaceMovementDirection` of Navigation Crowd Agent Component. Entity is null");
+		}
+	}
+
+	bool Script::Eagle_NavigationCrowdAgentComponent_GetFaceMovementDirection(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().bFaceMovementDirection;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetFaceMovementDirection` of Navigation Crowd Agent Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_NavigationCrowdAgentComponent_SetTurnRate(GUID entityID, float value)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<NavigationCrowdAgentComponent>().TurnRate = glm::max(value, 0.f);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetTurnRate` of Navigation Crowd Agent Component. Entity is null");
+		}
+	}
+
+	float Script::Eagle_NavigationCrowdAgentComponent_GetTurnRate(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<NavigationCrowdAgentComponent>().TurnRate;
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetTurnRate` of Navigation Crowd Agent Component. Entity is null");
+			return 0.f;
+		}
+	}
+
 	MoveRequestState Script::Eagle_NavigationCrowdAgentComponent_GetTargetState(GUID entityID)
 	{
 		auto& scene = Scene::GetCurrentScene();

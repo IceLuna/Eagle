@@ -121,6 +121,7 @@ namespace Eagle
 		"With a character controller or a dynamic rigid body, locking Y lets gravity apply (for example, for walking). "
 		"If Y isn't locked, the animation's vertical motion is followed and gravity is suspended (for example, a climb)";
 	static const char* s_ApplyRootMotionHelpMsg = "If disabled, root motion isn't applied to the entity. It's still calculated, so a script can apply it itself (see `SkeletalMeshComponent.GetRootMotion()`)";
+	static const char* s_FaceMovementDirHelpMsg = "Turns the entity around the world up to where the crowd wants it to go. For example, so that root motion moves it along its path";
 
 
 	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, Entity* newEntitySelection)
@@ -3006,6 +3007,13 @@ namespace Eagle
 					bChanged |= UI::Property("Optimize Path Visibility", settings.bOptimizeVis);
 					bChanged |= UI::Property("Optimize Path Topology", settings.bOptimizeTopo);
 					bChanged |= UI::Property("Crowd Separation", settings.bSeparation);
+
+					bEntityChanged |= UI::Property("Face Movement Direction", component.bFaceMovementDirection, s_FaceMovementDirHelpMsg);
+					if (component.bFaceMovementDirection && UI::PropertyDrag("Turn Rate", component.TurnRate, 1.f, 0.f, 0.f, "Degrees per second. 0 - it turns immediately"))
+					{
+						component.TurnRate = glm::max(component.TurnRate, 0.f);
+						bEntityChanged = true;
+					}
 
 					UI::EndPropertyGrid();
 

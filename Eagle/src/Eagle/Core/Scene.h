@@ -530,7 +530,7 @@ namespace Eagle
 		void UpdateNavMesh(Timestep ts);
 		void UpdateSceneSequences(Timestep ts, bool bPerEntityTime);
 		void MoveCrowdAgentEntities(Timestep ts);
-		void SyncCrowdAgentsFromEntities();
+		void SyncCrowdAgentsFromEntities(Timestep ts);
 		void UpdatePerception(Timestep ts);
 		void SendPerceptionEvents();
 		void SetupOnAppAssemblyReloadedCallback();

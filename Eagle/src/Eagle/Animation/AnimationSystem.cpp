@@ -546,7 +546,8 @@ namespace Eagle
         for (const auto& job : s_Jobs)
         {
             SkeletalMeshComponent* mesh = job.Mesh;
-            if (bApplyRootMotion && mesh->bApplyRootMotion && mesh->LastPose.HasRootMotion())
+            mesh->bWasRootMotionApplied = bApplyRootMotion && mesh->bApplyRootMotion && mesh->LastPose.HasRootMotion();
+            if (mesh->bWasRootMotionApplied)
                 ApplyRootMotion(mesh, ts);
 
             if (outEventsToTrigger)

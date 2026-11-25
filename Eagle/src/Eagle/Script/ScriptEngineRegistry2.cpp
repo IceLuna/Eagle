@@ -723,6 +723,12 @@ namespace Eagle
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetSettings_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetSettings);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetLocation_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetLocation);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetVelocity_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetVelocity);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetDesiredVelocity_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetDesiredVelocity);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::IsDrivenByRootMotion_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_IsDrivenByRootMotion);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::SetFaceMovementDirection_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_SetFaceMovementDirection);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetFaceMovementDirection_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetFaceMovementDirection);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::SetTurnRate_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_SetTurnRate);
+		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetTurnRate_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetTurnRate);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetTargetState_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetTargetState);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::SetAgentTypeID_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_SetAgentTypeID);
 		mono_add_internal_call("Eagle.NavigationCrowdAgentComponent::GetAgentTypeID_Native", Eagle::Script::Eagle_NavigationCrowdAgentComponent_GetAgentTypeID);

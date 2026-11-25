@@ -3809,6 +3809,35 @@ namespace Eagle
             return GetVelocity_Native(Parent.ID, out outVelocity);
         }
 
+        // Where the crowd wants it to go, while `GetVelocity` reports the real movement.
+        // While root motion drives it, the animation should follow it (for example, as the speed and the direction of an animation graph).
+        // Use it for anything that should say "where to go".
+        public bool GetDesiredVelocity(out Vector3 outVelocity)
+        {
+            return GetDesiredVelocity_Native(Parent.ID, out outVelocity);
+        }
+
+        // True if the root motion of its entity's skeletal mesh moves it, instead of the crowd
+        public bool IsDrivenByRootMotion()
+        {
+            return IsDrivenByRootMotion_Native(Parent.ID);
+        }
+
+        // Turns the entity around the world up to where the crowd wants it to go (see `GetDesiredVelocity()`).
+        // For example, so that root motion moves it along its path
+        public bool bFaceMovementDirection
+        {
+            get { return GetFaceMovementDirection_Native(Parent.ID); }
+            set { SetFaceMovementDirection_Native(Parent.ID, value); }
+        }
+
+        // Degrees per second. 0 - it turns immediately
+        public float TurnRate
+        {
+            get { return GetTurnRate_Native(Parent.ID); }
+            set { SetTurnRate_Native(Parent.ID, value); }
+        }
+
         public void SetSettings(AgentSettings settings)
         {
             SetSettings_Native(Parent.ID, ref settings);
@@ -3848,6 +3877,24 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetVelocity_Native(in GUID entityID, out Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetDesiredVelocity_Native(in GUID entityID, out Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsDrivenByRootMotion_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFaceMovementDirection_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetFaceMovementDirection_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTurnRate_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetTurnRate_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern AgentTargetState GetTargetState_Native(in GUID entityID);

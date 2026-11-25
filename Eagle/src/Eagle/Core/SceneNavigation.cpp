@@ -666,14 +666,14 @@ namespace Eagle
 		}
 	}
 
-	void Scene::SyncCrowdAgentsFromEntities()
+	void Scene::SyncCrowdAgentsFromEntities(Timestep ts)
 	{
 		auto view = m_Registry.view<NavigationCrowdAgentComponent>();
 		for (auto e : view)
 		{
 			auto& agent = view.get<NavigationCrowdAgentComponent>(e);
 			if (agent.IsValid())
-				agent.SyncFromEntity();
+				agent.SyncFromEntity(ts);
 		}
 	}
 

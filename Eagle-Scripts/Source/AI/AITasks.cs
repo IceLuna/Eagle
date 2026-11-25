@@ -73,6 +73,7 @@ namespace Eagle
         public string MoveSpeed;
 
         [UIName("Rotation speed")]
+        [Tooltip("Ignored for crowd agents with `Face Movement Direction` on (their `Turn Rate` is used)")]
         public string RotationSpeed;
 
         [UIName("Acceptance Distance")]
@@ -137,6 +138,7 @@ namespace Eagle
         public string MoveSpeed;
 
         [UIName("Rotation speed")]
+        [Tooltip("Ignored for crowd agents with `Face Movement Direction` on (their `Turn Rate` is used)")]
         public string RotationSpeed;
 
         [UIName("Acceptance Distance")]
@@ -200,6 +202,7 @@ namespace Eagle
         public string MoveSpeed;
 
         [UIName("Rotation speed")]
+        [Tooltip("Ignored for crowd agents with `Face Movement Direction` on (their `Turn Rate` is used)")]
         public string RotationSpeed;
 
         [UIName("Acceptance Distance")]

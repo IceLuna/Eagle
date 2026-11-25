@@ -716,7 +716,7 @@ namespace Eagle
 		ApplyCharacterControllerGravity(gameTs); // After root motion because it can suspend the gravity. And before the crowd because it syncs from where a controller ended up
 		MoveCrowdAgentEntities(gameTs);
 		m_PhysicsScene->Simulate(gameTs, true);
-		SyncCrowdAgentsFromEntities();
+		SyncCrowdAgentsFromEntities(gameTs);
 		UpdatePerception(ts);
 		SendPerceptionEvents();
 		UpdateScripts(ts);
@@ -1078,7 +1078,7 @@ namespace Eagle
 				m_SkeletalMeshDeltaTimes[i] = bPerEntityTime ? GetEntityDeltaTime(m_SkeletalMeshes[i]->Parent, ts) : float(ts);
 
 			const Timestep gameTs = m_bPaused ? 0.f : float(ts) * m_TimeScale;
-			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, m_SkeletalMeshDeltaTimes, bApplyRootMotion, gameTs, &m_AnimationsToTrigger, &m_Ragdolls);
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, m_SkeletalMeshDeltaTimes, gameTs, bApplyRootMotion, &m_AnimationsToTrigger, &m_Ragdolls);
 		}
 
 		m_SystemsToUpdateAnims.clear();

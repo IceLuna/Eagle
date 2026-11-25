@@ -26,7 +26,7 @@ namespace Eagle
 		return FFX_SURFACE_FORMAT_R16G16B16A16_FLOAT;
 	}
 
-	FfxResource ToFfxResource(const Ref<Image>& image, const wchar_t* name)
+	static FfxResource ToFfxResource(const Ref<Image>& image, const wchar_t* name)
 	{
 		VkImage vkImage = image ? (VkImage)image->GetHandle() : VK_NULL_HANDLE;
 		FfxResourceDescription desc = ffxGetImageResourceDescriptionVK(vkImage, image ? Cast<VulkanImage>(image)->GetCreateInfo() : VkImageCreateInfo{}, FFX_RESOURCE_USAGE_READ_ONLY);

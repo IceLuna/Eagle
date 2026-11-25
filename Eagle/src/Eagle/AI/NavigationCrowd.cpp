@@ -272,6 +272,24 @@ namespace Eagle::AINavigation
 		return false;
 	}
 
+	bool Crowd::GetAgentDesiredVelocity(int agentIndex, glm::vec3* outVelocity) const
+	{
+		if (!m_Crowd)
+		{
+			EG_CORE_ERROR("Failed to get crowd agent desired velocity. Crowd System isn't initialized");
+			return false;
+		}
+
+		const dtCrowdAgent* ag = m_Crowd->getAgent(agentIndex);
+		if (ag && ag->active)
+		{
+			*outVelocity = glm::vec3(ag->nvel[0], ag->nvel[1], ag->nvel[2]);
+			return true;
+		}
+
+		return false;
+	}
+
 	void Crowd::SetAgentLocation(int agentIndex, const glm::vec3& location, const glm::vec3& velocity)
 	{
 		if (!m_Crowd)

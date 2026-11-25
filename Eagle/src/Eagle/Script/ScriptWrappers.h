@@ -653,6 +653,12 @@ namespace Eagle::Script
 	void Eagle_NavigationCrowdAgentComponent_GetSettings(GUID entityID, AINavigation::AgentSettings* settings);
 	bool Eagle_NavigationCrowdAgentComponent_GetLocation(GUID entityID, glm::vec3* location);
 	bool Eagle_NavigationCrowdAgentComponent_GetVelocity(GUID entityID, glm::vec3* velocity);
+	bool Eagle_NavigationCrowdAgentComponent_GetDesiredVelocity(GUID entityID, glm::vec3* velocity);
+	bool Eagle_NavigationCrowdAgentComponent_IsDrivenByRootMotion(GUID entityID);
+	void Eagle_NavigationCrowdAgentComponent_SetFaceMovementDirection(GUID entityID, bool value);
+	bool Eagle_NavigationCrowdAgentComponent_GetFaceMovementDirection(GUID entityID);
+	void Eagle_NavigationCrowdAgentComponent_SetTurnRate(GUID entityID, float value);
+	float Eagle_NavigationCrowdAgentComponent_GetTurnRate(GUID entityID);
 	MoveRequestState Eagle_NavigationCrowdAgentComponent_GetTargetState(GUID entityID);
 	bool Eagle_NavigationCrowdAgentComponent_SetAgentTypeID(GUID entityID, uint32_t agentTypeID);
 	uint32_t Eagle_NavigationCrowdAgentComponent_GetAgentTypeID(GUID entityID);

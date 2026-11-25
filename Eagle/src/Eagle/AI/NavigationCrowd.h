@@ -69,6 +69,7 @@ namespace Eagle::AINavigation
 		bool GetAgentLocation(int agentIndex, glm::vec3* outLocation) const;
 		dtPolyRef GetAgentPoly(int agentIndex) const; // The polygon the agent is on. 0 if it isn't on the nav mesh
 		bool GetAgentVelocity(int agentIndex, glm::vec3* outVelocity) const;
+		bool GetAgentDesiredVelocity(int agentIndex, glm::vec3* outVelocity) const; // Where it wants to go (after avoidance)
 
 		// Moves the agent keeping its path.
 		// If the location is far from the agent, it's placed at the nearest point of the nav mesh, and its move target is requested again.
