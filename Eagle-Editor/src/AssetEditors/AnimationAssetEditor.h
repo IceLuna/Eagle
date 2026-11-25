@@ -31,11 +31,48 @@ namespace Eagle
 
 		static std::string DescribeState(const AssetAnimation::Settings& before, const AssetAnimation::Settings& after);
 
+		enum class RootMotionPreview
+		{
+			InPlace,
+			Loop,
+			LoopAndReset,
+		};
+
+		// Where the root motion of one pass of the animation takes an entity, calculated the same way as in the game
+		struct RootMotionStats
+		{
+			float HorizontalDistance = 0.f;
+			float VerticalDistance = 0.f;
+			float Speed = 0.f; // Horizontal, at the playback speed of 1
+			float TurnDegrees = 0.f; // Around the world up. Positive - to the left
+			bool bValid = false;
+		};
+		static RootMotionStats CalculateRootMotionStats(const SkeletalMeshAnimation& animation);
+
+		void UpdateRootMotionPreview();
+		void ResetRootMotionPreview();
+
+		glm::vec3 GetPreviewCenter() const;
+		void FocusCameraOnPreview();
+		void DrawRootMotionPreview();
+		void DrawRootMotionStats(const SkeletalMeshAnimation& animation);
+
 	private:
 		Ref<AssetAnimation> m_Asset;
 		AssetEditTracker<AssetAnimation, AssetAnimation::Settings> m_EditTracker;
 		SkeletalMeshComponent* m_Component = nullptr;
 		bool bPlayAnimation = true;
-		bool bInPlace = true;
+
+		RootMotionPreview m_RootMotionPreview = RootMotionPreview::LoopAndReset;
+		bool m_bCameraFollows = true;
+		float m_CameraFollowDistance = 1.f; // From the camera to the preview's center, while the camera follows it
+		glm::vec3 m_PreviewCenterOffset = glm::vec3(0.f); // The center of the mesh relative to its entity
+		std::vector<glm::vec3> m_Trail;
+		float m_LastPoseTime = 0.f; // To detect when the animation loops
+
+		// Recalculated when the root motion keys change
+		RootMotionStats m_RootMotionStats;
+		std::tuple<RootMotionMode, size_t, size_t, float, glm::vec3, glm::quat> m_RootMotionStatsKey{};
+		bool m_bRootMotionStatsCalculated = false;
 	};
 }

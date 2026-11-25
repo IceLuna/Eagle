@@ -752,9 +752,29 @@ namespace Eagle
 		void SetAnimationAsset(const Ref<AssetAnimation>& anim)
 		{
 			m_AnimAsset = anim;
-			CurrentClipPlayTime = 0.f;
-			PrevClipPlayTime = 0.f;
+			SetClipStartPosition(0);
 		}
+
+		// Also moves the playing clip there
+		void SetClipStartPosition(float time);
+		float GetClipStartPosition() const { return m_ClipStartPosition; }
+
+		// Note: doesn't trigger root motion or events
+		void ResetClipPlayTime() { SetClipPlayTime(m_ClipStartPosition); }
+
+		float GetClipPlayTime() const { return m_ClipPlayTime; }
+		float GetPrevClipPlayTime() const { return m_PrevClipPlayTime; }
+
+		// How the next update plays from `GetPrevClipPlayTime()` to `GetClipPlayTime()`, for root motion and events.
+		// 1 - forward; -1 - backward; 0 - it doesn't (they're the same)
+		float GetClipStepDirection() const { return m_ClipStepDirection; }
+
+		// Jumps to `time` (clamped to the clip's duration).
+		// Note: doesn't trigger root motion or events for the time jumped over
+		void SetClipPlayTime(float time);
+
+		// Internal. Called by the animation system
+		void AdvanceClipPlayTime(float nextTime);
 
 		// @bMergeVars. If set to true, it'll try to merge vars to preserve current values of the variables (old variables will be used if possible)
 		void SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim, bool bMergeVars = true);
@@ -835,10 +855,7 @@ namespace Eagle
 		SkeletalPose LastPose; // The final pose that was calculated during the last animation update
 
 		// These are used only if `AnimType` == `AnimationType::Clip`
-		float CurrentClipPlayTime = 0.f;
-		float PrevClipPlayTime = 0.f;
 		float ClipPlaybackSpeed = 1.f;
-		float PrevClipPlaybackSpeed = 1.f;
 		bool bClipLooping = true;
 
 		AnimationType AnimType = AnimationType::Clip;
@@ -855,6 +872,10 @@ namespace Eagle
 		Ref<PhysicsRagdollActor> m_RagdollActor;
 		GUID m_CallbackID;
 		RootMotionLockFlag m_RootMotionLockFlags = RootMotionLockFlag::None;
+		float m_ClipStartPosition = 0.f;
+		float m_ClipPlayTime = 0.f;
+		float m_PrevClipPlayTime = 0.f;
+		float m_ClipStepDirection = 0.f;
 		bool m_bCastsShadows = true;
 		bool m_bReceivesDecals = true;
 		bool m_bVisible = true;

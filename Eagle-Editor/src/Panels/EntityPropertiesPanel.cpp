@@ -628,15 +628,14 @@ namespace Eagle
 						}
 
 						const bool bHasAnim = animAsset.operator bool();
-						float current = bHasAnim ? smComponent.CurrentClipPlayTime : 0.f;
+						float startPosition = bHasAnim ? smComponent.GetClipStartPosition() : 0.f;
 						const float duration = bHasAnim ? animAsset->GetAnimation()->Duration : 1.f;
 						if (!bHasAnim)
 							UI::PushItemDisabled();
 
-						if (UI::PropertySlider("Start Position", current, 0.f, duration))
+						if (UI::PropertySlider("Start Position", startPosition, 0.f, duration))
 						{
-							smComponent.CurrentClipPlayTime = glm::clamp(current, 0.f, animAsset->GetAnimation()->Duration);
-							smComponent.PrevClipPlayTime = smComponent.CurrentClipPlayTime;
+							smComponent.SetClipStartPosition(startPosition);
 							bEntityChanged = true;
 						}
 

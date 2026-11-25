@@ -99,4 +99,11 @@ namespace Eagle::Math
 	{
 		return RotationAroundZ(degrees) * q;
 	}
+
+	// Converts a root motion location delta from the animation's space to the world, for an entity rotated by `worldRotation`.
+	// @totalRootRotation. The root's rotation in the animation at the current time (`SkeletalPose::TotalRootMotion`)
+	static glm::vec3 RootMotionLocationToWorld(const glm::vec3& location, const Rotator& totalRootRotation, const Rotator& worldRotation)
+	{
+		return glm::rotate((totalRootRotation.Conjugate() * worldRotation).GetQuat(), location);
+	}
 }

@@ -84,6 +84,13 @@ namespace Eagle
 
 			return false;
 		}
+
+		static float ClampToClipDuration(const Ref<AssetAnimation>& animation, float time)
+		{
+			if (animation && animation->GetAnimation())
+				return glm::clamp(time, 0.f, animation->GetAnimation()->Duration);
+			return glm::max(time, 0.f);
+		}
 	}
 
 	namespace ObstacleUtils
@@ -1313,8 +1320,30 @@ namespace Eagle
 
 		Transform rootMotion = LastPose.GetRootMotion();
 		rootMotion.Location *= locationMask;
-		rootMotion.Location = glm::rotate((LastPose.TotalRootMotion.Rotation.Conjugate() * GetWorldTransform().Rotation).GetQuat(), rootMotion.Location);
+		rootMotion.Location = Math::RootMotionLocationToWorld(rootMotion.Location, LastPose.TotalRootMotion.Rotation, GetWorldTransform().Rotation);
 		return rootMotion;
+	}
+
+	void SkeletalMeshComponent::SetClipStartPosition(float time)
+	{
+		m_ClipStartPosition = Utils::ClampToClipDuration(m_AnimAsset, time);
+		ResetClipPlayTime();
+	}
+
+	void SkeletalMeshComponent::SetClipPlayTime(float time)
+	{
+		// Both are set so that the next update has no root motion or events between them
+		time = Utils::ClampToClipDuration(m_AnimAsset, time);
+		m_ClipPlayTime = time;
+		m_PrevClipPlayTime = time;
+		m_ClipStepDirection = 0.f;
+	}
+
+	void SkeletalMeshComponent::AdvanceClipPlayTime(float nextTime)
+	{
+		m_PrevClipPlayTime = m_ClipPlayTime;
+		m_ClipPlayTime = Utils::ClampToClipDuration(m_AnimAsset, nextTime);
+		m_ClipStepDirection = ClipPlaybackSpeed > 0.f ? 1.f : (ClipPlaybackSpeed < 0.f ? -1.f : 0.f);
 	}
 
 	SkeletalMeshComponent& SkeletalMeshComponent::operator=(const SkeletalMeshComponent& other)
@@ -1341,12 +1370,9 @@ namespace Eagle
 		m_bCastsShadows = other.m_bCastsShadows;
 		m_bReceivesDecals = other.m_bReceivesDecals;
 		m_bVisible = other.m_bVisible;
-		// Reset to 0. Otherwise if a root motion animation is playing in the editor and we press play,
-		// the simulation will start from the wrong location
-		CurrentClipPlayTime = 0.f;
-		PrevClipPlayTime = 0.f;
+		m_ClipStartPosition = other.m_ClipStartPosition;
+		ResetClipPlayTime();
 		ClipPlaybackSpeed = other.ClipPlaybackSpeed;
-		PrevClipPlaybackSpeed = other.PrevClipPlaybackSpeed;
 		bClipLooping = other.bClipLooping;
 		AnimType = other.AnimType;
 		LastPose = other.LastPose;
@@ -1379,8 +1405,6 @@ namespace Eagle
 			m_MeshAsset->RemoveOnAssetModifiedCallback(m_CallbackID);
 
 		m_MeshAsset = mesh;
-		CurrentClipPlayTime = 0.f;
-		PrevClipPlayTime = 0.f;
 
 		if (m_MeshAsset)
 		{

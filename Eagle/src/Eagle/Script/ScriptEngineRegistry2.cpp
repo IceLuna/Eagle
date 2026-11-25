@@ -286,10 +286,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetApplyRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetApplyRootMotion);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRootMotion);
 
-		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCurrentClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetClipPlayTime);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetClipPlaybackSpeed_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetIsClipLooping_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetIsClipLooping);
-		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetCurrentClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetCurrentClipPlayTime);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetClipPlayTime);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetClipPlaybackSpeed_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetClipPlaybackSpeed);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::IsClipLooping_Native", Eagle::Script::Eagle_SkeletalMeshComponent_IsClipLooping);
 

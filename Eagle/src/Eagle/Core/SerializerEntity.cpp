@@ -315,7 +315,7 @@ namespace Eagle
 					out << YAML::EndSeq;
 				}
 			}
-			out << YAML::Key << "ClipStartPos" << smComponent.CurrentClipPlayTime;
+			out << YAML::Key << "ClipStartPos" << smComponent.GetClipStartPosition();
 			out << YAML::Key << "ClipPlaybackSpeed" << smComponent.ClipPlaybackSpeed;
 			out << YAML::Key << "ClipLooping" << smComponent.bClipLooping;
 			out << YAML::Key << "RootMotionLockFlags" << (uint32_t)smComponent.GetRootMotionLockFlags();
@@ -375,7 +375,7 @@ namespace Eagle
 				}
 			}
 			if (auto node = skeletalMeshComponentNode["ClipStartPos"])
-				smComponent.CurrentClipPlayTime = node.as<float>();
+				smComponent.SetClipStartPosition(node.as<float>());
 			if (auto node = skeletalMeshComponentNode["ClipPlaybackSpeed"])
 				smComponent.ClipPlaybackSpeed = node.as<float>();
 			if (auto node = skeletalMeshComponentNode["ClipLooping"])

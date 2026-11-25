@@ -191,10 +191,10 @@ namespace Eagle::Script
 	bool Eagle_SkeletalMeshComponent_GetApplyRootMotion(GUID entityID);
 	void Eagle_SkeletalMeshComponent_GetRootMotion(GUID entityID, Transform* outRootMotion);
 
-	void Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime(GUID entityID, float value);
+	void Eagle_SkeletalMeshComponent_SetClipPlayTime(GUID entityID, float value);
 	void Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed(GUID entityID, float value);
 	void Eagle_SkeletalMeshComponent_SetIsClipLooping(GUID entityID, bool value);
-	float Eagle_SkeletalMeshComponent_GetCurrentClipPlayTime(GUID entityID);
+	float Eagle_SkeletalMeshComponent_GetClipPlayTime(GUID entityID);
 	float Eagle_SkeletalMeshComponent_GetClipPlaybackSpeed(GUID entityID);
 	bool Eagle_SkeletalMeshComponent_IsClipLooping(GUID entityID);
 

@@ -2162,17 +2162,17 @@ namespace Eagle
 		entity.GetComponent<SkeletalMeshComponent>().AnimType = value;
 	}
 
-	void Script::Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime(GUID entityID, float value)
+	void Script::Eagle_SkeletalMeshComponent_SetClipPlayTime(GUID entityID, float value)
 	{
 		auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCurrentClipPlayTime' for skeletal mesh. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetClipPlayTime' for skeletal mesh. Entity is null");
 			return;
 		}
 
-		entity.GetComponent<SkeletalMeshComponent>().CurrentClipPlayTime = value;
+		entity.GetComponent<SkeletalMeshComponent>().SetClipPlayTime(value);
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed(GUID entityID, float value)
@@ -2201,17 +2201,17 @@ namespace Eagle
 		entity.GetComponent<SkeletalMeshComponent>().bClipLooping = value;
 	}
 
-	float Script::Eagle_SkeletalMeshComponent_GetCurrentClipPlayTime(GUID entityID)
+	float Script::Eagle_SkeletalMeshComponent_GetClipPlayTime(GUID entityID)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetCurrentClipPlayTime' for skeletal mesh. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetClipPlayTime' for skeletal mesh. Entity is null");
 			return 0.f;
 		}
 
-		return entity.GetComponent<SkeletalMeshComponent>().CurrentClipPlayTime;
+		return entity.GetComponent<SkeletalMeshComponent>().GetClipPlayTime();
 	}
 
 	float Script::Eagle_SkeletalMeshComponent_GetClipPlaybackSpeed(GUID entityID)

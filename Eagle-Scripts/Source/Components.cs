@@ -1014,10 +1014,17 @@ namespace Eagle
         }
 
         // Used only if `AnimType` == `AnimationType::Clip`
-        public float CurrentClipPlayTime
+        public float GetClipPlayTime()
         {
-            get { return GetCurrentClipPlayTime_Native(Parent.ID); }
-            set { SetCurrentClipPlayTime_Native(Parent.ID, value); }
+            return GetClipPlayTime_Native(Parent.ID);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Clip`.
+        // Jumps to `time` (clamped to the clip's duration).
+        // Note: doesn't trigger root motion or events for the time jumped over
+        public void SetClipPlayTime(float time)
+        {
+            SetClipPlayTime_Native(Parent.ID, time);
         }
 
         // Used only if `AnimType` == `AnimationType::Clip`
@@ -1196,7 +1203,7 @@ namespace Eagle
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetCurrentClipPlayTime_Native(in GUID entityID, float value);
+        internal static extern void SetClipPlayTime_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetClipPlaybackSpeed_Native(in GUID entityID, float value);
@@ -1208,7 +1215,7 @@ namespace Eagle
         internal static extern bool DoesCastShadows_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetCurrentClipPlayTime_Native(in GUID entityID);
+        internal static extern float GetClipPlayTime_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetClipPlaybackSpeed_Native(in GUID entityID);

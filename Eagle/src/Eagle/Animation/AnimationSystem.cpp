@@ -368,19 +368,19 @@ namespace Eagle
             {
                 const auto& animAsset = mesh->GetAnimationAsset();
                 const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
-                AnimationSystem::Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms, &mesh->LastPose);
+                const float time = mesh->GetClipPlayTime();
+                AnimationSystem::Update(skeletalMesh, animation, time, &transforms, &mesh->LastPose);
                 if (animation)
                 {
-                    const float stepSpeed = mesh->PrevClipPlaybackSpeed;
+                    const float prevTime = mesh->GetPrevClipPlayTime();
+                    const float stepDirection = mesh->GetClipStepDirection();
                     if (!animation->Settings.bInPlace && animation->HasRootMotion())
                     {
-                        mesh->LastPose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, mesh->CurrentClipPlayTime, mesh->PrevClipPlayTime, stepSpeed, ts, &(mesh->LastPose.TotalRootMotion)));
+                        mesh->LastPose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, time, prevTime, stepDirection, ts, &(mesh->LastPose.TotalRootMotion)));
                     }
-                    AnimationSystem::GetEventsToTrigger(animation, mesh->PrevClipPlayTime, mesh->CurrentClipPlayTime, stepSpeed, mesh->bClipLooping, &(mesh->LastPose.EventsToTrigger));
+                    AnimationSystem::GetEventsToTrigger(animation, prevTime, time, stepDirection, mesh->bClipLooping, &(mesh->LastPose.EventsToTrigger));
 
-                    mesh->PrevClipPlayTime = mesh->CurrentClipPlayTime;
-                    mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animation, mesh->CurrentClipPlayTime, ts * mesh->ClipPlaybackSpeed, mesh->bClipLooping);
-                    mesh->PrevClipPlaybackSpeed = mesh->ClipPlaybackSpeed;
+                    mesh->AdvanceClipPlayTime(AnimationSystem::StepForwardAnimTime(animation, time, ts * mesh->ClipPlaybackSpeed, mesh->bClipLooping));
                 }
             }
             else

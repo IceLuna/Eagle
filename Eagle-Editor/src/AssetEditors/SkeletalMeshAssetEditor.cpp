@@ -548,15 +548,14 @@ namespace Eagle
 
 			{
 				const bool bHasAnim = m_PreviewAnimation.operator bool();
-				float current = bHasAnim ? component.CurrentClipPlayTime : 0.f;
+				float current = bHasAnim ? component.GetClipPlayTime() : 0.f;
 				const float duration = bHasAnim ? m_PreviewAnimation->GetAnimation()->Duration : 1.f;
 				if (!bHasAnim)
 					UI::PushItemDisabled();
 
 				if (UI::PropertySlider("Animation Position", current, 0.f, duration))
 				{
-					component.CurrentClipPlayTime = glm::clamp(current, 0.f, m_PreviewAnimation->GetAnimation()->Duration);
-					component.PrevClipPlayTime = component.CurrentClipPlayTime;
+					component.SetClipPlayTime(current);
 				}
 
 				if (!bHasAnim)
