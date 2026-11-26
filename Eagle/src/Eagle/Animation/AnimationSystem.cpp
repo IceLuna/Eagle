@@ -806,7 +806,7 @@ namespace Eagle
                 if (!bLockY)
                     controller.SuspendGravity(); // Animation's vertical motion is used instead
 
-                controller.Move(rootMotion.Location, 0.001f, ts);
+                controller.Move(rootMotion.Location, CharacterControllerComponent::MinMoveDistance, ts);
                 break;
             }
             case EntityMovement::DynamicRigidBody:

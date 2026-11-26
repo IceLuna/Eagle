@@ -2122,6 +2122,19 @@ namespace Eagle
 		return entity.GetComponent<SkeletalMeshComponent>().bApplyRootMotion;
 	}
 
+	bool Script::Eagle_SkeletalMeshComponent_WasRootMotionApplied(GUID entityID)
+	{
+		auto& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'WasRootMotionApplied' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().bWasRootMotionApplied;
+	}
+
 	void Script::Eagle_SkeletalMeshComponent_GetRootMotion(GUID entityID, Transform* outRootMotion)
 	{
 		auto& scene = Scene::GetCurrentScene();

@@ -120,6 +120,12 @@ namespace Eagle
 	static const char* s_RootMotionLockPosHelpMsg = "Locked axes of the root motion aren't applied.\n"
 		"With a character controller or a dynamic rigid body, locking Y lets gravity apply (for example, for walking). "
 		"If Y isn't locked, the animation's vertical motion is followed and gravity is suspended (for example, a climb)";
+	static const char* s_RootMotionLockRotHelpMsg = "If locked, root motion doesn't turn the entity, it only moves it.\n"
+		"For example, when a crowd agent turns it with `Face Movement Direction`";
+	static const char* s_DrawRootMotionHelpMsg = "For debugging purposes, While the game runs, draws:\n"
+		"- White cross - where the drawing started.\n"
+		"- Line - the path the entity moved along: orange where root motion moved it, gray where something else did.\n"
+		"- Blue arrow - where the entity faces (its forward, -Z)";
 	static const char* s_ApplyRootMotionHelpMsg = "If disabled, root motion isn't applied to the entity. It's still calculated, so a script can apply it itself (see `SkeletalMeshComponent.GetRootMotion()`)";
 	static const char* s_FaceMovementDirHelpMsg = "Turns the entity around the world up to where the crowd wants it to go. For example, so that root motion moves it along its path";
 
@@ -566,32 +572,6 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
-					if (materialsCount > 0)
-					{
-						UI::EndPropertyGrid();
-
-						ImGui::Separator();
-						if (UI::PushTreeNode("Materials", true))
-						{
-							UI::BeginPropertyGrid("SkeletalMeshComponent");
-							for (uint32_t i = 0; i < materialsCount; ++i)
-							{
-								auto materialAsset = smComponent.GetMaterialAsset(i);
-								if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
-								{
-									smComponent.SetMaterialAsset(i, materialAsset);
-									bEntityChanged = true;
-								}
-							}
-							UI::EndPropertyGrid();
-							UI::PopTreeNode();
-						}
-
-						ImGui::Separator();
-						UI::BeginPropertyGrid("SkeletalMeshComponent");
-					}
-
 					if (UI::Property("Ragdolling", bRagdollEnabled))
 					{
 						smComponent.SetRagdollEnabled(bRagdollEnabled);
@@ -605,19 +585,8 @@ namespace Eagle
 					}
 
 					bEntityChanged |= UI::ComboEnum("Animation Type", smComponent.AnimType);
-					bEntityChanged |= UI::Property("Apply Root Motion", smComponent.bApplyRootMotion, s_ApplyRootMotionHelpMsg);
 
-					const RootMotionLockFlag lockFlags = smComponent.GetRootMotionLockFlags();
-					bool bLockPositions[3] = { HasFlags(lockFlags, RootMotionLockFlag::PositionX), HasFlags(lockFlags, RootMotionLockFlag::PositionY), HasFlags(lockFlags, RootMotionLockFlag::PositionZ) };
-					if (UI::Property("Root Motion Lock Position", s_LockStrings, bLockPositions, s_RootMotionLockPosHelpMsg))
-					{
-						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionX, bLockPositions[0]);
-						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionY, bLockPositions[1]);
-						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionZ, bLockPositions[2]);
-						bEntityChanged = true;
-					}
-					
-					bool bEndGrid = true;
+					Ref<AssetAnimationGraph> graphAsset;
 					if (smComponent.AnimType == AnimationType::Clip)
 					{
 						auto animAsset = smComponent.GetAnimationAsset();
@@ -647,32 +616,80 @@ namespace Eagle
 					}
 					else
 					{
-						auto graphAsset = smComponent.GetAnimationGraphAsset();
+						graphAsset = smComponent.GetAnimationGraphAsset();
 						if (EditorResources::DrawAssetSelection("Animation Graph", graphAsset))
 						{
 							smComponent.SetAnimationGraphAsset(graphAsset);
 							bEntityChanged = true;
 						}
-						if (graphAsset)
+					}
+
+					UI::EndPropertyGrid();
+
+					ImGui::Separator();
+					if (UI::PushTreeNode("Root Motion"))
+					{
+						UI::BeginPropertyGrid("SkeletalMeshRootMotion");
+
+						bEntityChanged |= UI::Property("Apply", smComponent.bApplyRootMotion, s_ApplyRootMotionHelpMsg);
+
+						const RootMotionLockFlag lockFlags = smComponent.GetRootMotionLockFlags();
+						bool bLockPositions[3] = { HasFlags(lockFlags, RootMotionLockFlag::PositionX), HasFlags(lockFlags, RootMotionLockFlag::PositionY), HasFlags(lockFlags, RootMotionLockFlag::PositionZ) };
+						if (UI::Property("Lock Position", s_LockStrings, bLockPositions, s_RootMotionLockPosHelpMsg))
 						{
-							UI::EndPropertyGrid();
-							bEndGrid = false;
+							smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionX, bLockPositions[0]);
+							smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionY, bLockPositions[1]);
+							smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionZ, bLockPositions[2]);
+							bEntityChanged = true;
+						}
 
-							ImGui::Separator();
-							if (UI::PushTreeNode("Graph Variables"))
+						bool bLockRotation = HasFlags(lockFlags, RootMotionLockFlag::Rotation);
+						if (UI::Property("Lock Rotation", bLockRotation, s_RootMotionLockRotHelpMsg))
+						{
+							smComponent.SetRootMotionLockFlag(RootMotionLockFlag::Rotation, bLockRotation);
+							bEntityChanged = true;
+						}
+
+						bEntityChanged |= UI::Property("Debug Draw", smComponent.bDrawDebugRootMotion, s_DrawRootMotionHelpMsg);
+
+						UI::EndPropertyGrid();
+						UI::PopTreeNode();
+					}
+
+					const uint32_t materialsCount = smComponent.GetMaterialsSlotsCount();
+					if (materialsCount > 0)
+					{
+						ImGui::Separator();
+						if (UI::PushTreeNode("Materials"))
+						{
+							UI::BeginPropertyGrid("SkeletalMeshComponent");
+							for (uint32_t i = 0; i < materialsCount; ++i)
 							{
-								UI::BeginPropertyGrid("Graph_Variables");
-
-								bEntityChanged |= EditorResources::DrawGraphVariables(smComponent.GetAnimationGraph());
-
-								UI::EndPropertyGrid();
-								UI::PopTreeNode();
+								auto materialAsset = smComponent.GetMaterialAsset(i);
+								if (EditorResources::DrawAssetSelection("Material " + std::to_string(i), materialAsset))
+								{
+									smComponent.SetMaterialAsset(i, materialAsset);
+									bEntityChanged = true;
+								}
 							}
+							UI::EndPropertyGrid();
+							UI::PopTreeNode();
 						}
 					}
 
-					if (bEndGrid)
-						UI::EndPropertyGrid();
+					if (graphAsset)
+					{
+						ImGui::Separator();
+						if (UI::PushTreeNode("Graph Variables"))
+						{
+							UI::BeginPropertyGrid("Graph_Variables");
+
+							bEntityChanged |= EditorResources::DrawGraphVariables(smComponent.GetAnimationGraph());
+
+							UI::EndPropertyGrid();
+							UI::PopTreeNode();
+						}
+					}
 				});
 				break;
 			}
@@ -3008,11 +3025,16 @@ namespace Eagle
 					bChanged |= UI::Property("Crowd Separation", settings.bSeparation);
 
 					bEntityChanged |= UI::Property("Face Movement Direction", component.bFaceMovementDirection, s_FaceMovementDirHelpMsg);
-					if (component.bFaceMovementDirection && UI::PropertyDrag("Turn Rate", component.TurnRate, 1.f, 0.f, 0.f, "Degrees per second. 0 - it turns immediately"))
+
+					if (!component.bFaceMovementDirection)
+						UI::PushItemDisabled();
+					if (UI::PropertyDrag("Turn Rate", component.TurnRate, 1.f, 0.f, 0.f, "Degrees per second. 0 - it turns immediately"))
 					{
 						component.TurnRate = glm::max(component.TurnRate, 0.f);
 						bEntityChanged = true;
 					}
+					if (!component.bFaceMovementDirection)
+						UI::PopItemDisabled();
 
 					UI::EndPropertyGrid();
 

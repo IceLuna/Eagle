@@ -100,10 +100,14 @@ namespace Eagle::Math
 		return RotationAroundZ(degrees) * q;
 	}
 
-	// Converts a root motion location delta from the animation's space to the world, for an entity rotated by `worldRotation`.
+	// Converts a root motion location delta from the animation's space to the world.
+	// The turn the animation's root has made so far is undone first, so that the delta is relative to where the mesh faces.
+	// Then it's scaled and rotated like the mesh.
 	// @totalRootRotation. The root's rotation in the animation at the current time (`SkeletalPose::TotalRootMotion`)
-	static glm::vec3 RootMotionLocationToWorld(const glm::vec3& location, const Rotator& totalRootRotation, const Rotator& worldRotation)
+	// @worldRotation, @worldScale. The mesh's world rotation and scale
+	static glm::vec3 RootMotionLocationToWorld(const glm::vec3& location, const Rotator& totalRootRotation, const Rotator& worldRotation, const glm::vec3& worldScale = glm::vec3(1.f))
 	{
-		return glm::rotate((totalRootRotation.Conjugate() * worldRotation).GetQuat(), location);
+		const glm::vec3 meshLocation = glm::rotate(totalRootRotation.Conjugate().GetQuat(), location) * worldScale;
+		return glm::rotate(worldRotation.GetQuat(), meshLocation);
 	}
 }

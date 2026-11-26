@@ -189,6 +189,7 @@ namespace Eagle::Script
 	RootMotionLockFlag Eagle_SkeletalMeshComponent_GetRootMotionLockFlags(GUID entityID);
 	void Eagle_SkeletalMeshComponent_SetApplyRootMotion(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_GetApplyRootMotion(GUID entityID);
+	bool Eagle_SkeletalMeshComponent_WasRootMotionApplied(GUID entityID);
 	void Eagle_SkeletalMeshComponent_GetRootMotion(GUID entityID, Transform* outRootMotion);
 
 	void Eagle_SkeletalMeshComponent_SetClipPlayTime(GUID entityID, float value);

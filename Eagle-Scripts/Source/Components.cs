@@ -106,7 +106,8 @@ namespace Eagle
     {
         None = 0,
         PositionX = 1 << 0, PositionY = 1 << 1, PositionZ = 1 << 2,
-        Position = PositionX | PositionY | PositionZ
+        Position = PositionX | PositionY | PositionZ,
+        Rotation = 1 << 3,
     }
 
     public enum AnimationType
@@ -1145,7 +1146,13 @@ namespace Eagle
             set { SetApplyRootMotion_Native(Parent.ID, value); }
         }
 
-        // The root motion of the last animation update in world space, with the lock flags applied (basically what the entity is moved by if `bApplyRootMotion` is enabled).
+        // Whether root motion moved the entity during the last animation update
+        public bool WasRootMotionApplied()
+        {
+            return WasRootMotionApplied_Native(Parent.ID);
+        }
+
+        // What the entity is moved by if `bApplyRootMotion` is enabled (with all the locks and transformations already applied).
         // If `bApplyRootMotion` is disabled, this still returns a valid root motion for you to apply manually, if required.
         // Note: it's the change since the previous update, so a script that applies it itself should do it every update. Returns identity if there's none
         public Transform GetRootMotion()
@@ -1351,6 +1358,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetApplyRootMotion_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool WasRootMotionApplied_Native(GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRootMotion_Native(GUID entityID, out Transform result);

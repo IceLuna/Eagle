@@ -1463,6 +1463,73 @@ namespace Eagle
 		}
 	}
 
+	void Scene::DrawRootMotionPath(const RootMotionPath& path, const Transform& entityTransform)
+	{
+		auto drawLine = [this](const glm::vec3& start, const glm::vec3& end, const glm::vec3& color)
+		{
+			RendererLine line;
+			line.Start.Location = start;
+			line.Start.Color = color;
+			line.End.Location = end;
+			line.End.Color = color;
+			DrawDebugLine(line);
+		};
+
+		// Slightly above the ground, so that the grid doesn't hide it
+		const glm::vec3 lift = glm::vec3(0.f, 0.01f, 0.f);
+
+		// Where it started
+		if (!path.IsEmpty())
+		{
+			const glm::vec3 start = path.GetStart() + lift;
+			const glm::vec3 startColor = glm::vec3(1.f);
+			constexpr float crossSize = 0.15f;
+			drawLine(start + glm::vec3(-crossSize, 0.f, -crossSize), start + glm::vec3(crossSize, 0.f, crossSize), startColor);
+			drawLine(start + glm::vec3(-crossSize, 0.f, crossSize), start + glm::vec3(crossSize, 0.f, -crossSize), startColor);
+		}
+
+		// Where it went. Orange where root motion moved it
+		const glm::vec3 rootMotionColor = glm::vec3(1.f, 0.75f, 0.1f);
+		const glm::vec3 otherColor = glm::vec3(0.5f);
+		const auto& points = path.GetPoints();
+		for (size_t i = 1; i < points.size(); ++i)
+			drawLine(points[i - 1].Location + lift, points[i].Location + lift, points[i].bRootMotion ? rootMotionColor : otherColor);
+
+		// Where it faces, to see root motion rotation
+		const glm::vec3 location = entityTransform.Location + lift;
+		glm::vec3 forward = Math::GetForwardVector(entityTransform.Rotation);
+		forward.y = 0.f;
+		if (glm::dot(forward, forward) > 1e-6f)
+		{
+			forward = glm::normalize(forward);
+			const glm::vec3 right = glm::vec3(-forward.z, 0.f, forward.x);
+			const glm::vec3 tip = location + forward * 0.6f;
+			const glm::vec3 arrowColor = glm::vec3(0.2f, 0.8f, 1.f);
+			drawLine(location, tip, arrowColor);
+			drawLine(tip, tip - forward * 0.15f + right * 0.08f, arrowColor);
+			drawLine(tip, tip - forward * 0.15f - right * 0.08f, arrowColor);
+		}
+	}
+
+	void Scene::DrawRootMotionDebug()
+	{
+		auto view = m_Registry.view<SkeletalMeshComponent>();
+		for (auto e : view)
+		{
+			auto& mesh = view.get<SkeletalMeshComponent>(e);
+			auto& path = mesh.RootMotionPath;
+			if (!mesh.bDrawDebugRootMotion)
+			{
+				path.Clear(); // When it's enabled again, it starts where the entity is then
+				continue;
+			}
+
+			const Transform& transform = mesh.Parent.GetWorldTransform();
+			path.AddLocation(transform.Location, mesh.bWasRootMotionApplied);
+			DrawRootMotionPath(path, transform);
+		}
+	}
+
 	void Scene::DrawFrustum(const CameraComponent& camera)
 	{
 		const float aspect = float(m_ViewportWidth) / m_ViewportHeight;

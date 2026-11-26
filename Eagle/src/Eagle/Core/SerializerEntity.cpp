@@ -320,6 +320,7 @@ namespace Eagle
 			out << YAML::Key << "ClipLooping" << smComponent.bClipLooping;
 			out << YAML::Key << "RootMotionLockFlags" << (uint32_t)smComponent.GetRootMotionLockFlags();
 			out << YAML::Key << "bApplyRootMotion" << YAML::Value << smComponent.bApplyRootMotion;
+			out << YAML::Key << "bDrawDebugRootMotion" << YAML::Value << smComponent.bDrawDebugRootMotion;
 			out << YAML::Key << "bRagdoll" << YAML::Value << smComponent.IsRagdollEnabled();
 
 			out << YAML::EndMap; //SkeletalMeshComponent
@@ -384,6 +385,8 @@ namespace Eagle
 				smComponent.SetRootMotionLockFlag((RootMotionLockFlag)node.as<uint32_t>());
 			if (auto node = skeletalMeshComponentNode["bApplyRootMotion"])
 				smComponent.bApplyRootMotion = node.as<bool>();
+			if (auto node = skeletalMeshComponentNode["bDrawDebugRootMotion"])
+				smComponent.bDrawDebugRootMotion = node.as<bool>();
 			if (auto node = skeletalMeshComponentNode["bRagdoll"])
 				smComponent.SetRagdollEnabled(node.as<bool>());
 		}

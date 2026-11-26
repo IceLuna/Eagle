@@ -284,6 +284,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRootMotionLockFlags_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRootMotionLockFlags);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetApplyRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetApplyRootMotion);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetApplyRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetApplyRootMotion);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::WasRootMotionApplied_Native", Eagle::Script::Eagle_SkeletalMeshComponent_WasRootMotionApplied);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetRootMotion_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetRootMotion);
 
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetClipPlayTime);

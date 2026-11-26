@@ -242,6 +242,10 @@ namespace Eagle
 		// @highlightKeyID. Location key drawn in a highlight colour (e.g. the one selected in the editor). Can be null
 		void DrawSequencePath(const Ref<AssetSceneSequence>& asset, const Transform& base, float time, const GUID& highlightKeyID = GUID(0, 0));
 
+		// Draws root motion path: where the path started (white cross), the path (orange where root motion moved the entity, gray where something else did),
+		// and where the entity faces (blue arrow, its forward, -Z)
+		void DrawRootMotionPath(const RootMotionPath& path, const Transform& entityTransform);
+
 		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
 		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		Ref<Sound> GetSpawnedSound(GUID id) const;
@@ -589,6 +593,8 @@ namespace Eagle
 		void OnDirectionalLightAdded(entt::registry& r, entt::entity e);
 		void OnDirectionalLightRemoved(entt::registry& r, entt::entity e);
 		void OnCharacterControllerRemoved(entt::registry& r, entt::entity e);
+
+		void DrawRootMotionDebug();
 
 		// T - is component type
 		template<typename T>

@@ -594,7 +594,7 @@ namespace Eagle
 		const glm::vec3& up = GetControllerUpDirection();
 		const bool bWasGrounded = m_bGrounded;
 		m_VerticalVelocity += glm::dot(gravity, up) * float(ts);
-		const auto flags = Move(up * (m_VerticalVelocity * float(ts)), 0.001f, ts);
+		const auto flags = Move(up * (m_VerticalVelocity * float(ts)), MinMoveDistance, ts);
 		m_bGrounded = HasFlags(flags, CharacterControllerCollisionFlags::Down);
 
 		// It stepped off something (stairs, a slope, a small ledge), unless it's moving up
@@ -615,7 +615,7 @@ namespace Eagle
 
 		// The controller is moved first, and then the entity only if it found ground, so a failed attempt isn't visible
 		const glm::vec3 location = m_Controller->GetWorldLocation();
-		const auto flags = m_Controller->Move(-GetControllerUpDirection() * distance, 0.001f, ts);
+		const auto flags = m_Controller->Move(-GetControllerUpDirection() * distance, MinMoveDistance, ts);
 		if (HasFlags(flags, CharacterControllerCollisionFlags::Down))
 		{
 			SyncEntityFromController();
@@ -1320,7 +1320,11 @@ namespace Eagle
 
 		Transform rootMotion = LastPose.GetRootMotion();
 		rootMotion.Location *= locationMask;
-		rootMotion.Location = Math::RootMotionLocationToWorld(rootMotion.Location, LastPose.TotalRootMotion.Rotation, GetWorldTransform().Rotation);
+		if (IsRootMotionLockFlagSet(RootMotionLockFlag::Rotation))
+			rootMotion.Rotation = Rotator::Unit();
+
+		const Transform& worldTransform = GetWorldTransform();
+		rootMotion.Location = Math::RootMotionLocationToWorld(rootMotion.Location, LastPose.TotalRootMotion.Rotation, worldTransform.Rotation, worldTransform.Scale3D);
 		return rootMotion;
 	}
 
@@ -1358,6 +1362,7 @@ namespace Eagle
 		m_AnimAsset = other.m_AnimAsset;
 		m_RootMotionLockFlags = other.m_RootMotionLockFlags;
 		bApplyRootMotion = other.bApplyRootMotion;
+		bDrawDebugRootMotion = other.bDrawDebugRootMotion;
 		if (other.m_Graph)
 		{
 			VariablesMap copiedVars;
@@ -2346,12 +2351,25 @@ namespace Eagle
 			case EntityMovement::CharacterController:
 			{
 				auto& controller = Parent.GetComponent<CharacterControllerComponent>();
+				const auto& navMesh = GetNavMesh();
 				const glm::vec3 footLocation = controller.GetControllerFootWorldLocation();
+				const glm::vec3 displacement = velocity * float(ts);
 
-				controller.Move(velocity * float(ts), 0.001f, ts);
+				// The controller doesn't move by less than its min distance. From a standing position, the crowd speeds the agent up a bit every update,
+				// so its first steps can be shorter than that. The agent keeps its velocity then.
+				// Otherwise it'd be synced to 0 every update, and the agent would never start moving
+				constexpr float minDistance = CharacterControllerComponent::MinMoveDistance;
+				if (glm::dot(displacement, displacement) < minDistance * minDistance)
+				{
+					if (navMesh)
+						navMesh->GetCrowd().SetAgentLocation(m_AgentIndex, footLocation, velocity);
+					break;
+				}
+
+				controller.Move(displacement, minDistance, ts);
 
 				const glm::vec3 newFootLocation = controller.GetControllerFootWorldLocation();
-				if (const auto& navMesh = GetNavMesh())
+				if (navMesh)
 					navMesh->GetCrowd().SetAgentLocation(m_AgentIndex, newFootLocation, (newFootLocation - footLocation) / float(ts));
 
 				break;

@@ -862,6 +862,10 @@ namespace Eagle
 		bool bApplyRootMotion = true;
 		bool bWasRootMotionApplied = false; // Whether root motion was applied to the entity during the last animation update
 
+		// For debug rendering
+		RootMotionPath RootMotionPath;
+		bool bDrawDebugRootMotion = false;
+
 	private:
 		SkeletalPose m_PreRagdollLastPose; // Pose the mesh had before ragdoll was enabled
 		Ref<AssetSkeletalMesh> m_MeshAsset;
@@ -1493,6 +1497,10 @@ namespace Eagle
 	class CharacterControllerComponent : public SceneComponent
 	{
 	public:
+		// Note: a move shorter than it doesn't move the controller at all.
+		// Moves are made every frame, so it's small enough not to stop slow movement at high frame rates
+		static constexpr float MinMoveDistance = 0.0001f;
+
 		CharacterControllerComponent(const Entity& entity);
 		CharacterControllerComponent(const StaticMeshComponent&) = delete;
 		CharacterControllerComponent(CharacterControllerComponent&& other) = default;
@@ -2822,7 +2830,7 @@ namespace Eagle
 		// Turns the entity around the world up to where the crowd wants it to go.
 		// For example, so that root motion moves it along its path
 		bool bFaceMovementDirection = true;
-		float TurnRate = 360.f; // Degrees per second. 0 - it turns immediately
+		float TurnRate = 120.0f; // Degrees per second. 0 - it turns immediately
 
 	private:
 		bool CreateAgent(const glm::vec3& location);

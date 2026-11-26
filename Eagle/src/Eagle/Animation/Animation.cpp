@@ -179,4 +179,30 @@ namespace Eagle
 		RootMotionType = RootMotionMode::Disabled;
 		return true;
 	}
+
+	void RootMotionPath::Reset(const glm::vec3& location)
+	{
+		m_Points.clear();
+		m_Points.push_back({ location, true });
+		m_Start = location;
+	}
+
+	void RootMotionPath::AddLocation(const glm::vec3& location, bool bRootMotion)
+	{
+		if (m_Points.empty())
+		{
+			Reset(location);
+			return;
+		}
+
+		constexpr float minStep = 0.02f;
+		constexpr size_t maxPoints = 4096;
+		const Point& last = m_Points.back();
+		if (glm::distance(last.Location, location) <= minStep && last.bRootMotion == bRootMotion)
+			return;
+
+		if (m_Points.size() >= maxPoints)
+			m_Points.erase(m_Points.begin(), m_Points.begin() + maxPoints / 2);
+		m_Points.push_back({ location, bRootMotion });
+	}
 }

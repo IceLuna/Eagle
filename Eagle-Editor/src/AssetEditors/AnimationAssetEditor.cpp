@@ -225,38 +225,51 @@ namespace Eagle
 				m_LastPoseTime = m_Component->GetClipPlayTime(); // Moving it back isn't a loop
 			}
 
-			ImGui::Separator();
-			if (UI::ComboEnum("Root Motion Preview", m_RootMotionPreview, s_RootMotionPreviewHelpMsg))
-				ResetRootMotionPreview();
-
-			const bool bDisable = m_RootMotionPreview == RootMotionPreview::InPlace;
-			if (bDisable)
-				UI::PushItemDisabled();
-			{
-				static const std::vector<std::string> s_LockStrings = { "X", "Y", "Z" };
-				const RootMotionLockFlag lockFlags = m_Component->GetRootMotionLockFlags();
-				bool bLockPositions[3] = { HasFlags(lockFlags, RootMotionLockFlag::PositionX), HasFlags(lockFlags, RootMotionLockFlag::PositionY), HasFlags(lockFlags, RootMotionLockFlag::PositionZ) };
-				if (UI::Property("Root Motion Lock Position", s_LockStrings, bLockPositions, "Locked axes of the root motion aren't applied. For example, lock Y to see how it moves on the ground"))
-				{
-					m_Component->SetRootMotionLockFlag(RootMotionLockFlag::PositionX, bLockPositions[0]);
-					m_Component->SetRootMotionLockFlag(RootMotionLockFlag::PositionY, bLockPositions[1]);
-					m_Component->SetRootMotionLockFlag(RootMotionLockFlag::PositionZ, bLockPositions[2]);
-				}
-
-				if (UI::Property("Camera Follows", m_bCameraFollows, "The camera moves with the preview, so it stays in view") && m_bCameraFollows)
-					FocusCameraOnPreview();
-				if (UI::Button("Preview Location", "Reset"))
-					ResetRootMotionPreview();
-			}
-			if (bDisable)
-				UI::PopItemDisabled();
-
 			UI::EndPropertyGrid();
+			ImGui::Separator();
 
-			if (!animation->HasRootMotion())
-				ImGui::TextWrapped("The animation has no root motion enabled. To extract it, set its `Root Motion Mode`");
-			else if (animation->Settings.bInPlace)
-				ImGui::TextWrapped("The animation is `In Place`, so its root motion isn't applied");
+			if (UI::PushTreeNode("Root Motion", true))
+			{
+				UI::BeginPropertyGrid("AnimationDetails_RootMotion");
+
+				if (UI::ComboEnum("Root Motion Preview", m_RootMotionPreview, s_RootMotionPreviewHelpMsg))
+					ResetRootMotionPreview();
+
+				const bool bDisable = m_RootMotionPreview == RootMotionPreview::InPlace;
+				if (bDisable)
+					UI::PushItemDisabled();
+				{
+					static const std::vector<std::string> s_LockStrings = { "X", "Y", "Z" };
+					const RootMotionLockFlag lockFlags = m_Component->GetRootMotionLockFlags();
+					bool bLockPositions[3] = { HasFlags(lockFlags, RootMotionLockFlag::PositionX), HasFlags(lockFlags, RootMotionLockFlag::PositionY), HasFlags(lockFlags, RootMotionLockFlag::PositionZ) };
+					if (UI::Property("Lock Position", s_LockStrings, bLockPositions, "Locked axes of the root motion aren't applied. For example, lock Y to see how it moves on the ground"))
+					{
+						m_Component->SetRootMotionLockFlag(RootMotionLockFlag::PositionX, bLockPositions[0]);
+						m_Component->SetRootMotionLockFlag(RootMotionLockFlag::PositionY, bLockPositions[1]);
+						m_Component->SetRootMotionLockFlag(RootMotionLockFlag::PositionZ, bLockPositions[2]);
+					}
+
+					bool bLockRotation = HasFlags(lockFlags, RootMotionLockFlag::Rotation);
+					if (UI::Property("Lock Rotation", bLockRotation, "If locked, root motion doesn't turn the preview, it only moves it"))
+						m_Component->SetRootMotionLockFlag(RootMotionLockFlag::Rotation, bLockRotation);
+
+					if (UI::Property("Camera Follows", m_bCameraFollows, "The camera moves with the preview, so it stays in view") && m_bCameraFollows)
+						FocusCameraOnPreview();
+					if (UI::Button("Preview Location", "Reset"))
+						ResetRootMotionPreview();
+				}
+				if (bDisable)
+					UI::PopItemDisabled();
+
+				UI::EndPropertyGrid();
+
+				if (!animation->HasRootMotion())
+					ImGui::TextWrapped("The animation has no root motion enabled. To extract it, set its `Root Motion Mode`");
+				else if (animation->Settings.bInPlace)
+					ImGui::TextWrapped("The animation is `In Place`, so its root motion isn't applied");
+
+				UI::PopTreeNode();
+			}
 
 			UI::PopTreeNode();
 		}
@@ -313,14 +326,7 @@ namespace Eagle
 			camera.SetLocation(camera.GetLocation() + (after - before));
 		}
 
-		constexpr float minTrailStep = 0.02f;
-		constexpr size_t maxTrailPoints = 4096;
-		if (m_Trail.empty() || glm::distance(m_Trail.back(), after) > minTrailStep)
-		{
-			if (m_Trail.size() >= maxTrailPoints)
-				m_Trail.erase(m_Trail.begin(), m_Trail.begin() + maxTrailPoints / 2);
-			m_Trail.push_back(after);
-		}
+		m_RootMotionPath.AddLocation(after);
 	}
 
 	void AnimationAssetEditor::ResetRootMotionPreview()
@@ -335,8 +341,7 @@ namespace Eagle
 			camera.SetLocation(camera.GetLocation() - before);
 		}
 
-		m_Trail.clear();
-		m_Trail.push_back(glm::vec3(0.f));
+		m_RootMotionPath.Reset(glm::vec3(0.f));
 	}
 
 	glm::vec3 AnimationAssetEditor::GetPreviewCenter() const
@@ -356,46 +361,7 @@ namespace Eagle
 		if (m_RootMotionPreview == RootMotionPreview::InPlace)
 			return;
 
-		auto& scene = GetCurrentScene();
-		auto drawLine = [&scene](const glm::vec3& start, const glm::vec3& end, const glm::vec3& color)
-		{
-			RendererLine line;
-			line.Start.Location = start;
-			line.Start.Color = color;
-			line.End.Location = end;
-			line.End.Color = color;
-			scene->DrawDebugLine(line);
-		};
-
-		// Slightly above the ground, so that the grid doesn't hide it
-		const glm::vec3 lift = glm::vec3(0.f, 0.01f, 0.f);
-
-		// Where it started
-		const glm::vec3 startColor = glm::vec3(1.f);
-		constexpr float crossSize = 0.15f;
-		drawLine(lift + glm::vec3(-crossSize, 0.f, -crossSize), lift + glm::vec3(crossSize, 0.f, crossSize), startColor);
-		drawLine(lift + glm::vec3(-crossSize, 0.f, crossSize), lift + glm::vec3(crossSize, 0.f, -crossSize), startColor);
-
-		// Where it went
-		const glm::vec3 trailColor = glm::vec3(1.f, 0.75f, 0.1f);
-		for (size_t i = 1; i < m_Trail.size(); ++i)
-			drawLine(m_Trail[i - 1] + lift, m_Trail[i] + lift, trailColor);
-
-		// Where it faces, to see root motion rotation
-		Entity& entity = m_Component->Parent;
-		const glm::vec3 location = entity.GetWorldLocation() + lift;
-		glm::vec3 forward = entity.GetForwardVector();
-		forward.y = 0.f;
-		if (glm::dot(forward, forward) > 1e-6f)
-		{
-			forward = glm::normalize(forward);
-			const glm::vec3 right = glm::vec3(-forward.z, 0.f, forward.x);
-			const glm::vec3 tip = location + forward * 0.6f;
-			const glm::vec3 arrowColor = glm::vec3(0.2f, 0.8f, 1.f);
-			drawLine(location, tip, arrowColor);
-			drawLine(tip, tip - forward * 0.15f + right * 0.08f, arrowColor);
-			drawLine(tip, tip - forward * 0.15f - right * 0.08f, arrowColor);
-		}
+		GetCurrentScene()->DrawRootMotionPath(m_RootMotionPath, m_Component->Parent.GetWorldTransform());
 	}
 
 	AnimationAssetEditor::RootMotionStats AnimationAssetEditor::CalculateRootMotionStats(const SkeletalMeshAnimation& animation)

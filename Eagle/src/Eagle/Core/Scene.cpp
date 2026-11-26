@@ -723,6 +723,7 @@ namespace Eagle
 		AnimationSystem::UpdateRagdolls(*this, m_Ragdolls, m_AnimationTransforms);
 		UpdateSceneSequences(ts, true);
 		UpdateAudioProcessing();
+		DrawRootMotionDebug();
 
 		if (bCameraOverrideValid)
 			AudioEngine::SetListenerData(m_OverrideViewPos, m_OverrideViewDir, m_OverrideViewUp);

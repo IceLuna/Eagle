@@ -245,7 +245,34 @@ namespace Eagle
     enum class RootMotionLockFlag
     {
         None = 0,
-        PositionX = BIT(0), PositionY = BIT(1), PositionZ = BIT(2), Position = PositionX | PositionY | PositionZ
+        PositionX = BIT(0), PositionY = BIT(1), PositionZ = BIT(2),
+        Position = PositionX | PositionY | PositionZ,
+        Rotation = BIT(3),
     };
     DECLARE_FLAGS(RootMotionLockFlag);
+
+    // The path an entity moved along. Used for the debug rendering of root motion
+    class RootMotionPath
+    {
+    public:
+        struct Point
+        {
+            glm::vec3 Location;
+            bool bRootMotion; // Whether root motion moved the entity there
+        };
+
+        void Reset(const glm::vec3& location);
+        void Clear() { m_Points.clear(); }
+        bool IsEmpty() const { return m_Points.empty(); }
+
+        // Adds where the entity is now. If the path is empty, it starts there
+        void AddLocation(const glm::vec3& location, bool bRootMotion = true);
+
+        const std::vector<Point>& GetPoints() const { return m_Points; }
+        const glm::vec3& GetStart() const { return m_Start; }
+
+    private:
+        std::vector<Point> m_Points;
+        glm::vec3 m_Start = glm::vec3(0.f);
+    };
 }

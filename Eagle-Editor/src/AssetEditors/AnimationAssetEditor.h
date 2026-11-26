@@ -67,7 +67,7 @@ namespace Eagle
 		bool m_bCameraFollows = true;
 		float m_CameraFollowDistance = 1.f; // From the camera to the preview's center, while the camera follows it
 		glm::vec3 m_PreviewCenterOffset = glm::vec3(0.f); // The center of the mesh relative to its entity
-		std::vector<glm::vec3> m_Trail;
+		RootMotionPath m_RootMotionPath;
 		float m_LastPoseTime = 0.f; // To detect when the animation loops
 
 		// Recalculated when the root motion keys change
