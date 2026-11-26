@@ -57,6 +57,28 @@ namespace Eagle
 		return POINT{ info.rcWork.left - info.rcMonitor.left, info.rcWork.top - info.rcMonitor.top };
 	}
 
+	static GLFWmonitor* GetMonitorOfWindow(HWND hwnd)
+	{
+		MONITORINFOEXW info{};
+		info.cbSize = sizeof(info);
+		if (GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &info))
+		{
+			char deviceName[64]{};
+			WideCharToMultiByte(CP_UTF8, 0, info.szDevice, -1, deviceName, int(sizeof(deviceName)), nullptr, nullptr);
+
+			int count = 0;
+			GLFWmonitor** monitors = glfwGetMonitors(&count);
+			for (int i = 0; i < count; ++i)
+			{
+				const char* name = glfwGetWin32Adapter(monitors[i]);
+				if (name && strcmp(name, deviceName) == 0)
+					return monitors[i];
+			}
+		}
+
+		return glfwGetPrimaryMonitor();
+	}
+
 	static void ApplyWindowPlacement(HWND hwnd, const WindowPlacement& placement, UINT showCommand)
 	{
 		const RECT insets = GetFrameInsets(hwnd);
@@ -401,12 +423,13 @@ namespace Eagle
 			CustomWindowFrame::SetEnabled(GetNativeWindow(), false);
 
 		m_Props.Fullscreen = bFullscreen;
-		GLFWmonitor* monitor = bFullscreen ? glfwGetPrimaryMonitor() : nullptr;
-		const GLFWvidmode* mode = bFullscreen ? glfwGetVideoMode(monitor) : nullptr;
+		GLFWmonitor* monitor = bFullscreen ? GetMonitorOfWindow((HWND)GetNativeWindow()) : nullptr;
+		const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
 
 		glm::ivec2 windowSize = mode ? glm::ivec2(mode->width, mode->height) : glm::ivec2(GetWindowSize());
+		const int refreshRate = mode ? mode->refreshRate : GLFW_DONT_CARE;
 		const glm::ivec2 windowPos = GetWindowPos();
-		glfwSetWindowMonitor(m_Window, monitor, windowPos.x, windowPos.y, windowSize.x, windowSize.y, GLFW_DONT_CARE);
+		glfwSetWindowMonitor(m_Window, monitor, windowPos.x, windowPos.y, windowSize.x, windowSize.y, refreshRate);
 		glfwGetWindowSize(m_Window, &windowSize.x, &windowSize.y);
 		m_Props.Width = uint32_t(windowSize.x);
 		m_Props.Height = uint32_t(windowSize.y);
