@@ -150,6 +150,7 @@ void main()
             s_InstanceCount = 0;
             s_UnculledInstanceCount = 0;
         }
+        barrier();
 
         for (uint i = threadIndex; i < materialData.InstanceCount; i += GROUP_SIZE)
         {

@@ -242,7 +242,7 @@ namespace Eagle
 	{
 		std::vector<MeshDrawData> DrawData;
 		
-		// Just a meta data indicating how many draw call it would require to draw this mesh and all of it's instances
+		// Indicates how many draw calls it would require to draw this mesh and all of it's instances
 		// Used to allocate enough memory for indirect draw calls
 		uint32_t DrawCallsCount = 0;
 
@@ -255,12 +255,24 @@ namespace Eagle
 
 	struct MeshesDrawLists
 	{
-		struct
+		struct SideDrawLists
 		{
 			// All meshes
 			MeshDrawDataInfo Opaque;
 			MeshDrawDataInfo Translucent;
 			MeshDrawDataInfo Masked;
+
+			const MeshDrawDataInfo& Get(MaterialBlendMode m) const
+			{
+				switch (m)
+				{
+					case MaterialBlendMode::Opaque:      return Opaque;
+					case MaterialBlendMode::Masked:      return Masked;
+					case MaterialBlendMode::Translucent: return Translucent;
+				}
+				EG_CORE_ASSERT(false);
+				return Opaque;
+			}
 
 			void Clear()
 			{

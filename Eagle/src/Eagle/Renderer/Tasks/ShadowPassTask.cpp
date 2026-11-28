@@ -1041,7 +1041,7 @@ namespace Eagle
 				if (bTexturesDirty)
 				{
 					m_TranslucentSMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
-					m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+					m_TranslucentSkeletalMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsRawBuffer(), EG_PERSISTENT_SET, EG_BINDING_RAW_MATERIALS);
@@ -1488,9 +1488,9 @@ namespace Eagle
 			for (size_t i = 0; i < m_PointLightIndices.size(); ++i)
 			{
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &i, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &i, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &i, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &i, stats, framebuffers[i]);
 			}
 		}
 
@@ -1523,9 +1523,9 @@ namespace Eagle
 				const auto& viewProj = lightMatrices[spotLight.ViewProjOffset];
 
 				cmd->SetGraphicsCullMode(CullMode::Front);
-				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, singleSided.Masked.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 				cmd->SetGraphicsCullMode(CullMode::None);
-				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Opaque.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
+				RenderSpritesTask::Draw(cmd, pipeline, doubleSided.Masked.ShadowCastingQuads, &viewProj, stats, framebuffers[i]);
 			}
 		}
 	}
